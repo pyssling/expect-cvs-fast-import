@@ -94,18 +94,6 @@ SOURCE=.\expWinSlave.hpp
 # End Group
 # Begin Source File
 
-SOURCE=.\expWinClientTransport.hpp
-# End Source File
-# Begin Source File
-
-SOURCE=.\expWinClientTransportConio.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=.\expWinClientTransportStdio.cpp
-# End Source File
-# Begin Source File
-
 SOURCE=.\expWinConsoleDebugger.cpp
 # End Source File
 # Begin Source File
@@ -143,6 +131,18 @@ SOURCE=.\expWinSlaveTrap.hpp
 # Begin Source File
 
 SOURCE=.\expWinSlaveTrapDbg.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\expWinTestClient.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\expWinTestClientConio.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\expWinTestClientStdio.cpp
 # End Source File
 # Begin Source File
 

@@ -23,7 +23,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinSlave.hpp,v 1.1.4.11 2002/06/22 14:02:03 davygrvy Exp $
+ * RCS: @(#) $Id: expWinSlave.hpp,v 1.1.4.12 2002/06/23 09:22:45 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 #ifndef INC_expWinSlave_hpp__
@@ -39,7 +39,7 @@ void ShutdownTcl (void);
 #include "slavedrvmc.h"
 #include "expWinUtils.hpp"
 #include "expWinMessage.hpp"
-#include "expWinClientTransport.hpp"
+#include "expWinTestClient.hpp"
 #include "expWinConsoleDebugger.hpp"
 #include "expWinSlaveTrap.hpp"
 

@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinSlaveMain.cpp,v 1.1.4.23 2002/06/25 08:40:50 davygrvy Exp $
+ * RCS: @(#) $Id: expWinSlaveMain.cpp,v 1.1.4.24 2002/06/27 03:43:34 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -30,9 +30,9 @@
 
 
 // local protos
-static ClientTransport *OpenClientTransport(const char *, CMclQueue<Message *> &);
+static TestClient *OpenTestClient(const char *, CMclQueue<Message *> &);
 static SlaveTrap *SlaveOpenTrap(const char *, int, char * const *, CMclQueue<Message *> &);
-static int DoEvents(ClientTransport *, SlaveTrap *, CMclQueue<Message *> &, CMclEvent &);
+static int DoEvents(TestClient *, SlaveTrap *, CMclQueue<Message *> &, CMclEvent &);
 static char *OurGetCmdLine();
 
 // Turns on/off special debugger hooks used in development.
@@ -47,7 +47,7 @@ main (void)
 {
     int argc;			    // Number of command-line arguments.
     char **argv;		    // Values of command-line arguments.
-    ClientTransport *transport;	    // class pointer of transport client.
+    TestClient *client;		    // class pointer of transport client.
     SlaveTrap *slave;		    // trap method class pointer.
     CMclQueue<Message *> messageQ;  // Our message Queue we hand off to everyone.
     CMclEvent Shutdown;		    // global shutdown for the event queue.
@@ -75,7 +75,7 @@ main (void)
     //  Open the client side of our IPC transport that connects us back
     //  to the parent (ie. the Expect extension).
     //
-    transport = OpenClientTransport(argv[1], messageQ);
+    client = OpenTestClient(argv[1], messageQ);
 
     //  Start the process to be intercepted within the trap method requested
     //  on the commandline (ie. run telnet in a debugger and trap OS calls).
@@ -84,7 +84,7 @@ main (void)
 
     //  Process messages.
     //
-    code = DoEvents(transport, slave, messageQ, Shutdown);
+    code = DoEvents(client, slave, messageQ, Shutdown);
 
     //  Close up.
     //
@@ -94,7 +94,7 @@ main (void)
 
 /*
  *----------------------------------------------------------------------
- *  SpawnOpenTransport --
+ *  OpenTestClient --
  *
  *	The factory method for creating the client IPC transport from
  *	the name asked of it.
@@ -105,8 +105,8 @@ main (void)
  *----------------------------------------------------------------------
  */
 
-ClientTransport *
-OpenClientTransport(const char *method, CMclQueue<Message *> &mQ)
+TestClient *
+OpenTestClient(const char *method, CMclQueue<Message *> &mQ)
 {
     if (!strcmp(method, "stdio")) {
 	return new ClientStdio(method, mQ);
@@ -159,7 +159,7 @@ SlaveOpenTrap(const char *method, int argc, char * const argv[],
  */
 
 int
-DoEvents(ClientTransport *transport, SlaveTrap *slave,
+DoEvents(TestClient *client, SlaveTrap *slave,
     CMclQueue<Message *> &msgQ, CMclEvent &sd)
 {
     Message *msg;
@@ -171,7 +171,7 @@ DoEvents(ClientTransport *transport, SlaveTrap *slave,
 	case Message::TYPE_ERROR:
 	    //  Send stuff back to the parent.
 	    //
-	    transport->Write(msg);
+	    client->Write(msg);
 	    break;
 
 	case Message::TYPE_INRECORD:
@@ -193,7 +193,7 @@ DoEvents(ClientTransport *transport, SlaveTrap *slave,
 
 	case Message::TYPE_SLAVEDONE:
 	    delete slave;
-	    delete transport;
+	    delete client;
 	    return 0;
 	}
     }
