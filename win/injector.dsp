@@ -47,7 +47,7 @@ RSC=rc.exe
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
-# ADD RSC /l 0x409 /d "NDEBUG"
+# ADD RSC /l 0x409 /i "..\generic" /i "d:\tcl_workspace\tcl_head_stock\generic" /d "NDEBUG"
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
@@ -91,6 +91,10 @@ LINK32=link.exe
 # Begin Source File
 
 SOURCE=.\expWinInjectorMain.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\inject.rc
 # End Source File
 # End Target
 # End Project

@@ -23,7 +23,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinInjectorMain.cpp,v 1.1.2.1 2002/06/19 04:06:25 davygrvy Exp $
+ * RCS: @(#) $Id: expWinInjectorMain.cpp,v 1.1.2.2 2002/06/19 06:29:23 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -90,7 +90,7 @@ DllMain (HINSTANCE hInst, ULONG ulReason, LPVOID lpReserved)
 	console = CreateFile("CONOUT$", GENERIC_WRITE,
 		FILE_SHARE_READ|FILE_SHARE_WRITE, 0L, OPEN_EXISTING, 0, 0L);
 
-	inject = new Injector(console, &die);
+	inject = new Injector(console, &interrupt);
 	injectorThread = new CMclThread(inject);
 	break;
 
