@@ -400,7 +400,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 	     */
 	    
 	    for (tokenPtr = parse.tokenPtr; numWords > 0;
-		 tokenPtr += (tokenPtr->numComponents + 1)) {
+		 numWords--, tokenPtr += (tokenPtr->numComponents + 1)) {
 		objs[objc] = Tcl_EvalTokens(interp, tokenPtr+1,
 			tokenPtr->numComponents);
 		if (objv[objc] == NULL) {

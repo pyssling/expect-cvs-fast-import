@@ -513,8 +513,8 @@ dnl    AC_SUBST(TK_EXEC_PREFIX)
 # be used instead of TK_BUILD_LIB_SPEC
 SAVELIBS=$LIBS
 # eval used to expand out TK_DBGX
-eval "LIBS=\"$TK_BUILD_LIB_SPEC $TK_LIBS\""
-AC_CHECK_FUNC(Tk_Main,[
+eval "LIBS=\"$TK_BUILD_LIB_SPEC $TCL_BUILD_LIB_SPEC $TK_LIBS\""
+AC_CHECK_FUNC(Tk_Init,[
 	AC_MSG_CHECKING([if Tk library build specification is valid])
 	AC_MSG_RESULT(yes)
 ],[
