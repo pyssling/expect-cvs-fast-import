@@ -1,3 +1,8 @@
+2001-11-18  David Gravereaux <davygrvy@pobox.com>
+
+	* src/CMclMailbox.cpp:  2001-11-07 eratta change.  See
+	http://www.bearcanyon.com/mtbook/errata.htm#source
+
 2000-09-16  davidg
 	* include/CMclLinkedLists.h:
 		Put back the protected access to CMclLinkedList for both CMclStack and
@@ -83,40 +88,6 @@ CMclQueue templates as I would like to offer the internals to derived classes
 	* Mcl.dsp:
 		gotcha...  irc_engine now compiles.. next it gets
 converted to using Tcl Tcp channels for sockets.
-
-2000-08-05  davidg
-	* .cvsignore:
-	* CMcl.h:
-	* CMclAutoLock.cpp:
-	* CMclAutoLock.h:
-	* CMclAutoPtr.cpp:
-	* CMclAutoPtr.h:
-	* CMclCritSec.cpp:
-	* CMclCritSec.h:
-	* CMclEvent.cpp:
-	* CMclEvent.h:
-	* CMclGlobal.cpp:
-	* CMclGlobal.h:
-	* CMclKernel.cpp:
-	* CMclKernel.h:
-	* CMclLinkedLists.h:
-	* CMclMailbox.cpp:
-	* CMclMailbox.h:
-	* CMclMonitor.cpp:
-	* CMclMonitor.h:
-	* CMclMutex.cpp:
-	* CMclMutex.h:
-	* CMclSemaphore.cpp:
-	* CMclSemaphore.h:
-	* CMclSharedMemory.cpp:
-	* CMclSharedMemory.h:
-	* CMclThread.cpp:
-	* CMclThread.h:
-	* CMclWaitableCollection.cpp:
-	* CMclWaitableCollection.h:
-	* CMclWaitableObject.h:
-	* Mcl.dsp:
-		ack!!  why did I get all these fucked-up <EOL> things??
 
 2000-04-19  davygrvy
 	* .cvsignore:
