@@ -17,6 +17,7 @@
  *	work by Gordon Chaffee <chaffee@bmrc.berkeley.edu> for the WinNT port.
  *
  * Copyright (c) 2001-2002 Telindustrie, LLC
+ * Copyright (c) 2003 ActiveState Corporation
  *	work by David Gravereaux <davygrvy@pobox.com> for any Win32 OS.
  *
  * ----------------------------------------------------------------------------
@@ -24,7 +25,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinConsoleDebuggerBreakPoints.cpp,v 1.1.2.15 2002/06/29 02:11:06 davygrvy Exp $
+ * RCS: @(#) $Id: expWinConsoleDebuggerBreakPoints.cpp,v 1.1.2.16 2003/08/25 23:17:49 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 

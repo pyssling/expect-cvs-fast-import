@@ -16,6 +16,7 @@
  *	work by Gordon Chaffee <chaffee@bmrc.berkeley.edu> for the WinNT port.
  *
  * Copyright (c) 2001-2002 Telindustrie, LLC
+ * Copyright (c) 2003 ActiveState Corporation
  *	work by David Gravereaux <davygrvy@pobox.com> for any Win32 OS.
  *
  * ----------------------------------------------------------------------------
@@ -23,7 +24,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinSlave.hpp,v 1.1.4.14 2002/07/03 02:47:44 davygrvy Exp $
+ * RCS: @(#) $Id: expWinSlave.hpp,v 1.1.4.15 2003/08/25 23:17:49 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 #ifndef INC_expWinSlave_hpp__
@@ -35,7 +36,7 @@ void DynloadTclStubs (void);
 void ShutdownTcl (void);
 
 
-#include "Mcl/include/CMcl.h"
+#include "CMcl.h"
 #include "slavedrvmc.h"
 #include "expWinUtils.hpp"
 #include "expWinMessage.hpp"

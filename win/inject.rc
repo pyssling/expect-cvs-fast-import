@@ -15,6 +15,7 @@
  *	work by Gordon Chaffee <chaffee@bmrc.berkeley.edu> for the WinNT port.
  *
  * Copyright (c) 2001-2002 Telindustrie, LLC
+ * Copyright (c) 2003 ActiveState Corporation
  *	work by David Gravereaux <davygrvy@pobox.com> for any Win32 OS.
  *
  * ----------------------------------------------------------------------------
@@ -22,7 +23,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: slavedrv.rc,v 1.1.2.3 2002/06/18 22:51:31 davygrvy Exp $
+ * RCS: @(#) $Id: inject.rc,v 1.1.2.1 2002/06/19 06:42:45 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -51,7 +52,7 @@ BEGIN
             VALUE "OriginalFilename",	"inject.dll\0"
             VALUE "CompanyName",	"Telindustrie, LLC\0"
             VALUE "FileVersion",	"1.0a0" "\0"
-            VALUE "LegalCopyright",	"Copyright \251 Telindustrie, LLC 2002\0"
+            VALUE "LegalCopyright",	"Copyright \251 Telindustrie, LLC 2002\r\nCopyright \251 2003 by ActiveState Corporation\0"
             VALUE "ProductName",	"Expect " EXP_VERSION " for Win32\0"
             VALUE "ProductVersion",	EXP_PATCH_LEVEL "\0"
 	    VALUE "Comments",		"Expect was written for Unix by Don Libes at NIST.\r\n" "Gordon Chaffee ported it to WinNT for Mitel Corporation in 1997.\r\n" "David Gravereaux merged Gordon's port back into the official sources for Telindustrie LLC in Oct. 2001.\0"

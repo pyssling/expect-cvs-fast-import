@@ -20,6 +20,7 @@
  *	work by Gordon Chaffee <chaffee@bmrc.berkeley.edu> for the WinNT port.
  *
  * Copyright (c) 2001-2002 Telindustrie, LLC
+ * Copyright (c) 2003 ActiveState Corporation
  *	work by David Gravereaux <davygrvy@pobox.com> for any Win32 OS.
  *
  * ----------------------------------------------------------------------------
@@ -27,7 +28,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: MsvcDbgControl.h,v 1.1.2.5 2002/03/12 23:12:59 davygrvy Exp $
+ * RCS: @(#) $Id: MsvcDbgControl.h,v 1.1.2.6 2003/08/25 23:17:49 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 

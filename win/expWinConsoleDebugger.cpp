@@ -15,6 +15,7 @@
  *	work by Gordon Chaffee <chaffee@bmrc.berkeley.edu> for the WinNT port.
  *
  * Copyright (c) 2001-2002 Telindustrie, LLC
+ * Copyright (c) 2003 ActiveState Corporation
  *	work by David Gravereaux <davygrvy@pobox.com> for any Win32 OS.
  *
  * ----------------------------------------------------------------------------
@@ -22,7 +23,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinConsoleDebugger.cpp,v 1.1.2.32 2003/08/25 23:17:49 davygrvy Exp $
+ * RCS: @(#) $Id: expWinConsoleDebugger.cpp,v 1.1.2.33 2003/08/26 00:14:38 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -1572,6 +1573,7 @@ ConsoleDebugger::OnXBreakpoint(Process *proc, LPDEBUG_EVENT pDebEvent)
 
     if (brkpt == 0L) {
 	// shouldn't happen, but does..
+	// ask td32 for a new OS shell in a seperate console and this happens.
 	return;
     }
 
