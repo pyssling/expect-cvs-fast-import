@@ -26,7 +26,7 @@ set passwd $expect_out(1,string)
 send "Again:"
 expect -re "(.*)\n"
 send "\n"
-if ![string match $passwd $expect_out(1,string)] {
+if {![string match $passwd $expect_out(1,string)]} {
     send_user "mistyped password?\n"
     stty echo
     exit
@@ -36,19 +36,19 @@ stty echo
 log_user 0
 foreach f [glob *] {
     # strip shell metachars from filename to avoid problems
-    if [regsub -all {[]['`~<>:-]} $f "" newf] {
+    if {[regsub -all {[]['`~<>:-]} $f "" newf]} {
 	exec mv $f $newf
 	set f $newf
     }
 
     set strcmp [string compare .crypt [file extension $f]]
-    if $decrypt {
+    if {$decrypt} {
 	# skip files that don't end with ".crypt"
-	if 0!=$strcmp continue
+	if {0!=$strcmp} continue
 	spawn sh -c "exec crypt < $f > [file root $f]"
     } else {
 	# skip files that already end with ".crypt"
-	if 0==$strcmp continue
+	if {0==$strcmp} continue
 	spawn sh -c "exec crypt < $f > $f.crypt"
     }
     expect "key:"

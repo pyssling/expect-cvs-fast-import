@@ -78,7 +78,7 @@ would appreciate credit if this program or parts of it are used.
  * See the file "license.terms" for information on usage and redistribution
  * of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  *
- * RCS: @(#) $Id: exp_clib.c,v 5.28.1.1.2.4 1999/06/16 03:02:33 don Exp $
+ * RCS: @(#) $Id: exp_clib.c,v 5.28.1.1.2.5 1999/06/28 06:29:23 libes Exp $
  */
 
 #ifndef _STDLIB
@@ -130,7 +130,7 @@ extern unsigned long	strtoul _ANSI_ARGS_((CONST char *string,
  * See the file "license.terms" for information on usage and redistribution
  * of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  *
- * RCS: @(#) $Id: exp_clib.c,v 5.28.1.1.2.4 1999/06/16 03:02:33 don Exp $
+ * RCS: @(#) $Id: exp_clib.c,v 5.28.1.1.2.5 1999/06/28 06:29:23 libes Exp $
  */
 
 #ifndef _TCL
@@ -1260,7 +1260,7 @@ EXTERN int		Tcl_AppInit _ANSI_ARGS_((Tcl_Interp *interp));
  * Caveat:  this is V8 regexp(3) [actually, a reimplementation thereof],
  * not the System V one.
  *
- * RCS: @(#) $Id: exp_clib.c,v 5.28.1.1.2.4 1999/06/16 03:02:33 don Exp $
+ * RCS: @(#) $Id: exp_clib.c,v 5.28.1.1.2.5 1999/06/28 06:29:23 libes Exp $
  */
 
 #ifndef _REGEXP
@@ -1351,7 +1351,7 @@ EXTERN char *TclGetRegError _ANSI_ARGS_((void));
  * *** 2. This in addition to changes to TclRegError makes the   ***
  * ***    code multi-thread safe.                                ***
  *
- * RCS: @(#) $Id: exp_clib.c,v 5.28.1.1.2.4 1999/06/16 03:02:33 don Exp $
+ * RCS: @(#) $Id: exp_clib.c,v 5.28.1.1.2.5 1999/06/28 06:29:23 libes Exp $
  */
 
 #if ACK
@@ -2723,7 +2723,6 @@ static struct f {
 
 	char *buffer;		/* buffer of matchable chars */
 	char *buffer_end;	/* one beyond end of matchable chars */
-	/*char *match;		/* start of matched string */
 	char *match_end;	/* one beyond end of matched string */
 	int msize;		/* size of allocate space */
 				/* actual size is one larger for null */
@@ -3112,9 +3111,6 @@ when trapping, see below in child half of fork */
 	close(sync_fds[1]);
 
 	/* wait for master to let us go on */
-	/* exp_debuglog("child: waiting for go ahead from parent\r\n"); */
-
-/*	close(master);	/* force master-side close so we can read */
 	cc = read(sync2_fds[0],&sync_byte,1);
 	if (cc == -1) {
 		restore_error_fd

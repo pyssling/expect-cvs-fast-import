@@ -62,8 +62,7 @@ Tcl_ChannelType expChannelType = {
     NULL,				/* Get option proc. */
     ExpWatchProc,			/* Initialize notifier. */
     ExpGetHandleProc,			/* Get OS handles out of channel. */
-/* uncomment as necessary
-/*  NULL,				/* Close2 proc */
+    NULL,				/* Close2 proc */
 };
 
 typedef struct ThreadSpecificData {
@@ -408,7 +407,7 @@ Tcl_Interp *interp;
 /* wait for any of our own spawned processes we call waitpid rather
  * than wait to avoid running into someone else's processes.  Yes,
  * according to Ousterhout this is the best way to do it.
-/* returns the ExpState or 0 if nothing to wait on */
+ * returns the ExpState or 0 if nothing to wait on */
 ExpState *
 expWaitOnAny()
 {

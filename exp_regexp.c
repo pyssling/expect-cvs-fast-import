@@ -994,7 +994,7 @@ char *prog;
 			} else {
 				return(EXP_MATCH);
 			}
-/*			return(EXP_CANMATCH);	/* Success! */
+			/* return(EXP_CANMATCH);  Success! */
 			/* NOTREACHED */
 			break;
 		default:

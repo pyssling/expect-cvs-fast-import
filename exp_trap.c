@@ -158,7 +158,7 @@ int code;
 #ifdef REARM_SIG
 int sigchld_sleep;
 static int rearm_sigchld = FALSE;	/* TRUE if sigchld needs to be */
-					/* rearmed (i.e., because it has
+					/* rearmed (i.e., because it has */
 					/* just gone off) */
 static int rearming_sigchld = FALSE;
 #endif

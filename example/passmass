@@ -32,7 +32,7 @@
 
 exp_version -exit 5.0
 
-if $argc==0 {
+if {$argc==0} {
 	send_user "usage: $argv0 host1 host2 host3 . . .\n"
 	exit
 }
@@ -81,7 +81,7 @@ if ![string match $password(new) $password(newcheck)] {
 #send_user "want to see new password you just typed? (y|n) "
 #expect_user "*\n"
 #
-#if [string match "y" [lindex $expect_match 0 c]] {
+#if {[string match "y" [lindex $expect_match 0 c]]} {
 #	send_user "password is <$password(new)>\nproceed? (y|n) "
 #	expect_user "*\n"
 #	if ![string match "y" [lindex $expect_match 0 c]] exit
@@ -121,11 +121,11 @@ for {set i 0} {$i<$argc} {incr i} {
 		}
 
 	set host $arg
-	if [string match $login "rlogin"] {
+	if {[string match $login "rlogin"]} {
 		set pid [spawn rlogin $host -l $user]
-	} elseif [string match $login "slogin"] {
+	} elseif {[string match $login "slogin"]} {
 		set pid [spawn slogin $host -l $user]
-	} elseif [string match $login "ssh"] {
+	} elseif {[string match $login "ssh"]} {
 		set pid [spawn ssh $host -l $user]
 	} else {
 		set pid [spawn telnet $host]
@@ -135,7 +135,7 @@ for {set i 0} {$i<$argc} {incr i} {
 	}
 
 	if ![info exists prompt] {
-		if [string match $user "root"] {
+		if {[string match $user "root"]} {
 			set prompt "# "
 		} else {
 			set prompt "(%|\\\$) "
@@ -143,7 +143,7 @@ for {set i 0} {$i<$argc} {incr i} {
 	}
 
 	set logged_in 0
-	for {} 1 {} {
+	while {1} {
 		expect "Password*" {
 			send "$password(old)\r"
 		} eof {
@@ -194,4 +194,4 @@ for {set i 0} {$i<$argc} {incr i} {
 	wait
 }
 
-if [llength $badhosts] {send_user "\nfailed to set password on $badhosts\n"}
+if {[llength $badhosts]} {send_user "\nfailed to set password on $badhosts\n"}

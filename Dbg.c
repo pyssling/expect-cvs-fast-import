@@ -153,10 +153,8 @@ Tcl_RegExp re;
 Tcl_Obj *objPtr;
 {
     Tcl_RegExpInfo info;
-    int i, start /*, end*/;
+    int i, start;
     char name[20];
-    /* char match_char;/* place to hold char temporarily */
-    /* uprooted by a NULL */
 
     Tcl_GetRegExpInfo(re, &info); 
     for (i=0;i<=info.nsubs;i++) {
@@ -167,7 +165,7 @@ Tcl_Obj *objPtr;
 
 	sprintf(name,"%d",i);
 	Tcl_SetVar2Ex(interp, Dbg_VarName, name, Tcl_GetRange(objPtr,
-		info.matches[i].start, info.matches[i].end), 0);
+		info.matches[i].start, info.matches[i].end-1), 0);
     }
 }
 

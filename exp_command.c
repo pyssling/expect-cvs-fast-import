@@ -772,6 +772,10 @@ when trapping, see below in child half of fork */
 
 #define SPAWN_OUT "spawn_out"
 	Tcl_SetVar2(interp,SPAWN_OUT,"slave,name",exp_pty_slave_name,0);
+
+	if (pty_only) {
+	  write_master = master;
+	}
     } else {
 	/*
 	 * process "-open $channel"
@@ -1176,10 +1180,6 @@ when trapping, see below in child half of fork */
 	close(sync_fds[1]);
 
 	/* wait for master to let us go on */
-	/* expDiagLog("child: waiting for go ahead from parent\r\n"); */
-
-	/* close(master);	/* force master-side close so we can read */
-
 	while (((rc = read(sync2_fds[0],&sync_byte,1)) < 0) && (errno == EINTR)) {
 		/* empty */;
 	}

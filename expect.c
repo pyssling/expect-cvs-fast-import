@@ -454,13 +454,13 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 	    static char *flags[] = {
 		"-glob", "-regexp", "-exact", "-notransfer", "-nocase",
 		"-i", "-indices", "-iread", "-timestamp", "-timeout",
-		"-nobrace", (char *)0
+		"-nobrace", "--", (char *)0
 	    };
 	    enum flags {
 		EXP_ARG_GLOB, EXP_ARG_REGEXP, EXP_ARG_EXACT,
 		EXP_ARG_NOTRANSFER, EXP_ARG_NOCASE, EXP_ARG_SPAWN_ID,
 		EXP_ARG_INDICES, EXP_ARG_IREAD, EXP_ARG_TIMESTAMP,
-		EXP_ARG_DASH_TIMEOUT, EXP_ARG_NOBRACE
+		EXP_ARG_DASH_TIMEOUT, EXP_ARG_NOBRACE, EXP_ARG_DASH
 	    };
 
 	    /*
@@ -474,6 +474,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 	    }
 	    switch ((enum flags) index) {
 	    case EXP_ARG_GLOB:
+	    case EXP_ARG_DASH:
 		i++;
 		/* assignment here is not actually necessary */
 		/* since cases are initialized this way above */
@@ -2115,10 +2116,10 @@ expMatchProcess(interp, eo, cc, bg, detail)
 				/* string itself */
 		sprintf(name,"%d,string",i);
 		val = Tcl_GetRange(buffer, start, end);
-		expDiagLog("expect_background: set %s(%s) \"",EXPECT_OUT,name);
+		expDiagLog("%s: set %s(%s) \"",detail,EXPECT_OUT,name);
 		expDiagLogU(expPrintifyObj(val));
 		expDiagLogU("\"\r\n");
-		Tcl_SetVar2Ex(interp,EXPECT_OUT,name,val,TCL_GLOBAL_ONLY);
+		Tcl_SetVar2Ex(interp,EXPECT_OUT,name,val,(bg ? TCL_GLOBAL_ONLY : 0));
 	    }
 	} else if (e && (e->use == PAT_GLOB || e->use == PAT_EXACT)) {
 	    char *str;

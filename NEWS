@@ -32,7 +32,8 @@ script" to control this behavior.  The default behavior is to return.
 exit and Tcl's wait (potentially forever) for all processes to die on
 exit.)  Explicit calls to interpreter are almost non-existent.
 However, you should look for interact commands with a pattern but no
-action.  This required changes in the examples: dislocate, kibitz.
+action.  This required changes in the examples: dislocate, dvorak,
+kibitz, and xkibitz.
 
 indirect variables can no longer start with "exp".  Such variables
 will be interpreted as channel names.
