@@ -1,0 +1,43 @@
+// RCS: @(#) $Id: expect.rc,v 1.1.2.2 2001/10/11 02:41:47 davygrvy Exp $
+
+#include <winver.h>
+
+LANGUAGE 0x9, 0x1    /* LANG_ENGLISH, SUBLANG_DEFAULT */
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION 	EXP_MAJOR_VERSION,EXP_MINOR_VERSION,EXP_RELEASE_LEVEL,EXP_RELEASE_SERIAL
+ PRODUCTVERSION EXP_MAJOR_VERSION,EXP_MINOR_VERSION,EXP_RELEASE_LEVEL,EXP_RELEASE_SERIAL
+ FILEFLAGSMASK 	0x3fL
+#if DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS     0x4    /* VOS__WINDOWS32 */
+ FILETYPE     0x2    /* VFT_DLL */
+ FILESUBTYPE     0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904b0" /* LANG_ENGLISH/SUBLANG_ENGLISH_US, Unicode CP */
+        BEGIN
+            VALUE "FileDescription", "Spawn Driver helper application for overseeing Win32 consoles.\0"
+            VALUE "OriginalFilename", "spawndrv.exe\0"
+            VALUE "CompanyName", "Telindustrie, LLC\0"
+            VALUE "FileVersion", EXP_PATCH_LEVEL "\0"
+            VALUE "LegalCopyright", "Copyright \251 Telindustrie, LLC 2001\0"
+            VALUE "ProductName", "Expect " EXP_VERSION " for Win32\0"
+            VALUE "ProductVersion", EXP_PATCH_LEVEL "\0"
+	    VALUE "Comments", "Expect was written for Unix by Don Libes at NIST.\r\n" "Gordon Chaffee ported it to WinNT for Mitel Corporation in 1997.\r\n" "David Gravereaux merged Gordon's port back into the official sources for Telindustrie LLC in Oct. 2001.\0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1200
+    END
+END
+
+
+// Include the Message Table that lists the error codes and textual replies.
+// This is output from the message compiler and found in the temp build directory.
+#include "spawndrv.rc"
