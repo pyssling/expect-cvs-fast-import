@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinConsoleDebugger.hpp,v 1.1.2.18 2002/06/18 22:51:31 davygrvy Exp $
+ * RCS: @(#) $Id: expWinConsoleDebugger.hpp,v 1.1.2.19 2002/06/20 06:43:55 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -162,6 +162,7 @@ private:
     void OnXDeleteThread	(Process *, LPDEBUG_EVENT);
     void OnXLoadDll		(Process *, LPDEBUG_EVENT);
     void OnXUnloadDll		(Process *, LPDEBUG_EVENT);
+    void OnXDebugString		(Process *, LPDEBUG_EVENT);
     void OnXSecondChanceException (Process *, LPDEBUG_EVENT);
     void OnXSingleStep		(Process *, LPDEBUG_EVENT);
 
@@ -208,6 +209,8 @@ private:
 
     // send info back to the parent
     void WriteMaster		(CHAR *, DWORD);
+    void WriteMasterWarning	(CHAR *, DWORD);
+
 
     // announce we are done.
     void NotifyDone		();

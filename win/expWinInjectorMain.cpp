@@ -23,7 +23,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinInjectorMain.cpp,v 1.1.2.5 2002/06/20 06:43:29 davygrvy Exp $
+ * RCS: @(#) $Id: expWinInjectorMain.cpp,v 1.1.2.6 2002/06/20 20:08:56 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -87,7 +87,7 @@ private:
 	return 0;
     }
 
-    char *GetSysMsg(DWORD id)
+    const char *GetSysMsg(DWORD id)
     {
 	int chars;
 
@@ -107,9 +107,6 @@ CMclEvent *interrupt;
 CMclThread *injectorThread;
 Injector *inject;
 HANDLE console;
-
-// It is documented that it "isn't a good idea to spawn threads from a DllMain".
-// Pooie on you; this is what we will do.
 
 BOOL WINAPI
 DllMain (HINSTANCE hInst, ULONG ulReason, LPVOID lpReserved)

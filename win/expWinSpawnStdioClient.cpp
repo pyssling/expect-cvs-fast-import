@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinSpawnStdioClient.cpp,v 1.1.2.1 2002/03/12 21:33:26 davygrvy Exp $
+ * RCS: @(#) $Id: expWinSpawnStdioClient.cpp,v 1.1.2.2 2002/03/15 07:41:45 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -62,6 +62,7 @@ SpawnStdioClient::Write(Message *what)
     case Message::TYPE_NORMAL:
 	where = hStdOut;
     case Message::TYPE_ERROR:
+    case Message::TYPE_WARNING:
 	where = hStdErr;
     }
     WriteFile(where, what->bytes, what->length, &dwWritten, 0L);
