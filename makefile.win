@@ -11,7 +11,7 @@
 #   but, I feel, is an excellent default.
 #
 #==============================================================================
-# RCS: @(#) $Id: makefile.win,v 1.1.2.2 2001/09/26 14:29:05 davygrvy Exp $
+# RCS: @(#) $Id: makefile.win,v 1.1.2.3 2001/09/28 02:12:46 davygrvy Exp $
 #==============================================================================
 
 ### Remove all '!' for MinGW..  Sorry, couldn't find another way to do this.
@@ -58,7 +58,7 @@ all : $(SYM)
 	$(MAKECMD) all
 
 release : $(SYM)
-	$(MAKECMD) release
+	$(MAKECMD) expect
 
 test : $(SYM)
 	$(MAKECMD) test
