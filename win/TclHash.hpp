@@ -9,7 +9,7 @@
  * See the file "license.txt" for information on usage and redistribution
  * of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  *
- * RCS: @(#) $Id: TclHash.hpp,v 1.1.2.1 2002/03/12 16:42:07 davygrvy Exp $
+ * RCS: @(#) $Id: TclHash.hpp,v 1.1.2.2 2002/03/12 18:10:43 davygrvy Exp $
  ------------------------------------------------------------------------------
  */
 
@@ -29,6 +29,7 @@ namespace Tcl {
 	Tcl_Obj *Stats ();
 	int Add (void *key, T result);
 	int Find (void *key, T *result);
+	int Extract (void *key, T *result);
 	int Delete (void *key);
 	int Top (T *result);
 	int Next (T *result);
@@ -121,6 +122,22 @@ namespace Tcl {
 	if (result != 0L) {
 	    *result = static_cast<T>(Tcl_GetHashValue(entryPtr));
 	}
+	return TCL_OK;
+    }
+
+    template <class T, int keytype>
+	int Hash<T, keytype>::Extract (void *key, T *result)
+    {
+	Tcl_HashEntry *entryPtr;
+
+	entryPtr = Tcl_FindHashEntry(&HashTbl, static_cast<const char *>(key));
+	if (entryPtr == 0L) {
+	    return TCL_ERROR;
+	}
+	if (result != 0L) {
+	    *result = static_cast<T>(Tcl_GetHashValue(entryPtr));
+	}
+	Tcl_DeleteHashEntry(entryPtr);
 	return TCL_OK;
     }
 
