@@ -23,7 +23,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinMessage.cpp,v 1.1.2.6 2002/06/21 03:01:51 davygrvy Exp $
+ * RCS: @(#) $Id: expWinMessage.cpp,v 1.1.2.7 2002/06/22 14:02:03 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -41,7 +41,7 @@ Message::~Message()
     case TYPE_ERROR:
     case TYPE_WARNING:
     case TYPE_INRECORD:
-	delete bytes;
+	delete [] bytes;
     }
 }
 
