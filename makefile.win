@@ -6,10 +6,12 @@
 #	    Watcom WMAKE     v11.0	[OpenWatcom]
 #	    MinGW MAKE	     v3.79.1    [MinGW: Minimalist GNU For Windows]
 #
-#   Tool specific syntax is NOT allowed in this file.
+#   Tool specific syntax is NOT allowed in this file.  We assume the brand of
+#   'make' follows the compiler to be used.  This is not a perfect assumption,
+#   but, I feel, is an excellent default.
 #
 #==============================================================================
-# RCS: @(#) $Id: makefile.win,v 1.1.2.6 2001/09/16 07:00:34 davygrvy Exp $
+# RCS: @(#) $Id: makefile.win,v 1.1.2.2 2001/09/26 14:29:05 davygrvy Exp $
 #==============================================================================
 
 ### Remove all '!' for MinGW..  Sorry, couldn't find another way to do this.
@@ -25,7 +27,7 @@
 #==============================================
 
 !ifdef _NMAKE_VER
-!include "win\mkvc32.mif"	# Microsoft Toolset
+!include "win\mkprepvc32.mif"	# Microsoft Toolset
 !else
 !ifdef __LOADDLL__
 !include "win\mkwc32.mif"	# Watcom Toolset
@@ -53,10 +55,34 @@
 #==============================================
 
 all : $(SYM)
-	@echo doing all target
+	$(MAKECMD) all
+
+release : $(SYM)
+	$(MAKECMD) release
+
+test : $(SYM)
+	$(MAKECMD) test
+
+debugger : $(SYM)
+	$(MAKECMD) debugger
+
+slavedrv : $(SYM)
+	$(MAKECMD) slavedrv
+
+telnet : $(SYM)
+	$(MAKECMD) telnet
+
+genstubs : $(SYM)
+	$(MAKECMD) genstubs
+
+install : $(SYM)
+	$(MAKECMD) install
+
+winhelp : $(SYM)
+	$(MAKECMD) winhelp
+
 
 cvsupdate : $(SYM)
-	cd ..
 	set CVS_RSH=$(CVS_RSH)
 	$(CVSCMD) update $(CVS_OPTS)
 
