@@ -22,29 +22,12 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinSlaveMain.cpp,v 1.1.4.9 2002/03/12 04:37:39 davygrvy Exp $
+ * RCS: @(#) $Id: expWinSlaveMain.cpp,v 1.1.4.10 2002/03/12 07:09:36 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
-#include "expWinInt.h"
+#include "expWinSlave.hpp"
 
-/*
-#ifdef _MSC_VER
-    // Only do this when MSVC++ is compiling us.
-#   ifdef USE_TCL_STUBS
-#	pragma comment (lib, "tclstub" \
-		STRINGIFY(JOIN(TCL_MAJOR_VERSION,TCL_MINOR_VERSION)) ".lib")
-#	if !defined(_MT) || !defined(_DLL) || defined(_DEBUG)
-	    // This fixes a bug with how the Stubs library was compiled.
-	    // The requirement for msvcrt.lib from tclstubXX.lib must
-	    // be removed.  This bug has been fixed since 8.4a3, I beleive.
-#	    pragma comment(linker, "-nodefaultlib:msvcrt.lib")
-#	endif
-#   else
-#	error "Can only use with Stubs, sorry"
-#   endif
-#endif
-*/
 
 // local protos
 static SpawnClientTransport *SpawnOpenClientTransport(const char *name,
@@ -53,8 +36,6 @@ static ExpSlaveTrap *ExpWinSlaveOpenTrap(const char *meth, int argc,
 	char * const argv[], CMclQueue<Message *> &mQ);
 static int DoEvents(SpawnClientTransport *transport,
 	ExpSlaveTrap *masterCtrl, CMclQueue<Message *> &mQ, CMclEvent &sd);
-
-//extern "C" HMODULE hTclMod;
 
 int
 main (void)
@@ -67,10 +48,6 @@ main (void)
     CMclEvent Shutdown;		    // global shutdown for the event queue.
     int code;			    // exitcode.
     CHAR *cmdLine;		    // commandline to use.
-
-    //  We use a few APIs from Tcl, dynamically load it now.
-    //
-//    ExpDynloadTclStubs();
 
     //  Get our commandline.  MSVC++ doesn't like to debug spawned processes
     //  without a bit of help.  So help it out.
@@ -114,8 +91,6 @@ main (void)
     //
     code = DoEvents(tclient, slaveCtrl, messageQ, Shutdown);
 
-//    Tcl_Finalize();
-//    FreeLibrary(hTclMod);
     return code;
 }
 

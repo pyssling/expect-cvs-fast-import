@@ -22,11 +22,12 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinUtils.cpp,v 1.1.2.3 2002/03/11 07:03:35 davygrvy Exp $
+ * RCS: @(#) $Id: expWinUtils.cpp,v 1.1.2.4 2002/03/12 01:38:19 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
 #include "expWinUtils.hpp"
+#include "slavedrvmc.h"
 #include <ctype.h>
 #include <string.h>
 
@@ -217,4 +218,147 @@ SetArgv(
 
     *argcPtr = argc;
     *argvPtr = argv;
+}
+
+
+static char sysMsgSpace[1024];
+
+/* local protos */
+static TCHAR *Exp95Log (DWORD errCode, char *errData[], int cnt);
+
+#define GETSEVERITY(code)   (UCHAR)((code >> 30) & 0x3) 
+#define GETFACILITY(code)   (WORD)((code >> 16) & 0x0FFF)
+#define GETCODE(code)	    (WORD)(code & 0xFFFF)
+
+/*
+ *----------------------------------------------------------------------
+ *
+ * ExpWinSyslog --
+ *
+ *	Logs error messages to the system application event log.
+ *	It is normally called through the macro EXP_LOG() when
+ *	errors occur in the slave driver process, but it can be
+ *	used elsewhere.
+ *
+ * Results:
+ *	None
+ *
+ *----------------------------------------------------------------------
+ */
+
+void
+ExpWinSyslog (DWORD errCode, ...)
+{
+    va_list args;
+    char *errData[10];
+    int cnt = 0;
+    char *errMsg;
+    static char codeBuf[33];
+    DWORD dwWritten;
+    char *file;
+    int line;
+    static char fileInfo[MAX_PATH];
+
+    va_start(args,errCode);
+
+    /* Get the file info */
+    file = va_arg(args, char *);
+    line = va_arg(args, int);
+    wsprintfA(fileInfo, "%s(%d)", file, line);
+    errData[cnt++] = fileInfo;
+
+    /* Set the textual severity */
+    switch(GETSEVERITY(errCode)) {
+	case STATUS_SEVERITY_WARNING:
+	    errData[cnt++] = "Warning"; break;
+	case STATUS_SEVERITY_SUCCESS:
+	    errData[cnt++] = "Success"; break;
+	case STATUS_SEVERITY_INFORMATIONAL:
+	    errData[cnt++] = "Info"; break;
+	case STATUS_SEVERITY_FATAL:
+	    errData[cnt++] = "Fatal"; break;
+    }
+
+    /* Set the textual Facility */
+    switch(GETFACILITY(errCode)) {
+	case FACILITY_WINSOCK:
+	    errData[cnt++] = "Winsock IPC"; break;
+	case FACILITY_SYSTEM:
+	    errData[cnt++] = "System"; break;
+	case FACILITY_STUBS:
+	    errData[cnt++] = "Stubs"; break;
+	case FACILITY_NAMEDPIPE:
+	    errData[cnt++] = "NamedPipe IPC"; break;
+	case FACILITY_MSPROTO:
+	    errData[cnt++] = "Master/Slave Protocol"; break;
+	case FACILITY_MAILBOX:
+	    errData[cnt++] = "MailBoxing IPC"; break;
+	case FACILITY_IO:
+	    errData[cnt++] = "I/O general"; break;
+	case FACILITY_DBGTRAP:
+	    errData[cnt++] = "Debug/Trap"; break;
+    }
+    /* Set the textual Code */
+    errData[cnt++] = codeBuf;
+    wsprintfA(codeBuf, "0x%04X", GETCODE(errCode));
+
+    /* set everyone else */
+    while ((errData[cnt] = va_arg(args, char *)) != NULL) cnt++;
+    va_end(args);
+
+    /* format this error according to the message catalog contained in the exe. */
+    errMsg = Exp95Log(errCode, errData, cnt);
+    OutputDebugString(errMsg);
+
+    if (GETSEVERITY(errCode) & STATUS_SEVERITY_FATAL) {
+	/* I could have used printf() and fflush(), but chose the direct
+	 * route instead */
+	WriteFile(GetStdHandle(STD_ERROR_HANDLE), errMsg, strlen(errMsg),
+		&dwWritten, NULL);
+
+	/* Stop the world, I want to get off. */
+	//DebugBreak();
+
+	Sleep(5000);
+	ExitProcess(255);
+    }
+
+    LocalFree(errMsg);
+}
+
+char *ExpSyslogGetSysMsg (DWORD id)
+{
+    int chars;
+
+    chars = wsprintf(sysMsgSpace, "[%d] ", id);
+
+    FormatMessage(
+	    FORMAT_MESSAGE_FROM_SYSTEM |
+	    FORMAT_MESSAGE_MAX_WIDTH_MASK,
+	    0L,
+	    id,
+	    0,
+	    &sysMsgSpace[chars],
+	    (1024-chars),
+	    0);
+
+    return sysMsgSpace;
+}
+
+char *Exp95Log(DWORD errCode, char *errData[], int cnt)
+{
+    char *msg;
+
+    FormatMessage(
+	    FORMAT_MESSAGE_FROM_HMODULE |
+	    FORMAT_MESSAGE_ALLOCATE_BUFFER |
+	    FORMAT_MESSAGE_ARGUMENT_ARRAY,
+	    GetModuleHandle(NULL),
+	    errCode,
+	    0,
+	    (char *) &msg,
+	    0,
+	    errData);
+
+    return msg;
 }

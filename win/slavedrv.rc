@@ -1,5 +1,5 @@
 /* ----------------------------------------------------------------------------
- * spawndrv.rc --
+ * slavedrv.rc --
  *
  *	Resource script for use with the resource compiler.
  * 
@@ -22,33 +22,23 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: spawndrv.rc,v 1.1.2.6 2001/11/07 10:04:57 davygrvy Exp $
+ * RCS: @(#) $Id: slavedrv.rc,v 1.1.2.1 2002/03/09 01:42:25 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
 #include <winver.h>
-#define RESOURCE_INCLUDED   /* needed by tcl.h because it doesn't use RC_INVOKED */
-#include "exp.h"
 
 VS_VERSION_INFO VERSIONINFO
-    FILEVERSION	    EXP_MAJOR_VERSION,EXP_MINOR_VERSION,EXP_RELEASE_LEVEL,EXP_RELEASE_SERIAL
-    PRODUCTVERSION  EXP_MAJOR_VERSION,EXP_MINOR_VERSION,EXP_RELEASE_LEVEL,EXP_RELEASE_SERIAL
+    FILEVERSION	    6,0,0,0
+    PRODUCTVERSION  6,0,0,0
     FILEFLAGSMASK   VS_FFI_FILEFLAGSMASK
 
 #if defined(_DEBUG)
     FILEFLAGS	    VS_FF_DEBUG
-#elif EXP_RELEASE_LEVEL == TCL_FINAL_RELEASE
+#else
     FILEFLAGS	    0x0L
-#else
-    FILEFLAGS	    VS_FF_PRERELEASE
 #endif
-
-#if defined(_UNICODE)
-    FILEOS	    VOS_NT_WINDOWS32  /* limit this to NT only */
-#else
     FILEOS	    VOS__WINDOWS32    /* open to all */
-#endif
-
     FILETYPE	    VFT_DLL
     FILESUBTYPE     VFT2_UNKNOWN
 BEGIN
@@ -59,10 +49,10 @@ BEGIN
             VALUE "FileDescription", "Spawn Driver helper application for overseeing Win32 consoles.\0"
             VALUE "OriginalFilename", "spawndrv.exe\0"
             VALUE "CompanyName", "Telindustrie, LLC\0"
-            VALUE "FileVersion", EXP_PATCH_LEVEL "\0"
+            VALUE "FileVersion", "6.0a0" "\0"
             VALUE "LegalCopyright", "Copyright \251 Telindustrie, LLC 2002\0"
-            VALUE "ProductName", "Expect " EXP_VERSION " for Win32\0"
-            VALUE "ProductVersion", EXP_PATCH_LEVEL "\0"
+            VALUE "ProductName", "Expect " "6.0" " for Win32\0"
+            VALUE "ProductVersion", "6.0a0" "\0"
 	    VALUE "Comments", "Expect was written for Unix by Don Libes at NIST.\r\n" "Gordon Chaffee ported it to WinNT for Mitel Corporation in 1997.\r\n" "David Gravereaux merged Gordon's port back into the official sources for Telindustrie LLC in Oct. 2001.\0"
         END
     END

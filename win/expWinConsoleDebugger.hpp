@@ -22,16 +22,14 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinConsoleDebugger.hpp,v 1.1.2.10 2002/03/12 01:38:19 davygrvy Exp $
+ * RCS: @(#) $Id: expWinConsoleDebugger.hpp,v 1.1.2.11 2002/03/12 07:09:36 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
 #ifndef INC_expWinConsoleDebugger_hpp__
 #define INC_expWinConsoleDebugger_hpp__
 
-// Although we pull in the internal Expect headers, no references are made
-// to it from here.
-#include "expWinInt.h"
+#include "expWinSlave.hpp"
 #include <imagehlp.h>
 
 #include <string>   // for the string class.
