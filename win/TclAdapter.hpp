@@ -10,13 +10,13 @@
  * See the file "license.txt" for information on usage and redistribution
  * of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  *
- * RCS: @(#) $Id: TclAdapter.hpp,v 1.1 2001/09/02 04:19:47 daveg Exp $
+ * RCS: @(#) $Id: TclAdapter.hpp,v 1.1.2.1 2002/03/11 00:31:56 davygrvy Exp $
  ------------------------------------------------------------------------------
  */
 #ifndef INC_TclAdapter_hpp__
 #define INC_TclAdapter_hpp__
 
-#include <tcl.h>
+#include "tcl.h"
 
 // We need at least the Tcl_Obj interface that was started in 8.0
 #if TCL_MAJOR_VERSION < 8

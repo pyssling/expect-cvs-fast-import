@@ -6,6 +6,7 @@ class Test1 : protected Tcl::Adapter<Test1>, ArgMaker
 public:
     Test1(Tcl_Interp *_interp) : Tcl::Adapter<Test1>(_interp) {
 	NewTclCmd(interp, "test_buildcmdline", TestCmdLineCmd);
+	NewTclCmd(interp, "test_passthru", TestPassThruCmd);
     };
     virtual void DoCleanup () {
 	// The adapter base class is telling us we are about to go away and it is
@@ -27,6 +28,26 @@ private:
 	line = BuildCommandLine(objc-1, argv);
 	Tcl_SetObjResult(interp, Tcl_NewStringObj(line, -1));
 	delete [] line;
+	return TCL_OK;
+    }
+    // Test the full pass-thru
+    //
+    int TestPassThruCmd (int objc, struct Tcl_Obj * CONST objv[])
+    {
+	char **argvIn = new char * [objc-1];
+	int i, argc;
+	char *line, **argv;
+	Tcl_Obj **oobjv;
+
+	// Take the array and turn it into a string.
+	for (i = objc-1; i > 0; i--) argvIn[i-1] = Tcl_GetString(objv[i]);
+	line = BuildCommandLine(objc-1, argvIn);
+	// Now take the string and turn it back into an array.
+	SetArgv(line, &argc, &argv);
+	delete [] line;
+	oobjv = new Tcl_Obj * [argc];
+	for (i = 0; i < argc; i++) oobjv[i] = Tcl_NewStringObj(argv[i], -1);
+	Tcl_SetObjResult(interp, Tcl_NewListObj(argc, oobjv));
 	return TCL_OK;
     }
 };

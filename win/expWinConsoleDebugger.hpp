@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinConsoleDebugger.hpp,v 1.1.2.8 2002/03/09 22:56:23 davygrvy Exp $
+ * RCS: @(#) $Id: expWinConsoleDebugger.hpp,v 1.1.2.9 2002/03/11 05:36:37 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -32,7 +32,6 @@
 // Although we pull in the internal Expect headers, no references are made
 // to it from here.
 #include "expWinInt.h"
-#include "expWinUtils.hpp"
 #include <imagehlp.h>
 
 #ifdef _M_IX86

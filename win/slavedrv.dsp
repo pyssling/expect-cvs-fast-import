@@ -148,6 +148,14 @@ SOURCE=.\expWinLog.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\expWinMessage.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\expWinMessage.hpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\expWinSlaveDbg.c
 # PROP Exclude_From_Build 1
 # End Source File
@@ -159,6 +167,15 @@ SOURCE=.\expWinSlaveDrv.c
 # Begin Source File
 
 SOURCE=.\expWinSlaveKey.c
+
+!IF  "$(CFG)" == "slavedrv - Win32 Release"
+
+!ELSEIF  "$(CFG)" == "slavedrv - Win32 Debug"
+
+# PROP Exclude_From_Build 1
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 

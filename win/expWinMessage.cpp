@@ -1,16 +1,17 @@
 /* ----------------------------------------------------------------------------
- * expWinSpawnPipeClient.cpp --
+ * expWinMessage.cpp --
  *
- *	Simple pipes as our IPC mechanism.
+ *	Defines the Message class.  This is what is passed over the thread-safe
+ *	event queue.
  *
  * ----------------------------------------------------------------------------
  *
  * Written by: Don Libes, libes@cme.nist.gov, NIST, 12/3/90
- * 
+ *
  * Design and implementation of this program was paid for by U.S. tax
  * dollars.  Therefore it is public domain.  However, the author and NIST
  * would appreciate credit if this program or parts of it are used.
- * 
+ *
  * Copyright (c) 1997 Mitel Corporation
  *	work by Gordon Chaffee <chaffee@bmrc.berkeley.edu> for the WinNT port.
  *
@@ -22,32 +23,20 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinSpawnPipeClient.cpp,v 1.1.2.2 2002/03/11 06:53:39 davygrvy Exp $
+ * RCS: @(#) $Id: expWinUtils.cpp,v 1.1.2.3 2002/03/11 07:03:35 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
-#include "expWinInt.h"
+#include "expWinMessage.hpp"
 
-SpawnPipeClient::SpawnPipeClient(const char *name, CMclQueue<Message> &_mQ)
-    : mQ(_mQ)
+Message::Message()
+    : bytes(0L), length(0), type(TYPE_BLANK)
 {
-    hStdIn  = GetStdHandle(STD_INPUT_HANDLE);
-    hStdOut = GetStdHandle(STD_OUTPUT_HANDLE);
-    hStdErr = GetStdHandle(STD_ERROR_HANDLE);
 }
 
-void
-SpawnPipeClient::Write(Message &what)
+Message::Message(Message &other)
 {
-    DWORD dwWritten;
-    HANDLE where;
-
-    switch (what.type) {
-    case Message::TYPE_NORMAL:
-	where = hStdOut;
-    case Message::TYPE_ERROR:
-	where = hStdErr;
-    }
-
-    WriteFile(where, what.bytes, what.length, &dwWritten, 0L);
+    type = other.type;
+    bytes = other.bytes;
+    length = other.length;
 }

@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinSlaveMain.cpp,v 1.1.4.6 2002/03/10 01:02:37 davygrvy Exp $
+ * RCS: @(#) $Id: expWinSlaveMain.cpp,v 1.1.4.7 2002/03/11 05:36:37 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -53,7 +53,6 @@ static ExpSlaveTrap *ExpWinSlaveOpenTrap(const char *meth, int argc,
 	char * const argv[], CMclQueue<Message> &mQ);
 static int ExpWinMasterDoEvents(SpawnClientTransport *transport,
 	ExpSlaveTrap *masterCtrl, CMclQueue<Message> &mQ);
-static void SetArgv(int *argcPtr, char ***argvPtr);
 
 extern "C" HMODULE hTclMod;
 
@@ -65,7 +64,8 @@ main (void)
     SpawnClientTransport *tclient;  // class pointer of transport client.
     ExpSlaveTrap *slaveCtrl;	    // trap method class pointer.
     CMclQueue<Message> messageQ;    // Our message Queue we hand off to everyone.
-    int code;
+    int code;			    // exitcode.
+    CHAR *cmdLine;		    // commandline to use.
 
     //  We use a few APIs from Tcl, dynamically load it now.
     //
@@ -76,9 +76,29 @@ main (void)
     //
     ExpWinInit();
 
-    //  Use our custom commandline parser.
+    //  Get our commandline.  MSVC++ doesn't like to debug spawned processes
+    //  without a bit of help.  So help it out.
     //
-    SetArgv(&argc, &argv);
+#define IDE_LATCHED 0
+#if defined(_DEBUG) && IDE_LATCHED
+    if (IsDebuggerPresent()) {
+#   ifdef _MSC_VER
+	cmdLine = MsvcDbg_GetCommandLine();
+#   else
+#	error "Need Debugger control for this IDE"
+#   endif
+    } else {
+#endif
+    	cmdLine = GetCommandLine();
+
+#if defined(_DEBUG) && IDE_LATCHED
+    }
+#endif
+
+    //  Use our custom commandline parser to overcome bugs in the default
+    //  crt library.
+    //
+    SetArgv(cmdLine, &argc, &argv);
 
     if (argc < 4) {
 	EXP_LOG0(MSG_IO_ARGSWRONG);
@@ -184,150 +204,14 @@ int
 ExpWinMasterDoEvents(SpawnClientTransport *transport,
     ExpSlaveTrap *masterCtrl, CMclQueue<Message> &mQ)
 {
-    CMclWaitableCollection stuff;
+    Message &msg = Message();  // create a blank reference to receive into.
+
+    while (mQ.Get(msg)) {
+	switch (msg.type) {
+	case Message::TYPE_NORMAL:
+	case Message::TYPE_ERROR:
+	    transport->Write(msg);
+	}
+    }
     return 0;
-}
-
-/*
- *-------------------------------------------------------------------------
- *
- * SetArgv --
- *
- *	Parse the Windows command line string into argc/argv.  Done here
- *	because we don't trust the builtin argument parser in crt0.  
- *	Windows applications are responsible for breaking their command
- *	line into arguments.
- *
- *	2N backslashes + quote -> N backslashes + begin quoted string
- *	2N + 1 backslashes + quote -> literal
- *	N backslashes + non-quote -> literal
- *	quote + quote in a quoted string -> single quote
- *	quote + quote not in quoted string -> empty string
- *	quote -> begin quoted string
- *
- * Results:
- *	Fills argcPtr with the number of arguments and argvPtr with the
- *	array of arguments.
- *
- * Side effects:
- *	Memory allocated.
- *
- *--------------------------------------------------------------------------
- */
-
-static void
-SetArgv(
-    int *argcPtr,	// Filled with number of argument strings.
-    char ***argvPtr)	// Filled with argument strings in UTF (alloc'd with new).
-{
-    char *p, *arg, *argSpace;
-    char **argv;
-    int argc, size, inquote, copy, slashes;
-    Tcl_DString cmdLine;
-    WCHAR *cmdLineUni;
-
-    Tcl_DStringInit(&cmdLine);
-
-#ifdef _DEBUG
-//    if (IsDebuggerPresent()) {
-#   ifdef _MSC_VER
-	//  There will be a unicode loss here.  I don't feel it's a bad
-	//  trade-off when running from a debugger.
-	//  cp1251 != utf-8, though.
-	//
-//	Tcl_DStringAppend(&cmdLine, MsvcDbg_GetCommandLine(), -1);
-#   else
-#	error "Need Debugger control for this IDE"
-#   endif
-//    } else {
-#endif
-	// Always get the unicode commandline because *ALL* Win32 platforms
-	// support it.
-	//
-	cmdLineUni = GetCommandLineW();
-	// calculate the size needed.
-	size = WideCharToMultiByte(CP_UTF8, 0, cmdLineUni, -1, 0, 0, 0L, 0L);
-	Tcl_DStringSetLength(&cmdLine, size);
-	WideCharToMultiByte(CP_UTF8, 0, cmdLineUni, -1,
-		Tcl_DStringValue(&cmdLine), size, 0L, 0L);
-#ifdef _DEBUG
-//    }
-#endif
-
-    // Precompute an overly pessimistic guess at the number of arguments
-    // in the command line by counting non-space spans.
-    //
-    size = 2;
-    for (p = Tcl_DStringValue(&cmdLine); *p != '\0'; p++) {
-	if ((*p == ' ') || (*p == '\t')) {	/* INTL: ISO space. */
-	    size++;
-	    while ((*p == ' ') || (*p == '\t')) { /* INTL: ISO space. */
-		p++;
-	    }
-	    if (*p == '\0') {
-		break;
-	    }
-	}
-    }
-    argSpace = new char [size + Tcl_DStringLength(&cmdLine) + 1];
-    argv = (char **) argSpace;
-    argSpace += size * sizeof(char *);
-    size--;
-
-    p = Tcl_DStringValue(&cmdLine);
-    for (argc = 0; argc < size; argc++) {
-	argv[argc] = arg = argSpace;
-	while ((*p == ' ') || (*p == '\t')) {	/* INTL: ISO space. */
-	    p++;
-	}
-	if (*p == '\0') {
-	    break;
-	}
-
-	inquote = 0;
-	slashes = 0;
-	while (1) {
-	    copy = 1;
-	    while (*p == '\\') {
-		slashes++;
-		p++;
-	    }
-	    if (*p == '"') {
-		if ((slashes & 1) == 0) {
-		    copy = 0;
-		    if ((inquote) && (p[1] == '"')) {
-			p++;
-			copy = 1;
-		    } else {
-			inquote = !inquote;
-		    }
-                }
-                slashes >>= 1;
-            }
-
-            while (slashes) {
-		*arg = '\\';
-		arg++;
-		slashes--;
-	    }
-
-	    if ((*p == '\0')
-		    || (!inquote && ((*p == ' ') || (*p == '\t')))) { /* INTL: ISO space. */
-		break;
-	    }
-	    if (copy != 0) {
-		*arg = *p;
-		arg++;
-	    }
-	    p++;
-        }
-	*arg = '\0';
-	argSpace = arg + 1;
-    }
-    argv[argc] = NULL;
-
-    *argcPtr = argc;
-    *argvPtr = argv;
-
-    Tcl_DStringFree(&cmdLine);
 }
