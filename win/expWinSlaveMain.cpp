@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinSlaveMain.cpp,v 1.1.4.12 2002/03/12 21:34:31 davygrvy Exp $
+ * RCS: @(#) $Id: expWinSlaveMain.cpp,v 1.1.4.13 2002/03/12 22:36:44 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -33,6 +33,14 @@
 static SpawnClientTransport *SpawnOpenClientTransport(const char *, CMclQueue<Message *> &);
 static SlaveTrap *SlaveOpenTrap(const char *, int, char * const *, CMclQueue<Message *> &);
 static int DoEvents(SpawnClientTransport *, SlaveTrap *, CMclQueue<Message *> &, CMclEvent &);
+static char *OurGetCmdLine();
+
+// Turns on/off special debugger hooks used in development.
+//
+#ifndef IDE_LATCHED
+#   define IDE_LATCHED 0
+#endif
+
 
 int
 main (void)
@@ -53,23 +61,7 @@ main (void)
     //  Get our commandline.  MSVC++ doesn't like to debug spawned processes
     //  without a bit of help.  So help it out.
     //
-#ifndef IDE_LATCHED
-#   define IDE_LATCHED 0
-#endif
-#if defined(_DEBUG) && IDE_LATCHED
-    if (IsDebuggerPresent()) {
-#   ifdef _MSC_VER
-	cmdLine = MsvcDbg_GetCommandLine();
-#   else
-#	error "Need Debugger control for this IDE"
-#   endif
-    } else {
-#endif
-    	cmdLine = GetCommandLine();
-
-#if defined(_DEBUG) && IDE_LATCHED
-    }
-#endif
+    cmdLine = OurGetCmdLine();
 
     //  Use our custom commandline parser to overcome bugs in the default
     //  crt library.
@@ -192,3 +184,72 @@ DoEvents(SpawnClientTransport *transport,
     }
     return 0;
 }
+
+/*
+ *----------------------------------------------------------------------
+ *  OurGetCmdLine --
+ *
+ *	Handles the logic for how to retreive the commandline.
+ *
+ *  Returns:
+ *	the commandline in a single string.
+ *
+ *----------------------------------------------------------------------
+ */
+
+char *
+OurGetCmdLine()
+{
+#if defined(_DEBUG) && IDE_LATCHED
+    if (IsDebuggerPresent()) {
+#   ifdef _MSC_VER
+	CHAR * MsvcDbg_GetCommandLine();
+	return MsvcDbg_GetCommandLine();
+#   else
+#	error "Need Debugger control for this IDE"
+#   endif
+    } else {
+#endif
+    	return GetCommandLine();
+
+#if defined(_DEBUG) && IDE_LATCHED
+    }
+#endif
+}
+
+#if defined(_DEBUG) && defined(_MSC_VER) && IDE_LATCHED
+CHAR *
+MsvcDbg_GetCommandLine(void)
+{
+    HKEY root;
+    HANDLE event1;
+    CHAR pidChar[33], *buf;
+    DWORD type = REG_SZ, size = 0;
+    int pid;     // <- this is read by the parent's debugger.
+
+    pid = GetCurrentProcessId();
+
+    event1 = CreateEvent(0L, FALSE, FALSE, "SpawnStartup");
+    SetEvent(event1);
+    CloseHandle(event1);
+
+    // >>>>   IMPORTANT!   <<<<
+
+    // Set a soft break on the next line for this to work.
+    // It is essential that the app stops here during startup
+    // and syncs to the parent properly.
+    __asm nop;
+
+    // >>>> END IMPORTANT! <<<<
+
+    itoa(pid, pidChar, 10);
+    RegOpenKeyEx(HKEY_LOCAL_MACHINE, "Software\\Tomasoft\\MsDevDbgCtrl",
+	    0, KEY_ALL_ACCESS, &root);
+    RegQueryValueEx(root, pidChar, 0, &type, 0L, &size);
+    buf = (CHAR *) HeapAlloc(GetProcessHeap(), 0, size);
+    RegQueryValueEx(root, pidChar, 0, &type, (LPBYTE) buf, &size);
+    RegDeleteValue(root, pidChar);
+    RegCloseKey(root);
+    return buf;
+}
+#endif  // _DEBUG && _MSC_VER && IDE_LATCHED

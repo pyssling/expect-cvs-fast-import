@@ -42,7 +42,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /c
-# ADD CPP /nologo /MD /W3 /GX /O2 /I "." /I "..\generic" /I "d:\tcl_workspace\tcl_head\generic" /I "d:\tcl_workspace\tcl_head\win" /I "$(IntDir)" /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "USE_TCL_STUBS" /D "BUILD_slavedriver" /YX /FD /c
+# ADD CPP /nologo /MD /W3 /GX /O2 /I "." /I "..\generic" /I "d:\tcl_workspace\tcl_head\generic" /I "d:\tcl_workspace\tcl_head\win" /I "$(IntDir)" /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "USE_TCL_STUBS" /D IDE_LATCHED=0 /YX /FD /c
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
 # ADD RSC /l 0x409 /i "..\generic" /i "d:\tcl_workspace\tcl_head\generic" /i "$(IntDir)" /d "NDEBUG"
 BSC32=bscmake.exe
@@ -133,6 +133,10 @@ SOURCE=.\expWinConsoleDebuggerBreakPoints.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\expWinDynloadTclStubs.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\expWinMessage.cpp
 # End Source File
 # Begin Source File
@@ -157,7 +161,7 @@ SOURCE=.\expWinSpawnClient.hpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\expWinSpawnPipeClient.cpp
+SOURCE=.\expWinSpawnStdioClient.cpp
 # End Source File
 # Begin Source File
 
@@ -166,23 +170,6 @@ SOURCE=.\expWinUtils.cpp
 # Begin Source File
 
 SOURCE=.\expWinUtils.hpp
-# End Source File
-# Begin Source File
-
-SOURCE=.\MsvcDbgControl.cpp
-
-!IF  "$(CFG)" == "slavedrv - Win32 Release"
-
-# PROP Exclude_From_Build 1
-
-!ELSEIF  "$(CFG)" == "slavedrv - Win32 Debug"
-
-!ENDIF 
-
-# End Source File
-# Begin Source File
-
-SOURCE=.\MsvcDbgControl.h
 # End Source File
 # Begin Source File
 
@@ -242,6 +229,10 @@ BuildCmds= \
 
 !ENDIF 
 
+# End Source File
+# Begin Source File
+
+SOURCE=.\TclHash.hpp
 # End Source File
 # End Target
 # End Project

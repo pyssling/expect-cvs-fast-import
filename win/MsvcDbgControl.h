@@ -27,7 +27,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: MsvcDbgControl.h,v 1.1.2.3 2002/02/10 12:03:30 davygrvy Exp $
+ * RCS: @(#) $Id: MsvcDbgControl.h,v 1.1.2.4 2002/03/09 01:17:29 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -36,7 +36,6 @@
 
 #include <windows.h>
 
-extern TCL_CPP CHAR *	MsvcDbg_GetCommandLine(void);
 extern TCL_CPP int	MsvcDbg_Launch(const CHAR *wrkspace, Tcl_DString *cmdline,
 			void **token);
 #endif

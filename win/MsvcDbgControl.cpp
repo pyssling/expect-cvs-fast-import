@@ -30,11 +30,9 @@
  *	    http://expect.nist.gov/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: MsvcDbgControl.cpp,v 1.1.2.5 2002/03/09 01:17:29 davygrvy Exp $
+ * RCS: @(#) $Id: MsvcDbgControl.cpp,v 1.1.2.6 2002/03/12 04:37:39 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
-
-#include "expWinInt.h"
 
 #include <atlbase.h>
 extern CComModule _Module;
@@ -229,39 +227,4 @@ MsvcDbg_Launch(const CHAR *wrkspace, Tcl_DString *cmdline, void **token)
     __except(EXCEPTION_EXECUTE_HANDLER) {
 	return -1;
     }
-}
-
-extern "C" CHAR *
-MsvcDbg_GetCommandLine(void)
-{
-    HKEY root;
-    HANDLE event1;
-    CHAR pidChar[33], *buf;
-    DWORD type = REG_SZ, size = 0;
-    int pid;     // <- this is read by the parent's debugger.
-
-    pid = GetCurrentProcessId();
-
-    event1 = CreateEvent(0L, FALSE, FALSE, "SpawnStartup");
-    SetEvent(event1);
-    CloseHandle(event1);
-
-    // >>>>   IMPORTANT!   <<<<
-
-    // Set a soft break on the next line for this to work.
-    // It is essential that the app stops here during startup
-    // and syncs to the parent properly.
-    __asm nop;
-
-    // >>>> END IMPORTANT! <<<<
-
-    itoa(pid, pidChar, 10);
-    RegOpenKeyEx(HKEY_LOCAL_MACHINE, "Software\\Tomasoft\\MsDevDbgCtrl",
-	    0, KEY_ALL_ACCESS, &root);
-    RegQueryValueEx(root, pidChar, 0, &type, 0L, &size);
-    buf = (CHAR *) HeapAlloc(GetProcessHeap(), 0, size);
-    RegQueryValueEx(root, pidChar, 0, &type, (LPBYTE) buf, &size);
-    RegDeleteValue(root, pidChar);
-    RegCloseKey(root);
-    return buf;
 }
