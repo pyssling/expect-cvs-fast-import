@@ -24,7 +24,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinConsoleDebuggerBreakPoints.cpp,v 1.1.2.4 2002/03/09 01:17:29 davygrvy Exp $
+ * RCS: @(#) $Id: expWinConsoleDebuggerBreakPoints.cpp,v 1.1.2.5 2002/03/09 01:51:29 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -255,12 +255,12 @@ ConsoleDebugger::OnFillConsoleOutputCharacter(Process *proc,
 	    bufpos += postCols;
 	}
     }
-    if (GetConsoleScreenBufferInfo(HConsole, &info) == FALSE) {
+    if (GetConsoleScreenBufferInfo(MasterHConsole, &info) == FALSE) {
 //	char errbuf[200];
 //	wsprintfA(errbuf, "handle=0x%08x", HConsole);
 //	EXP_LOG2(MSG_DT_SCREENBUF, errbuf, ExpSyslogGetSysMsg(GetLastError()));
 	char errbuf[200];
-	wsprintfA(errbuf, "Call to GetConsoleScreenBufferInfo failed: handle=0x%08x, err=0x%08x", HConsole, GetLastError());
+	wsprintfA(errbuf, "Call to GetConsoleScreenBufferInfo failed: handle=0x%08x, err=0x%08x", MasterHConsole, GetLastError());
 //	EXP_LOG("%s", errbuf);
     } else {
 	CursorPosition = info.dwCursorPosition;
@@ -512,7 +512,7 @@ ConsoleDebugger::OnSetConsoleMode(Process *proc, ThreadInfo *threadInfo,
 	}
     }
     if (found) {
-	ExpConsoleInputMode = threadInfo->args[1];
+	MasterConsoleInputMode = threadInfo->args[1];
     }
 }
 
