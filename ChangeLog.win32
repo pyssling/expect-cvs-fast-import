@@ -1,0 +1,777 @@
+2002-02-13  davygrvy
+	* generic/exp.decls:
+	* generic/expCommand.c:
+	* generic/expInt.h:
+	* generic/expIntDecls.h:
+	* generic/exp_main_sub.c:
+		Changed a few functions to be CONST char* and some general reformatting
+		to improve readability.
+
+2002-02-11  davygrvy
+	* win/expWinCommand.c:
+	* win/expWinInit.c:
+	* win/expWinPort.h:
+	* win/expect.dsp:
+		Can now build for Stubs and provide a Stubs table, too,  WeeHoo..
+
+	* generic/exp_command.h:
+	* generic/exp_event.h:
+	* generic/exp_int.h:
+	* generic/exp_log.h:
+	* generic/exp_port.h:
+	* generic/exp_printify.h:
+	* generic/exp_prog.h:
+	* generic/exp_regexp.h:
+	* generic/exp_rename.h:
+	* generic/exp_tstamp.h:
+	* generic/exp_tty.h:
+	* generic/exp_win.h:
+	* generic/getopt.h:
+		Old header files not used have been removed
+
+	* generic/exp.h:
+	* generic/exp_main_sub.c:
+		small changes for Stubs
+
+2002-02-10  davygrvy
+	* generic/exp.h:
+	* generic/expStubLib.c:
+		small lint
+
+	* generic/exp.h:
+		fixed some preprocessor logic that was in error.
+
+	* generic/exp_memmove.c (deleted):
+		already in compat/
+
+	* generic/exp.decls:
+	* generic/exp.h:
+	* generic/expDecls.h:
+	* generic/expIntDecls.h:
+	* generic/expIntPlatDecls.h:
+	* generic/expStubInit.c:
+	* generic/exp_main_sub.c:
+		More modifications have been done to support providing a Stubs table.
+		This isn't complete, but close.
+
+	* win/etest.tcl:
+	* win/expect.dsp:
+	* win/testa2.c:
+	* win/testcalc.c:
+	* win/testcalc.h:
+	* win/testcat.c:
+	* win/testcat.mak:
+	* win/testclib.c:
+	* win/testclib2.c:
+	* win/testconsout.c:
+	* win/testcrash.c:
+	* win/testmodem.c:
+	* win/tests/etest.tcl:
+	* win/tests/testa2.c:
+	* win/tests/testcalc.c:
+	* win/tests/testcalc.h:
+	* win/tests/testcat.c:
+	* win/tests/testcat.mak:
+	* win/tests/testconsout.c:
+	* win/tests/testcrash.c:
+	* win/tests/testmodem.c:
+	* win/tests/testsig.c:
+	* win/tests/testwprog.c:
+	* win/tests/testwstation.c:
+	* win/tests/testwstation.tcl:
+	* win/testsig.c:
+	* win/testwprog.c:
+	* win/testwstation.c:
+	* win/testwstation.tcl:
+		moved all test related files out of the source dir
+
+	* generic/exp_clib.c:
+		This file shall not be part of the porting job I am doing.  After Expect becomes
+		a "friendly" extension, we can then get creative and put the "C" API lib back.
+
+	* win/msjexhnd.cpp:
+	* win/msjexhnd.h:
+		These are not part of the extension and have no place here, at
+		this time.
+
+	* compat/exp_strf.c:
+	* generic/exp.decls:
+	* generic/exp.h:
+	* generic/expChan.c:
+	* generic/expCommand.c:
+	* generic/expDecls.h:
+	* generic/expInt.h:
+	* generic/expIntDecls.h:
+	* generic/expIntPlatDecls.h:
+	* generic/expPlatDecls.h:
+	* generic/expPort.h:
+	* generic/expSpawnChan.c:
+	* generic/expStubInit.c:
+	* generic/expStubLib.c:
+	* generic/expTrap.c:
+	* generic/exp_clib.c:
+	* generic/exp_command.h:
+	* generic/exp_event.c:
+	* generic/exp_glob.c:
+	* generic/exp_inter.c:
+	* generic/exp_log.c:
+	* generic/exp_main_sub.c:
+	* generic/exp_port.h:
+	* generic/exp_printify.c:
+	* generic/exp_strf.c:
+	* generic/expect.c:
+	* generic/expect.h:
+	* generic/expect_comm.h:
+	* generic/expect_tcl.h:
+	* unix/expUnixCommand.c:
+	* unix/expUnixTty.c:
+	* unix/exp_clib_orig.c:
+	* unix/exp_command.c:
+	* unix/exp_pty.c:
+	* unix/exp_trap.c:
+	* unix/pty_termios.c:
+	* unix/pty_unicos.c:
+	* win/ExpWinInit.c:
+	* win/ExpWinInit.c:
+	* win/MsvcDbgControl.cpp:
+	* win/expWin.h:
+	* win/expWinCommand.c:
+	* win/expWinDynloadTclStubs.c:
+	* win/expWinInt.h:
+	* win/expWinInt.h:
+	* win/expWinLog.c:
+	* win/expWinPort.h:
+	* win/expWinProcess.c:
+	* win/expWinSlaveDbg.c:
+	* win/expWinSlaveDrv.c:
+	* win/expWinSlaveKey.c:
+	* win/expWinSpawnChan.c:
+	* win/expWinTty.c:
+	* win/expect.dsp:
+	* win/slavedrv.dsp:
+		moved all header files over to a more core style with the beginnings of a
+		Stubs table.  This work is far from complete.
+
+	* win/expect.dsp:
+	* win/expect.rc:
+		even more rc script problems repaired.
+
+	* generic/exp_version.h:
+	* win/expWin.h:
+		not needed anymore
+
+	* win/expect.dsp:
+	* win/expect.rc:
+		rc script problems repaired
+
+	* win/expect.rc:
+		more rc script problems repaired.
+
+	* win/ExpWinInit.c:
+	* win/expWinInit.c:
+	* win/expect.dsp:
+	* win/slavedrv.dsp:
+		fixing filename case problem
+
+	* generic/exp.decls:
+	* generic/exp.h:
+	* generic/expChan.c:
+	* generic/expCommand.c:
+	* generic/expDecls.h:
+	* generic/expInt.h:
+	* generic/expIntDecls.h:
+	* generic/expIntPlatDecls.h:
+	* generic/expPlatDecls.h:
+	* generic/expSpawnChan.c:
+	* generic/expStubInit.c:
+	* generic/expTrap.c:
+	* generic/exp_closetcl.c:
+	* generic/exp_event.c:
+	* generic/exp_glob.c:
+	* generic/exp_inter.c:
+	* generic/exp_log.c:
+	* generic/exp_main_sub.c:
+	* generic/exp_printify.c:
+	* generic/exp_strf.c:
+	* generic/expect.c:
+	* win/MsvcDbgControl.cpp:
+	* win/MsvcDbgControl.h:
+	* win/expWinCommand.c:
+	* win/expWinInit.c:
+	* win/expWinInt.h:
+	* win/expWinLog.c:
+	* win/expWinPort.h:
+	* win/expWinProcess.c:
+	* win/expWinSpawnChan.c:
+	* win/expWinTty.c:
+	* win/expect.rc:
+	* win/winDllMain.c:
+		All file comments have the same form.
+
+	* generic/exp.decls:
+	* generic/exp.h:
+	* generic/expCommand.c:
+	* generic/expInt.h:
+	* generic/expIntDecls.h:
+	* generic/expStubInit.c:
+	* generic/exp_strf.c:
+	* win/expect.dsp:
+		More rounds of edits getting the new Stubs table more towards
+		perfection.
+
+	* win/expect.dsp:
+		updated settings for a release build.
+
+2001-12-22  davygrvy
+	* win/MsvcDbgControl.cpp:
+	* win/MsvcDbgControl.h:
+	* win/expWin.h:
+	* win/expWinCommand.c:
+	* win/expWinSlaveDrv.c:
+	* win/slavedrv.dsp:
+	* win/winDllMain.c:
+		Got the spawndrv.exe using Stubs.  Tried to get the extension, but more work
+		needs to be done first.  Most Expect commands are now in the ::exp
+		namespace.
+
+	* win/expect.dsp:
+		Took-out link references to tcl84(d).lib.  we'll let winDllmain.c handle
+		it through #pragmas
+
+	* win/expWinDynloadTclStubs.c:
+		re-added from the original branch
+
+2001-12-21  davygrvy
+	* win/ExpWinInit.c:
+	* win/ExpWinVCDbgLaunch.cpp:
+	* win/MsvcDbgControl.cpp:
+	* win/MsvcDbgControl.h:
+	* win/expWin.h:
+	* win/expWinCommand.c:
+	* win/expWinSlaveDrv.c:
+	* win/expect.dsp:
+	* win/expect.dsp:
+	* win/slavedrv.dsp:
+		Second shot (and final) of automating VC++ for the debugger friendly
+		replacement to CreateProcess().  What a nightmare...
+
+2001-12-19  davygrvy
+	* win/ExpWinInit.c:
+	* win/ExpWinVCDbgLaunch.cpp:
+	* win/expWin.h:
+	* win/expWinProcess.c:
+	* win/expWinSlaveDrv.c:
+	* win/slavedrv.dsp:
+	* win/winDllMain.c:
+		Moved expWinProc initting to a new file.  Also realized COM control over the
+		slavedrv debugger is much more work than antisipated to get right.
+
+	* win/expWinCommand.c:
+		removed -iomode fconfigure option, as there isn't one of that type found in the
+		stock pipe driver.
+
+2001-12-18  davygrvy
+	* win/ExpWinVCDbgLaunch.cpp:
+	* win/expWin.h:
+	* win/expWinCommand.c:
+	* win/expWinProcess.c:
+	* win/expect.dsp:
+	* win/expect.dsw:
+	* win/slavedrv.dsw:
+	* win/winDllMain.c:
+		First shot at trying to automate VC++ so I can run slavedrv.exe and get
+		around the "can't debug child processes" issue.
+
+	* win/expWinCLib.c:
+	* win/expectlib.rc:
+	* win/makefile:
+	* win/tclHash.c:
+		not used anymore
+
+	* generic/exp_main_sub.c:
+	* win/expWin.h:
+	* win/expWinCommand.c:
+	* win/expWinProcess.c:
+	* win/expWinSlaveDrv.c:
+		OutputDebugString added to the winprocs for the Tchar thing that
+		Tcl_WinUtfToTChar() does.
+
+2001-12-17  davygrvy
+	* win/expWin.h:
+	* win/expWin.h:
+	* win/expWinCommand.c:
+	* win/expWinProcess.c:
+	* win/expWinSlaveDbg.c:
+	* win/expWinSlaveDrv.c:
+	* win/expect.dsp:
+	* win/slavedrv.dsp:
+		Changed ExpWinCreateProcess() to support unicode (aka TCHAR at
+		run-time through Tcl_WinUtfToTchar())
+
+2001-11-23  davygrvy
+	* win/.cvsignore:
+		added an ignore file for a cleaner appearing workspace.
+
+2001-11-22  davygrvy
+	* win/Mcl/.cvsignore:
+	* win/Mcl/ChangeLog:
+	* win/Mcl/Mcl.dsp:
+	* win/Mcl/Mcl.dsw:
+	* win/Mcl/help/MCL.HLP:
+	* win/Mcl/help/MCL4MFC.HLP:
+	* win/Mcl/help/Mcl C++ Class Library.chm:
+	* win/Mcl/help/Mcl4Mfc C++ Class Library.chm:
+	* win/Mcl/help/mcl.CNT:
+	* win/Mcl/help/mcl4mfc.CNT:
+	* win/Mcl/include/CMcl.h:
+	* win/Mcl/include/CMclAutoLock.h:
+	* win/Mcl/include/CMclAutoPtr.h:
+	* win/Mcl/include/CMclCritSec.h:
+	* win/Mcl/include/CMclEvent.h:
+	* win/Mcl/include/CMclGlobal.h:
+	* win/Mcl/include/CMclKernel.h:
+	* win/Mcl/include/CMclLinkedLists.h:
+	* win/Mcl/include/CMclMailbox.h:
+	* win/Mcl/include/CMclMonitor.h:
+	* win/Mcl/include/CMclMutex.h:
+	* win/Mcl/include/CMclSemaphore.h:
+	* win/Mcl/include/CMclSharedMemory.h:
+	* win/Mcl/include/CMclThread.h:
+	* win/Mcl/include/CMclWaitableCollection.h:
+	* win/Mcl/include/CMclWaitableObject.h:
+	* win/Mcl/readme.txt:
+	* win/Mcl/src/CMclAutoLock.cpp:
+	* win/Mcl/src/CMclAutoPtr.cpp:
+	* win/Mcl/src/CMclCritSec.cpp:
+	* win/Mcl/src/CMclEvent.cpp:
+	* win/Mcl/src/CMclGlobal.cpp:
+	* win/Mcl/src/CMclKernel.cpp:
+	* win/Mcl/src/CMclMailbox.cpp:
+	* win/Mcl/src/CMclMonitor.cpp:
+	* win/Mcl/src/CMclMutex.cpp:
+	* win/Mcl/src/CMclSemaphore.cpp:
+	* win/Mcl/src/CMclSharedMemory.cpp:
+	* win/Mcl/src/CMclThread.cpp:
+	* win/Mcl/src/CMclWaitableCollection.cpp:
+		Merged Mcl into the take2 branch
+
+	* win/expWinSlaveDrv.c:
+		Oopps..  left some bad debugging cruft around
+
+	* generic/expSpawnChan.c:
+		removed some left-over C++ style comments.
+
+	* win/expWinCommand.c:
+		removed some small cruft.
+
+	* win/expAlloc.c:
+	* win/expDString.c:
+		not used anymore
+
+	* win/panic.c:
+		this is not needed
+
+	* generic/exp_main_sub.c:
+		Oopps..  removed a small namespacing left-over of an experiment.
+
+	* expTcl.c:
+	* expTcl.h:
+	* exp_chan.c:
+	* exp_clib.c:
+	* exp_closetcl.c:
+	* exp_command.c:
+	* exp_command.h:
+	* exp_console.c:
+	* exp_event.c:
+	* exp_event.h:
+	* exp_glob.c:
+	* exp_int.h:
+	* exp_inter.c:
+	* exp_log.c:
+	* exp_log.h:
+	* exp_main_exp.c:
+	* exp_main_sub.c:
+	* exp_main_tk.c:
+	* exp_noevent.c:
+	* exp_poll.c:
+	* exp_prog.h:
+	* exp_pty.c:
+	* exp_pty.h:
+	* exp_regexp.c:
+	* exp_regexp.h:
+	* exp_rename.h:
+	* exp_simple.c:
+	* exp_trap.c:
+	* exp_tstamp.h:
+	* exp_tty.c:
+	* exp_tty.h:
+	* exp_tty_comm.c:
+	* exp_tty_in.h:
+	* exp_win.c:
+	* exp_win.h:
+	* expect.c:
+	* expect.h:
+	* expect_cf.h.in:
+	* expect_comm.h:
+	* expect_tcl.h:
+	* fixcat:
+	* fixline1:
+	* generic/expChan.c:
+	* generic/expCommand.c:
+	* generic/expSpawnChan.c:
+	* generic/expTrap.c:
+	* generic/exp_command.h:
+	* generic/exp_event.c:
+	* generic/exp_inter.c:
+	* generic/exp_log.h:
+	* generic/exp_main_exp.c:
+	* generic/exp_main_sub.c:
+	* generic/expect.c:
+	* generic/expect.h:
+	* generic/expect_tcl.h:
+	* win/expWin.h:
+	* win/expWinCommand.c:
+	* win/expWinPort.h:
+	* win/expWinSlave.h:
+	* win/expWinSlaveDbg.c:
+	* win/expWinSlaveDrv.c:
+	* win/expWinSpawnChan.c:
+	* win/expWinTty.c:
+	* win/expect.dsp:
+	* win/expect.dsw:
+	* win/makefile:
+	* win/slavedrv.dsp:
+		A working set of code against Tcl8.4!
+
+2001-11-15  davygrvy
+	* win/expWinSlaveTrapPipe.cpp:
+		file expWinSlaveTrapPipe.cpp was initially added on branch
+		telco-tec-win32-branch.
+
+	* win/expWinSlaveEvents.cpp:
+		file expWinSlaveEvents.cpp was initially added on branch telco
+		tec-win32-branch.
+
+	* win/expWinSlave.hpp:
+	* win/expWinSlaveEvents.cpp:
+	* win/expWinSlaveMain.cpp:
+	* win/expWinSlaveTrap.cpp:
+	* win/expWinSlaveTrapDbg.cpp:
+	* win/expWinSlaveTrapPipe.cpp:
+	* win/expWinSpawnCliTransport.cpp:
+	* win/expWinSpawnMailboxCli.cpp:
+	* win/expWinSpawnSocketCli.cpp:
+	* win/expWinSpawnTransport.cpp:
+		unfinished work committed anyway.
+
+	* mkconfig.mif:
+	* win/makefile.vc32:
+	* win/mkbc32.mif:
+	* win/mkfiles.mif:
+	* win/mkmgw32.mif:
+	* win/mkprepvc32.mif:
+	* win/mkvc32.mif:
+	* win/mkwc32.mif:
+		old build files removed.
+
+	* win/expWinSpawnSocketCli.cpp:
+		file expWinSpawnSocketCli.cpp was initially added on branch
+		telco-tec-win32-branch.
+
+	* win/expWinSpawnCliTransport.cpp:
+		file expWinSpawnCliTransport.cpp was initially added on branch
+		telco-tec-win32-branch.
+
+	* win/expWinSlaveTrap.cpp:
+		file expWinSlaveTrap.cpp was initially added on branch telco
+		tec-win32-branch.
+
+	* win/expWinSlaveTrapDbg.cpp:
+		file expWinSlaveTrapDbg.cpp was initially added on branch telco
+		tec-win32-branch.
+
+2001-11-09  andreas_kupries
+	* expect.man:
+		
+		Upgrading to 5.33.
+
+	* expect.man:
+		Upgrading to 5.33.
+
+2001-11-09  davygrvy
+	* win/expWinSlaveMain.cpp:
+		file expWinSlaveMain.cpp was initially added on branch telco
+		tec-win32-branch.
+
+	* win/expWinSlave.hpp:
+		file expWinSlave.hpp was initially added on branch telco-tec
+		win32-branch.
+
+	* win/expWinSpawnMailboxCli.cpp:
+		file expWinSpawnMailboxCli.cpp was initially added on branch
+		telco-tec-win32-branch.
+
+	* win/expWinSpawnTransport.cpp:
+		file expWinSpawnTransport.cpp was initially added on branch
+		telco-tec-win32-branch.
+
+	* win/expSlaveDrvMain.c:
+	* win/expWinMailboxCli.cpp:
+	* win/expWinSlave.hpp:
+	* win/expWinSlaveMain.cpp:
+	* win/expWinSpawnMailboxCli.cpp:
+	* win/expWinSpawnTransport.cpp:
+		beginning the C++ rewrite.
+
+2001-11-07  davygrvy
+	* win/expWinMailboxCli.cpp:
+		file expWinMailboxCli.cpp was initially added on branch telco
+		tec-win32-branch.
+
+	* win/expSlaveDrvMain.c:
+		More trims for unicode, but I'm dropping the attempt to build for unicode.
+		Too much wierd stuff to handle along with tchar.h having a C++ bug
+		that I don't understand why overloading is problematic.
+
+	* expect.dsw:
+	* win/buildfiles.dsp:
+	* win/genStubs.dsp:
+		Changed to an IDE project rather than a makefile project.
+		The makefiles will be disappearing.
+
+	* win/expSlaveDrvMain.c:
+		file expSlaveDrvMain.c was initially added on branch telco-tec
+		win32-branch.
+
+	* win/dllEntryPoint.c:
+	* win/expSlaveDrvMain.c:
+	* win/makefile.vc32:
+	* win/spawndrv.rc:
+	* win/spawndrvmc.mc:
+		Numerous changes
+
+	* win/expWinMailboxCli.cpp:
+	* win/expWinMailboxSrv.cpp:
+		Small test beginnings of the IPC channel driver with client for
+		spawndrv.exe
+
+	* win/expWinMailboxSrv.cpp:
+		file expWinMailboxSrv.cpp was initially added on branch telco
+		tec-win32-branch.
+
+2001-10-30  davygrvy
+	* win/makefile.vc32:
+	* win/mkfiles.mif:
+	* win/mkvc32.mif:
+		added a 'clean' target.
+
+	* win/dllEntryPoint.c:
+		new) not neccessarily needed, but being explict is a good thing.
+
+	* win/dllEntryPoint.c:
+		file dllEntryPoint.c was initially added on branch telco-tec
+		win32-branch.
+
+	* README.win32.txt:
+		file README.win32.txt was initially added on branch telco-tec
+		win32-branch.
+
+	* README.win32.txt:
+		(new)
+
+2001-10-29  davygrvy
+	* generic/expPlatIntDecls.h:
+		improper naming convention.  Should be PlatInt not IntPlat
+
+	* win/spawndrv.rc:
+		set use the newer exp.h
+
+	* generic/expPlatIntDecls.h:
+		file expPlatIntDecls.h was initially added on branch telco-tec
+		win32-branch.
+
+	* win/makefile.vc32:
+		added the 'genstubs' target
+
+	* generic/expPlatIntDecls.h:
+		Whoops.  should be IntPlat, not PlatInt.
+
+	* mkconfig.mif:
+		had to put the !error directive back in place.
+
+2001-10-28  davygrvy
+	* win/genStubs.dsp:
+		file genStubs.dsp was initially added on branch telco-tec-win32
+		branch.
+
+	* expect.dsw:
+	* win/genStubs.dsp:
+		(new) IDE file for rebuilding the Stubs table.
+
+	* win/buildfiles.dsp:
+	* win/makefile.vc32:
+	* win/mkfiles.mif:
+		build instruction changes
+
+	* makefile.win:
+		extension target changed from 'release' to 'expect'
+
+2001-10-26  davygrvy
+	* win/buildfiles.dsp:
+		file buildfiles.dsp was initially added on branch telco-tec
+		win32-branch.
+
+	* win/spawndrvmc.mc:
+		adding more calls to ExpSyslog() where needed.
+
+	* win/spawndrvmc.mc:
+		ExpSyslog() is finally doing what I want.  More work to do, but the
+		groundwork is now set.
+
+	* expect.dsw:
+	* win/buildfiles.dsp:
+		a couple more IDE project files for MsDev
+
+2001-10-22  davygrvy
+	* win/makefile.vc32:
+		Needed to include the temp directory in the include path so spawndrvmc.h
+		is picked-up.
+
+	* expect.dsw:
+		file expect.dsw was initially added on branch telco-tec-win32
+		branch.
+
+	* expect.dsw:
+		MSVC++ v6 workspace file for the IDE.
+
+	* .cvsignore:
+		file .cvsignore was initially added on branch telco-tec-win32
+		branch.
+
+	* .cvsignore:
+		globs to ignore by CVS.
+
+2001-10-14  davygrvy
+	* win/spawndrv.rc:
+	* win/spawndrvmc.mc:
+		Added #define RESOURCE_INCLUDED because tcl.h doesn't
+		use RC_INVOKED.  Which it should, but doesn't.
+
+	* mkconfig.mif:
+	* win/makefile.vc32:
+	* win/mkfiles.mif:
+	* win/mkprepvc32.mif:
+	* win/mkvc32.mif:
+		Changed the build files to be run from the /win directory instead
+		of the top-root.  This will help get MS project .dsp files working.
+
+2001-10-12  davygrvy
+	* win/spawndrv.rc:
+		file spawndrv.rc was initially added on branch telco-tec-win32
+		branch.
+
+	* win/spawndrv.rc:
+	* win/spawndrv.rc:
+	* win/spawndrvmc.mc:
+		spawndrv.exe needed a resource script and a message catalog.
+
+	* win/spawndrv.rc:
+	* win/spawndrvmc.mc:
+		getting closer to building the message catalog.
+
+	* win/spawndrvmc.mc:
+		corrected title block text.
+
+	* win/spawndrvmc.mc:
+		file spawndrvmc.mc was initially added on branch telco-tec
+		win32-branch.
+
+2001-10-11  davygrvy
+	* win/mkfiles.mif:
+		Added Stubs dynloading stuff.  slavedrv.exe appears to be
+		working thus far,
+
+	* win/makefile.vc32:
+	* win/makefile.vc32:
+	* win/mkfiles.mif:
+	* win/mkvc32.mif:
+	* win/mkvc32.mif:
+		slavedrv.exe is building..  need to add Stubs startup code.
+
+2001-10-02  davygrvy
+	* generic/tcldbg.h:
+		Brought in 5.32.2 and fixed compiler warnings about
+		inappropriate casts.
+
+	* generic/tcldbg.h:
+		file tcldbg.h was initially added on branch telco-tec-win32
+		branch.
+
+2001-09-28  davygrvy
+	* win/mkfiles.mif:
+		Common list of target object files for all make implimentations.
+
+	* win/mkfiles.mif:
+		file mkfiles.mif was initially added on branch telco-tec-win32
+		branch.
+
+	* makefile.win:
+		Added list of expected (pun intended) targets that will be used.
+
+	* win/mkprepvc32.mif:
+	* win/mkvc32.mif:
+		Moved the makefile prep work to a seperate file.
+
+	* win/mkprepvc32.mif:
+		file mkprepvc32.mif was initially added on branch telco-tec
+		win32-branch.
+
+	* mkconfig.mif:
+		Added more config info the build system will need.
+
+2001-09-26  davygrvy
+	* win/mkvc32.mif:
+		file mkvc32.mif was initially added on branch telco-tec-win32
+		branch.
+
+	* win/mkbc32.mif:
+		file mkbc32.mif was initially added on branch telco-tec-win32
+		branch.
+
+	* mkconfig.mif:
+		file mkconfig.mif was initially added on branch telco-tec-win32
+		branch.
+
+	* win/mkwc32.mif:
+		file mkwc32.mif was initially added on branch telco-tec-win32
+		branch.
+
+	* win/mkmgw32.mif:
+		file mkmgw32.mif was initially added on branch telco-tec-win32
+		branch.
+
+	* win/makefile.vc32:
+		file makefile.vc32 was initially added on branch telco-tec
+		win32-branch.
+
+	* makefile.win:
+		file makefile.win was initially added on branch telco-tec-win32
+		branch.
+
+	* makefile.win:
+	* mkconfig.mif:
+	* win/makefile.vc32:
+	* win/mkbc32.mif:
+	* win/mkmgw32.mif:
+	* win/mkvc32.mif:
+	* win/mkwc32.mif:
+		New top-root makefile under windows.
+
+2001-09-13  davygrvy
+	* exp_memmove.c:
+	* exp_select.c:
+	* exp_strf.c:
+	* expect.man:
+	* expectk.man:
+	* libexpect.man:
+		moved from root
