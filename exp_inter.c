@@ -405,7 +405,7 @@ intRead(interp,esPtr,warnOnBufferFull,interruptible,key)
 {
     char *eobOld;  /* old end of buffer */
     int cc;
-    int size = expSizeGet(esPtr);
+    int size;
     char *str;
 
     str = Tcl_GetStringFromObj(esPtr->buffer,&size);
@@ -1017,6 +1017,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 
 	    if (Tcl_GetIndexFromObj(interp, *objv, options, "option",
 		    1 /* exact */, &index) != TCL_OK) {
+		Tcl_ResetResult(interp);
 		goto pattern;
 	    }
 	    switch ((enum options) index) {
@@ -1323,7 +1324,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 
 	switch (rc) {
 	    case EXP_DATA_NEW:
-		cc = intRead(u,esPtr,1,0,key);
+		cc = intRead(interp,u,1,0,key);
 		if (cc > 0) break;
 
 		rc = EXP_EOF;
@@ -1395,7 +1396,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 
 				/* string itself */
 		sprintf(name,"%d,string",i);
-		val = Tcl_GetRange(esPtr->buffer, start, end);
+		val = Tcl_GetRange(u->buffer, start, end);
 		expDiagLog("expect_background: set %s(%s) \"",INTER_OUT,name);
 		expDiagLogU(expPrintifyObj(val));
 		expDiagLogU("\"\r\n");
@@ -1442,7 +1443,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 			if (change && tty_changed)
 			    exp_tty_set(interp,&tty_old,was_raw,was_echo);
 			te = inter_eval(interp,action,u);
-				
+
 			if (change && real_tty) tty_changed =
 						    exp_tty_raw_noecho(interp,&tty_old,&was_raw,&was_echo);
 			switch (te) {
@@ -1570,7 +1571,7 @@ got_action:
 		exp_error(interp,"fork: %s",Tcl_PosixError(interp));
 		finish(TCL_ERROR);
 	}
-	if (pid == 0) { /* child - send process output to user */
+	if (pid == 0) {
 	    /*
 	     * This is a new child process.
 	     * It exists only for this interact command and will go away when
@@ -1638,7 +1639,7 @@ got_action:
 
 		switch (rc) {
 		case EXP_DATA_NEW:
-		    cc = intRead(u,esPtr,0,0,key);
+		    cc = intRead(interp,u,0,0,key);
 		    if (cc > 0) break;
 		    /*
 		     * FALLTHRU
@@ -1896,7 +1897,7 @@ got_action:
 
 		switch (rc) {
 		case EXP_DATA_NEW:
-		        cc = intRead(u,esPtr,0,1,key);
+		        cc = intRead(interp,u,0,1,key);
 		        if (cc > 0) {
 				break;
 			} else if (cc == EXP_CHILD_EOF) {
@@ -2010,7 +2011,7 @@ got_action:
 				change = (action && action->tty_reset);
 				if (change && tty_changed)
 				    exp_tty_set(interp,&tty_old,was_raw,was_echo);
-				te = inter_eval(interp,action,esPtr);
+				te = inter_eval(interp,action,u);
 
 				if (change && real_tty) tty_changed =
 							    exp_tty_raw_noecho(interp,&tty_old,&was_raw,&was_echo);
@@ -2083,7 +2084,7 @@ got_action:
 			if (change && tty_changed)
 				exp_tty_set(interp,&tty_old,was_raw,was_echo);
 
-			te = inter_eval(interp,action,esPtr);
+			te = inter_eval(interp,action,u);
 
 			if (change && real_tty) tty_changed =
 			   exp_tty_raw_noecho(interp,&tty_old,&was_raw,&was_echo);

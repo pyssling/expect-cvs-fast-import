@@ -90,7 +90,6 @@ struct ecase {	/* case for expect command */
 			/* glob or exact match begins */
 	int transfer;	/* if false, leave matched chars in input stream */
 	int indices;	/* if true, write indices */
-/*	int iwrite;*/	/* if true write spawn_id */
 	int iread;	/* if true, reread indirects */
 	int timestamp;	/* if true, write timestamps */
 #define CASE_UNKNOWN	0
@@ -387,7 +386,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 	    if (objc + numWords > maxobjs) {
 		Tcl_Obj ** newobjs;
 		maxobjs = (objc + numWords) * 2;
-		newobjs = ckalloc(maxobjs * sizeof (Tcl_Obj *));
+		newobjs = (Tcl_Obj **)ckalloc(maxobjs * sizeof (Tcl_Obj *));
 		memcpy(newobjs, objs, objc*sizeof(Tcl_Obj *));
 		if (objs != staticObjArray) {
 		    ckfree((char*)objs);
@@ -448,7 +447,6 @@ struct ecase *ec;
 	ec->body = 0;
 	ec->transfer = TRUE;
 	ec->indices = FALSE;
-/*	ec->iwrite = FALSE;*/
 	ec->iread = FALSE;
 	ec->timestamp = FALSE;
 	ec->Case = CASE_NORM;
@@ -498,156 +496,183 @@ ExpState *default_esPtr;	/* suggested ExpState if called as expect_user or _tty 
 int objc;
 Tcl_Obj *CONST objv[];		/* Argument objects. */
 {
-	int i;
-	char *arg;
-	struct ecase ec;	/* temporary to collect args */
+    int index;
+    int i;
+    char *string;
+    struct ecase ec;	/* temporary to collect args */
 
-	static char *options[] = {
-	    "timeout", "eof", "full_buffer", "default", "null", "--",
-	    "-glob", "-regexp", "-exact", "-notransfer", "-nocase",
-	    "-i", "-indices", "-iwrite", "-iread", "-timestamp", "-timeout",
-	    "-nobrace", (char *) NULL
-	};
-	enum options {
-	    EXP_ARG_TIMEOUT, EXP_ARG_EOF, EXP_ARG_FULL_BUFFER,
-	    EXP_ARG_DEFAULT, EXP_ARG_NULL, EXP_ARG_DASH, EXP_ARG_GLOB,
-	    EXP_ARG_REGEXP, EXP_ARG_EXACT, EXP_ARG_NOTRANSFER, EXP_ARG_NOCASE,
-	    EXP_ARG_SPAWN_ID, EXP_ARG_INDICES, EXP_ARG_IWRITE, EXP_ARG_IREAD,
-	    EXP_ARG_TIMESTAMP, EXP_ARG_DASH_TIMEOUT, EXP_ARG_NOBRACE
-	};
-	int index;
+    eg->timeout_specified_by_flag = FALSE;
 
-	eg->timeout_specified_by_flag = FALSE;
+    ecase_clear(&ec);
 
-	ecase_clear(&ec);
+    /* Allocate an array to store the ecases.  Force array even if 0 */
+    /* cases.  This will often be too large (i.e., if there are flags) */
+    /* but won't affect anything. */
 
-	/* Allocate an array to store the ecases.  Force array even if 0 */
-	/* cases.  This will often be too large (i.e., if there are flags) */
-	/* but won't affect anything. */
+    eg->ecd.cases = (struct ecase **)ckalloc(sizeof(struct ecase *) * (1+(objc/2)));
 
-	eg->ecd.cases = (struct ecase **)ckalloc(
-		sizeof(struct ecase *) * (1+(objc/2)));
+    eg->ecd.count = 0;
 
-	eg->ecd.count = 0;
-
-	for (i = 1;i<objc;i++) {
-	    if (Tcl_GetIndexFromObj(interp, objv[i], options, "option", 0,
-		    &index) == TCL_OK) {
-		switch ((enum options) index) {
-		    case EXP_ARG_TIMEOUT:
-			ec.use = PAT_TIMEOUT;
-			goto pattern;
-		    case EXP_ARG_EOF:
-			ec.use = PAT_EOF;
-			goto pattern;
-		    case EXP_ARG_FULL_BUFFER:
-			ec.use = PAT_FULLBUFFER;
-			goto pattern;
-		    case EXP_ARG_DEFAULT:
-			ec.use = PAT_DEFAULT;
-			goto pattern;
-		    case EXP_ARG_NULL:
-			ec.use = PAT_NULL;
-			goto pattern;
-		    case EXP_ARG_DASH:
-		    case EXP_ARG_GLOB:
-			i++;
-			/* assignment here is not actually necessary */
-			/* since cases are initialized this way above */
-			/* ec.use = PAT_GLOB; */
-			goto pattern;
-		    case EXP_ARG_REGEXP:
-			i++;
-			if (i >= objc) {
-			    Tcl_WrongNumArgs(interp, 1, objv,
-				    "-regexp regexp");
-			    return TCL_ERROR;
-			}
-			ec.use = PAT_RE;
-
-			/*
-			 * Try compiling the expression so we can report
-			 * any errors now rather then when we first try to
-			 * use it.
-			 */
-
-			if (!(Tcl_GetRegExpFromObj(interp, objv[i],
-				TCL_REG_ADVANCED))) {
-			    goto error;
-			}
-			goto pattern;
-		    case EXP_ARG_EXACT:
-			i++;
-			ec.use = PAT_EXACT;
-			goto pattern;
-
-		    case EXP_ARG_NOTRANSFER:
-			ec.transfer = 0;
-			break;
-		    case EXP_ARG_NOCASE:
-			ec.Case = CASE_LOWER;
-			break;
-		    case EXP_ARG_SPAWN_ID:
-			i++;
-			if (i>=objc) {
-			    exp_error(interp,"-i requires following spawn_id");
-			    goto error;
-			}
-
-			ec.i_list = exp_new_i_complex(interp,
-				Tcl_GetString(objv[i]),
-				eg->duration, exp_indirect_update2);
-
-			ec.i_list->cmdtype = eg->cmdtype;
-
-				/* link new i_list to head of list */
-			ec.i_list->next = eg->i_list;
-			eg->i_list = ec.i_list;
-			break;
-		    case EXP_ARG_INDICES:
-			ec.indices = TRUE;
-			break;
-		    case EXP_ARG_IWRITE:
-/*				ec.iwrite = TRUE;*/
-			break;
-		    case EXP_ARG_IREAD:
-			ec.iread = TRUE;
-			break;
-		    case EXP_ARG_TIMESTAMP:
-			ec.timestamp = TRUE;
-			break;
-		    case EXP_ARG_DASH_TIMEOUT:
-			i++;
-			if (i>=objc) {
-			    exp_error(interp,"-timeout requires following # of seconds");
-			    goto error;
-			}
-			if (Tcl_GetIntFromObj(interp, objv[i],
-				&eg->timeout) != TCL_OK) {
-			    goto error;
-			}
-			eg->timeout_specified_by_flag = TRUE;
-			break;
-		    case EXP_ARG_NOBRACE:
-				/* nobrace does nothing but take up space */
-				/* on the command line which prevents */
-				/* us from re-expanding any command lines */
-				/* of one argument that looks like it should */
-				/* be expanded to multiple arguments. */
-			break;
-		}
-		/*
-		 * Keep processing arguments, we aren't ready for the
-		 * pattern yet.
-		 */
-		continue;
-	    }
+    for (i = 1;i<objc;i++) {
+	string = Tcl_GetString(objv[i]);
+	if (string[0] == '-') {
+	    static char *flags[] = {
+		"-glob", "-regexp", "-exact", "-notransfer", "-nocase",
+		"-i", "-indices", "-iread", "-timestamp", "-timeout",
+		"-nobrace", (char *) NULL
+	    };
+	    enum flags {
+		EXP_ARG_GLOB, EXP_ARG_REGEXP, EXP_ARG_EXACT,
+		EXP_ARG_NOTRANSFER, EXP_ARG_NOCASE, EXP_ARG_SPAWN_ID,
+		EXP_ARG_INDICES, EXP_ARG_IREAD, EXP_ARG_TIMESTAMP,
+		EXP_ARG_DASH_TIMEOUT, EXP_ARG_NOBRACE
+	    };
 
 	    /*
-	     * We have a pattern of some kind.
+	     * Allow abbreviations of switches and report an error if we
+	     * get an invalid switch.
 	     */
 
-	    pattern:
+	    if (Tcl_GetIndexFromObj(interp, objv[i], flags, "flag", 0,
+		    &index) != TCL_OK) {
+		return TCL_ERROR;
+	    }
+	    switch ((enum flags) index) {
+	    case EXP_ARG_GLOB:
+		i++;
+		/* assignment here is not actually necessary */
+		/* since cases are initialized this way above */
+		/* ec.use = PAT_GLOB; */
+		if (i >= objc) {
+		    Tcl_WrongNumArgs(interp, 1, objv,
+				     "-glob pattern");
+		    return TCL_ERROR;
+		}
+		goto pattern;
+	    case EXP_ARG_REGEXP:
+		i++;
+		if (i >= objc) {
+		    Tcl_WrongNumArgs(interp, 1, objv,
+				     "-regexp regexp");
+		    return TCL_ERROR;
+		}
+		ec.use = PAT_RE;
+
+		/*
+		 * Try compiling the expression so we can report
+		 * any errors now rather then when we first try to
+		 * use it.
+		 */
+
+		if (!(Tcl_GetRegExpFromObj(interp, objv[i],
+					   TCL_REG_ADVANCED))) {
+		    goto error;
+		}
+		goto pattern;
+	    case EXP_ARG_EXACT:
+		i++;
+		if (i >= objc) {
+		    Tcl_WrongNumArgs(interp, 1, objv, "-exact string");
+		    return TCL_ERROR;
+		}
+		ec.use = PAT_EXACT;
+		goto pattern;
+	    case EXP_ARG_NOTRANSFER:
+		ec.transfer = 0;
+		break;
+	    case EXP_ARG_NOCASE:
+		ec.Case = CASE_LOWER;
+		break;
+	    case EXP_ARG_SPAWN_ID:
+		i++;
+		if (i>=objc) {
+		    Tcl_WrongNumArgs(interp, 1, objv, "-i spawn_id");
+		    goto error;
+		}
+		ec.i_list = exp_new_i_complex(interp,
+				      Tcl_GetString(objv[i]),
+				      eg->duration, exp_indirect_update2);
+		ec.i_list->cmdtype = eg->cmdtype;
+
+		/* link new i_list to head of list */
+		ec.i_list->next = eg->i_list;
+		eg->i_list = ec.i_list;
+		break;
+	    case EXP_ARG_INDICES:
+		ec.indices = TRUE;
+		break;
+	    case EXP_ARG_IREAD:
+		ec.iread = TRUE;
+		break;
+	    case EXP_ARG_TIMESTAMP:
+		ec.timestamp = TRUE;
+		break;
+	    case EXP_ARG_DASH_TIMEOUT:
+		i++;
+		if (i>=objc) {
+		    Tcl_WrongNumArgs(interp, 1, objv, "-timeout seconds");
+		    goto error;
+		}
+		if (Tcl_GetIntFromObj(interp, objv[i],
+				      &eg->timeout) != TCL_OK) {
+		    goto error;
+		}
+		eg->timeout_specified_by_flag = TRUE;
+		break;
+	    case EXP_ARG_NOBRACE:
+		/* nobrace does nothing but take up space */
+		/* on the command line which prevents */
+		/* us from re-expanding any command lines */
+		/* of one argument that looks like it should */
+		/* be expanded to multiple arguments. */
+		break;
+	    }
+	    /*
+	     * Keep processing arguments, we aren't ready for the
+	     * pattern yet.
+	     */
+	    continue;
+	} else {
+	    /*
+	     * We have a pattern or keyword.
+	     */
+
+	    static char *keywords[] = {
+		"timeout", "eof", "full_buffer", "default", "null",
+		(char *)NULL
+	    };
+	    enum keywords {
+		EXP_ARG_TIMEOUT, EXP_ARG_EOF, EXP_ARG_FULL_BUFFER,
+		EXP_ARG_DEFAULT, EXP_ARG_NULL
+	    };
+
+	    /*
+	     * Match keywords exactly, otherwise they are patterns.
+	     */
+
+	    if (Tcl_GetIndexFromObj(interp, objv[i], keywords, "keyword",
+		    1 /* exact */, &index) != TCL_OK) {
+		Tcl_ResetResult(interp);
+		goto pattern;
+	    }
+	    switch ((enum keywords) index) {
+	    case EXP_ARG_TIMEOUT:
+		ec.use = PAT_TIMEOUT;
+		break;
+	    case EXP_ARG_EOF:
+		ec.use = PAT_EOF;
+		break;
+	    case EXP_ARG_FULL_BUFFER:
+		ec.use = PAT_FULLBUFFER;
+		break;
+	    case EXP_ARG_DEFAULT:
+		ec.use = PAT_DEFAULT;
+		break;
+	    case EXP_ARG_NULL:
+		ec.use = PAT_NULL;
+		break;
+	    }
+pattern:
 	    /* if no -i, use previous one */
 	    if (!ec.i_list) {
 		/* if no -i flag has occurred yet, use default */
@@ -686,32 +711,33 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 
 	    eg->ecd.count++;
 	}
+    }
 
-	/* if no patterns at all have appeared force the current */
-	/* spawn id to be added to list anyway */
+    /* if no patterns at all have appeared force the current */
+    /* spawn id to be added to list anyway */
 
-	if (eg->i_list == 0) {
-		if (default_esPtr != EXP_SPAWN_ID_BAD) {
-			eg->i_list = exp_new_i_simple(default_esPtr,eg->duration);
-		} else {
-		    /* it'll be checked later, if used */
-		    default_esPtr = expStateCurrent(interp,0,0,1);
-		    eg->i_list = exp_new_i_simple(default_esPtr,eg->duration);
-		}
+    if (eg->i_list == 0) {
+	if (default_esPtr != EXP_SPAWN_ID_BAD) {
+	    eg->i_list = exp_new_i_simple(default_esPtr,eg->duration);
+	} else {
+	    /* it'll be checked later, if used */
+	    default_esPtr = expStateCurrent(interp,0,0,1);
+	    eg->i_list = exp_new_i_simple(default_esPtr,eg->duration);
 	}
+    }
 
-	return(TCL_OK);
+    return(TCL_OK);
 
  error:
-	/* very hard to free case_master_list here if it hasn't already */
-	/* been attached to a case, ugh */
+    /* very hard to free case_master_list here if it hasn't already */
+    /* been attached to a case, ugh */
 
-	/* note that i_list must be avail to free ecases! */
-	free_ecases(interp,eg,0);
+    /* note that i_list must be avail to free ecases! */
+    free_ecases(interp,eg,0);
 
-	if (eg->i_list)
-		exp_free_i(interp,eg->i_list,exp_indirect_update2);
-	return(TCL_ERROR);
+    if (eg->i_list)
+	exp_free_i(interp,eg->i_list,exp_indirect_update2);
+    return(TCL_ERROR);
 }
 
 #define EXP_IS_DEFAULT(x)	((x) == EXP_TIMEOUT || (x) == EXP_EOF)
@@ -824,10 +850,7 @@ char *suffix;
 
 	result = Tcl_RegExpExecObj(interp, re, buffer, 0 /* offset */,
 		-1 /* nmatches */, 0 /* eflags */);
-	if (result < 0) {
-	    expDiagLogU(no);
-	    return(EXP_TCLERROR);
-	} else if (result > 0) {
+	if (result > 0) {
 
 	    o->e = e;
 
@@ -842,6 +865,10 @@ char *suffix;
 	    o->esPtr = esPtr;
 	    expDiagLogU(yes);
 	    return(EXP_MATCH);
+	} else if (result == 0) {
+	    expDiagLogU(no);
+	} else { /* result < 0 */
+	    return(EXP_TCLERROR);
 	}
     } else if (e->use == PAT_GLOB) {
 	int match; /* # of chars that matched */
@@ -1163,7 +1190,6 @@ struct ecase *ec;
 {
 	if (!ec->transfer) Tcl_AppendElement(interp,"-notransfer");
 	if (ec->indices) Tcl_AppendElement(interp,"-indices");
-/*	if (ec->iwrite) Tcl_AppendElement(interp,"-iwrite");*/
 	if (!ec->Case) Tcl_AppendElement(interp,"-nocase");
 
 	if (ec->use == PAT_RE) Tcl_AppendElement(interp,"-re");
@@ -2648,21 +2674,6 @@ char **argv;
 	return TCL_ERROR;
 
 }
-
-#if OBSOLETEWITH81
-/* lowmemcpy - like memcpy but it lowercases result */
-void
-exp_lowmemcpy(dest,src,n)
-char *dest;
-char *src;
-int n;
-{
-	for (;n>0;n--) {
-		*dest = ((isascii(*src) && isupper(*src))?tolower(*src):*src);
-		src++;	dest++;
-	}
-}
-#endif
 
 /*ARGSUSED*/
 int

@@ -240,7 +240,6 @@ ExpCloseProc(instanceData, interp)
 	 */
     } else {
 	expStateFree(esPtr);
-	ckfree((char *) esPtr);
     }
     return 0;
 }
@@ -353,6 +352,10 @@ void
 expStateFree(esPtr)
     ExpState *esPtr;
 {
+  if (esPtr->fdBusy) {
+    close(esPtr->fdin);
+  }
+
     esPtr->valid = FALSE;
     
     if (!esPtr->keepForever) {
@@ -476,6 +479,11 @@ expCreateChannel(interp,fdin,fdout,pid)
     esPtr->validMask = mask | TCL_EXCEPTION;
     esPtr->fdin = fdin;
     esPtr->fdout = fdout;
+
+    expCloseOnExec(fdin);
+    if (fdin != fdout) expCloseOnExec(fdout);
+
+    esPtr->fdBusy = FALSE;
     esPtr->channel = Tcl_CreateChannel(channelTypePtr, esPtr->name,
 	    (ClientData) esPtr, mask);
     Tcl_RegisterChannel(interp,esPtr->channel);

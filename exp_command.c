@@ -207,8 +207,8 @@ expStateFromChannelName(interp,name,open,adjust,any,msg)
     }
 
     channel = Tcl_GetChannel(interp,name,(int *)0);
-    esPtr = Tcl_GetChannelInstanceData(channel);
     if (!channel) return(0);
+    esPtr = Tcl_GetChannelInstanceData(channel);
 
     if ((!open) || esPtr->open) {   /* if open == 1, then check if actually
 				       open */
@@ -260,8 +260,6 @@ ExpState *esPtr;
 
     exp_configure_count++;
 
-    Tcl_DecrRefCount(esPtr->buffer);
-
     if (esPtr->fg_armed) {
 	exp_event_disarm_fg(esPtr);
 	esPtr->fg_armed = FALSE;
@@ -301,6 +299,20 @@ char *name;
 #else
     return name[0];	/* pacify lint, use arg and return something */
 #endif
+}
+
+static
+void
+expBusy(esPtr)
+     ExpState *esPtr;
+{     
+  int x = open("/dev/null",0);
+  if (x != esPtr->fdin) {
+    fcntl(x,F_DUPFD,esPtr->fdin);
+    close(x);
+  }
+  expCloseOnExec(esPtr->fdin);
+  esPtr->fdBusy = TRUE;
 }
 
 int
@@ -347,9 +359,13 @@ ExpState *esPtr;
 
     if (esPtr->user_waited) {
 	if (esPtr->registered) {
-	    Tcl_UnregisterChannel(interp,esPtr->channel);
 	    esPtr->registered = 0;
+	    Tcl_UnregisterChannel(interp,esPtr->channel);
+	    /* at this point esPtr may have been freed so don't touch it
+               any longer */
 	}
+    } else {
+      expBusy(esPtr);
     }
 
     return(TCL_OK);
@@ -454,10 +470,10 @@ exp_init_spawn_ids(interp)
 }
 
 void
-exp_close_on_exec(fd)
+expCloseOnExec(fd)
 int fd;
 {
-	(void) fcntl(fd,F_SETFD,1);
+     (void) fcntl(fd,F_SETFD,1);
 }
 
 #define STTY_INIT	"stty_init"
@@ -520,6 +536,7 @@ Tcl_Interp *interp;
 int argc;
 char **argv;
 {
+    ExpState *esPtr = 0;
     int slave;
     int pid;
     char **a;
@@ -548,7 +565,7 @@ char **argv;
     int i;			/* trusty overused temporary */
 
     char *argv0 = argv[0];
-    char *openarg = 0;
+    char *chanName = 0;
     int leaveopen = FALSE;
     FILE *readfilePtr;
     FILE *writefilePtr;
@@ -568,7 +585,7 @@ char **argv;
     int child_errno;
     char sync_byte;
 
-    Tcl_Channel chan;
+    Tcl_Channel channel;
     char buf[4];		/* enough space for a string literal */
 				/* representing a file descriptor */
     Tcl_DString dstring;
@@ -602,14 +619,14 @@ char **argv;
 		exp_error(interp,"usage: -open file-identifier");
 		return TCL_ERROR;
 	    }
-	    openarg = argv[1];
+	    chanName = argv[1];
 	    argc--; argv++;
 	} else if (streq(*argv,"-leaveopen")) {
 	    if (argc < 2) {
 		exp_error(interp,"usage: -open file-identifier");
 		return TCL_ERROR;
 	    }
-	    openarg = argv[1];
+	    chanName = argv[1];
 	    leaveopen = TRUE;
 	    argc--; argv++;
 	} else if (streq(*argv,"-ignore")) {
@@ -671,12 +688,12 @@ char **argv;
 	} else break;
     }
 
-    if (openarg && (argc != 0)) {
+    if (chanName && (argc != 0)) {
 	exp_error(interp,"usage: -[leave]open [fileXX]");
 	return TCL_ERROR;
     }
 
-    if (!pty_only && !openarg && (argc == 0)) {
+    if (!pty_only && !chanName && (argc == 0)) {
 	exp_error(interp,"usage: spawn [spawn-args] program [program-args]");
 	return(TCL_ERROR);
     }
@@ -698,7 +715,7 @@ when trapping, see below in child half of fork */
     
     Tcl_ReapDetachedProcs();
 
-    if (!openarg) {
+    if (!chanName) {
 	if (echo) {
 	    expStdoutLogU(argv0,0);
 	    for (a = argv;*a;a++) {
@@ -737,13 +754,18 @@ when trapping, see below in child half of fork */
 	    return(TCL_ERROR);
 	}
 
+	/* ordinarily channel creation takes care of close-on-exec
+	 * but because that will occur *after* fork, force close-on-exec
+	 * now in this case.
+	 */
+	expCloseOnExec(master);
+
 #define SPAWN_OUT "spawn_out"
 	Tcl_SetVar2(interp,SPAWN_OUT,"slave,name",exp_pty_slave_name,0);
     } else {
 	/*
 	 * process "-open $channel"
 	 */
-	Tcl_Channel chan;
 	int mode;
 	int rfd, wfd;
 	
@@ -751,7 +773,7 @@ when trapping, see below in child half of fork */
 	    expStdoutLogU(argv0,0);
 	    expStdoutLogU(" [open ...]\r\n",0);
 	}
-	if (!(chan = Tcl_GetChannel(interp,openarg,&mode))) {
+	if (!(channel = Tcl_GetChannel(interp,chanName,&mode))) {
 	    return TCL_ERROR;
 	}
 	if (!mode) {
@@ -759,12 +781,12 @@ when trapping, see below in child half of fork */
 	    return TCL_ERROR;
 	}
 	if (mode & TCL_READABLE) {
-	    if (TCL_ERROR == Tcl_GetChannelHandle(chan, TCL_READABLE, (ClientData) &rfd)) {
+	    if (TCL_ERROR == Tcl_GetChannelHandle(channel, TCL_READABLE, (ClientData) &rfd)) {
 		return TCL_ERROR;
 	    }
 	}
 	if (mode & TCL_WRITABLE) {
-	    if (TCL_ERROR == Tcl_GetChannelHandle(chan, TCL_WRITABLE, (ClientData) &wfd)) {
+	    if (TCL_ERROR == Tcl_GetChannelHandle(channel, TCL_WRITABLE, (ClientData) &wfd)) {
 		return TCL_ERROR;
 	    }    
 	}
@@ -782,7 +804,6 @@ when trapping, see below in child half of fork */
 		exp_error(interp,"fdopen: %s",Tcl_PosixError(interp));
 		return TCL_ERROR;
 	    }
-	    exp_close_on_exec(write_master);
 	}
 
 	/*
@@ -794,12 +815,11 @@ when trapping, see below in child half of fork */
 	 */
     }
 	
-    if (openarg || pty_only) {
-	ExpState *esPtr;
+    if (chanName || pty_only) {
 	esPtr = expCreateChannel(interp,master,write_master,EXP_NOPID);
 	    
-	if (openarg) {
-	    esPtr->channel_orig = esPtr->channel;
+	if (chanName) {
+	    esPtr->channel_orig = channel;
 	    esPtr->leaveopen = leaveopen;
 	}
 
@@ -812,7 +832,7 @@ when trapping, see below in child half of fork */
 	/* tell user of new spawn id */
 	Tcl_SetVar(interp,SPAWN_ID_VARNAME,esPtr->name,0);
 
-	if (!openarg) {
+	if (!chanName) {
 	    char value[20];
 
 	    /*
@@ -867,14 +887,12 @@ when trapping, see below in child half of fork */
     }
 
     if (pid) { /* parent */
-	    ExpState *esPtr;
-
 	    close(sync_fds[1]);
 	    close(sync2_fds[0]);
 	    close(status_pipe[1]);
 
 	    esPtr = expCreateChannel(interp,master,master,pid);
-	    
+
 	    if (exp_pty_slave_name) set_slave_name(esPtr,exp_pty_slave_name);
 
 #ifdef CRAY
@@ -948,9 +966,6 @@ when trapping, see below in child half of fork */
 
 	    Tcl_DStringFree(&dstring);
 	    return(TCL_OK);
-parent_error:
-	    Tcl_DStringFree(&dstring);
-	    return TCL_ERROR;
 	}
 
 	/* child process - do not return from here!  all errors must exit() */
@@ -958,7 +973,7 @@ parent_error:
 	close(sync_fds[0]);
 	close(sync2_fds[1]);
 	close(status_pipe[0]);
-	exp_close_on_exec(status_pipe[1]);
+	expCloseOnExec(status_pipe[1]);
 
 	if (exp_dev_tty != -1) {
 		close(exp_dev_tty);
@@ -1191,6 +1206,17 @@ parent_error:
 	write(status_pipe[1], &errno, sizeof errno);
 	exit(-1);
 	/*NOTREACHED*/
+parent_error:
+    Tcl_DStringFree(&dstring);
+    if (esPtr) {
+        exp_close(interp,esPtr);
+	waitpid(esPtr->pid,&esPtr->wait,0);
+	if (esPtr->registered) {
+	  esPtr->registered = 0;
+	  Tcl_UnregisterChannel(interp,esPtr->channel);
+	}
+    }
+    return TCL_ERROR;
 }
 
 /*ARGSUSED*/
@@ -2632,13 +2658,15 @@ char **argv;
     esPtr->sys_waited = TRUE;
     esPtr->user_waited = TRUE;
 
-    /* If user hasn't already called close, do so on their behalf */
-    /* If they have, this is just a no-op */
-    exp_close(interp,esPtr);
+    /* If user hasn't already called close, do so on their behalf.
+     * Check before calling exp_close since it will write over the
+     * result that we've already written! */
+
+    if (esPtr->open) exp_close(interp,esPtr);
 
     if (esPtr->registered) {
-	Tcl_UnregisterChannel(interp,esPtr->channel);
 	esPtr->registered = 0;
+	Tcl_UnregisterChannel(interp,esPtr->channel);
     }
 
     return ((result == -1)?TCL_ERROR:TCL_OK);

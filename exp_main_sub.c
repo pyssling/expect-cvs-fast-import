@@ -331,7 +331,8 @@ Tcl_Interp *interp;
 		continue;
 	    }
 #endif
-	    if ((code <= 0) && !gotPartial) code = EXP_EOF;
+	    if (code < 0) code = EXP_EOF;
+	    if ((code == 0) && Tcl_Eof(inChannel) && !gotPartial) code = EXP_EOF;
 	}
 
 	if (code == EXP_EOF) exp_exit(interp,0);
@@ -369,9 +370,12 @@ Tcl_Interp *interp;
 	code = Tcl_RecordAndEvalObj(interp, commandPtr, 0);
 	Tcl_SetObjLength(commandPtr, 0);
 	switch (code) {
+	    char *str;
+
 	    case TCL_OK:
-		if (*interp->result != 0) {
-		    expStdoutLogU(exp_cook(interp->result,(int *)0),1);
+	        str = Tcl_GetStringResult(interp);
+		if (*str != 0) {
+		    expStdoutLogU(exp_cook(str,(int *)0),1);
 		    expStdoutLogU("\r\n",1);
 		}
 		continue;
@@ -676,7 +680,7 @@ char **argv;
 				exp_cmdfile = fopen(exp_cmdfilename,"r");
 				if (exp_cmdfile) {
 					exp_cmdfilename = 0;
-					exp_close_on_exec(fileno(exp_cmdfile));
+					expCloseOnExec(fileno(exp_cmdfile));
 				} else {
 					char *msg;
 

@@ -28,7 +28,7 @@ test pid-1.3 {basic pid operation} {
 
 test pid-1.4 {basic pid operation} {
     list [catch {exp_pid -i 100} msg] $msg
-} {1 {exp_pid: invalid spawn id (100)}}
+} {1 {can not find channel named "100"}}
 
 test pid-1.5 {basic pid operation} {
 	list [catch {exp_pid -j} msg] $msg

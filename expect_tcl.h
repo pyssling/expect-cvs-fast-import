@@ -43,7 +43,7 @@ EXTERN void	exp_interpret_rcfiles _ANSI_ARGS_((Tcl_Interp *,int my_rc,int sys_rc
 
 EXTERN char *	exp_cook _ANSI_ARGS_((char *s,int *len));
 
-EXTERN void	exp_close_on_exec _ANSI_ARGS_((int));
+EXTERN void	expCloseOnExec _ANSI_ARGS_((int));
 
 			/* app-specific exit handler */
 EXTERN void	(*exp_app_exit)_ANSI_ARGS_((Tcl_Interp *));

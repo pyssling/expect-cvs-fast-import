@@ -140,6 +140,14 @@ typedef struct ExpState {
      */
     int freeWhenBgHandlerUnblocked;
 
+    /* If channel is closed but not yet waited on, we tie up the fd by
+     * attaching it to /dev/null.  We play this little game so that we
+     * can embed the fd in the channel name.  If we didn't tie up the
+     * fd, we'd get channel name collisions.  I'd consider naming the
+     * channels independently of the fd, but this makes debugging easier.
+     */
+    int fdBusy;
+
     /* 
      * stdinout and stderr never go away so that our internal refs to them
      * don't have to be invalidated.  Having to worry about invalidating them
