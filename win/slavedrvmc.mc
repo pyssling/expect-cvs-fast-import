@@ -22,7 +22,7 @@
 ; *	    http://expect.sf.net/
 ; *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
 ; * ----------------------------------------------------------------------------
-; * RCS: @(#) $Id: slavedrvmc.mc,v 1.1.2.2 2002/03/10 01:02:37 davygrvy Exp $
+; * RCS: @(#) $Id: slavedrvmc.mc,v 1.1.2.3 2002/06/18 22:51:31 davygrvy Exp $
 ; * ----------------------------------------------------------------------------
 ; */
 
@@ -138,7 +138,7 @@ Severity=Fatal
 Facility=Io
 SymbolicName=MSG_IO_TRANSPRTARGSBAD
 Language=English
-%1 : %2 (%3,%4): Transport protocol bad: %5
+%1 : %2 (%3,%4): Transport protocol bad (must be 'conio' or 'stdio'): %5
 .
 
 MessageId=0x4
@@ -146,7 +146,7 @@ Severity=Fatal
 Facility=Io
 SymbolicName=MSG_IO_TRAPARGSBAD
 Language=English
-%1 : %2 (%3,%4): Trap method bad: %5
+%1 : %2 (%3,%4): Trap method bad (only 'dbg' is available): %5
 .
 
 

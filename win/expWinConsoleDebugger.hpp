@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinConsoleDebugger.hpp,v 1.1.2.25 2002/06/22 14:02:03 davygrvy Exp $
+ * RCS: @(#) $Id: expWinConsoleDebugger.hpp,v 1.1.2.26 2002/06/25 08:40:50 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -173,6 +173,7 @@ private:
     void OnXLoadDll		(Process *, LPDEBUG_EVENT);
     void OnXUnloadDll		(Process *, LPDEBUG_EVENT);
     void OnXDebugString		(Process *, LPDEBUG_EVENT);
+    void OnXRip			(Process *, LPDEBUG_EVENT);
     void OnXSecondChanceException (Process *, LPDEBUG_EVENT);
     void OnXSingleStep		(Process *, LPDEBUG_EVENT);
 
