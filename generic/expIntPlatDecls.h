@@ -1,7 +1,7 @@
 /* ----------------------------------------------------------------------------
  * expPlatIntDecls.h --
  *
- *	Declarations of platform specific Expect APIs.
+ *	Declarations of platform specific internal Expect APIs.
  *
  * ----------------------------------------------------------------------------
  *
@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expIntPlatDecls.h,v 1.1.4.1 2002/02/10 02:58:52 davygrvy Exp $
+ * RCS: @(#) $Id: expIntPlatDecls.h,v 1.1.4.2 2002/02/10 12:04:22 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 

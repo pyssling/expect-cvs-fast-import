@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: exp.h,v 1.1.4.4 2002/02/10 10:17:04 davygrvy Exp $
+ * RCS: @(#) $Id: exp_main_sub.c,v 1.1.2.1.2.5 2002/02/10 12:04:22 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -48,6 +48,10 @@
 char exp_version[] = EXP_VERSION;
 #define NEED_TCL_MAJOR		7
 #define NEED_TCL_MINOR		5
+
+#define TCL_DOES_STUBS \
+    (TCL_MAJOR_VERSION > 8 || TCL_MAJOR_VERSION == 8 && (TCL_MINOR_VERSION > 1 || \
+    (TCL_MINOR_VERSION == 1 && TCL_RELEASE_LEVEL == TCL_FINAL_RELEASE)))
 
 char *exp_argv0 = "this program";	/* default program name */
 void (*exp_app_exit)() = 0;
@@ -512,76 +516,94 @@ static char init_auto_path[] = "lappend auto_path $exp_library $exp_exec_library
 
 int
 Expect_Init(interp)
-Tcl_Interp *interp;
+    Tcl_Interp *interp;
 {
-	static int first_time = TRUE;
+    static int first_time = TRUE;
 
-	if (first_time) {
-		int tcl_major = atoi(TCL_VERSION);
-		char *dot = strchr(TCL_VERSION,'.');
-		int tcl_minor = atoi(dot+1);
-
-		if (tcl_major < NEED_TCL_MAJOR || 
-		    (tcl_major == NEED_TCL_MAJOR && tcl_minor < NEED_TCL_MINOR)) {
-			sprintf(interp->result,
-			   "%s compiled with Tcl %d.%d but needs at least Tcl %d.%d\n",
-				exp_argv0,tcl_major,tcl_minor,
-				NEED_TCL_MAJOR,NEED_TCL_MINOR);
-			return TCL_ERROR;
-		}
-
-		if (Tcl_PkgRequire(interp, "Tcl", TCL_VERSION, 0) == NULL) {
-			return TCL_ERROR;
-		}
-		if (Tcl_PkgProvide(interp, "Expect", EXP_VERSION) != TCL_OK) {
-			return TCL_ERROR;
-		}
-#ifdef __WIN32__
-		{
-		    extern void ExpWinInit(void);
-		    ExpWinInit();
-		}
+#ifdef USE_TCL_STUBS
+    if (Tcl_InitStubs(interp, "8.1", 0) == NULL) {
+	return TCL_ERROR;
+    }
+#else
+    if (Tcl_PkgRequire(interp, "Tcl", TCL_VERSION, 0) == NULL) {
+	return TCL_ERROR;
+    }
 #endif
 
-		exp_getpid = getpid();
-		exp_init_spawn_ids(interp);
-		exp_init_pty(interp);
-		exp_init_pty_exit();
-		exp_init_tty(interp); /* do this only now that we have
-				       * looked at original tty state */
-		exp_init_stdio();
-		exp_init_sig();
-		exp_init_event();
-		exp_init_trap();
-		exp_init_unit_random();
+    if (first_time) {
+	int tcl_major = atoi(TCL_VERSION);
+	char *dot = strchr(TCL_VERSION,'.');
+	int tcl_minor = atoi(dot+1);
 
-		Tcl_CreateExitHandler(exp_exit_handlers,(ClientData)interp);
-
-		first_time = FALSE;
+	if (tcl_major < NEED_TCL_MAJOR || 
+	    (tcl_major == NEED_TCL_MAJOR && tcl_minor < NEED_TCL_MINOR)) {
+	    sprintf(interp->result,
+		"%s compiled with Tcl %d.%d but needs at least Tcl %d.%d\n",
+		exp_argv0,tcl_major,tcl_minor,
+		NEED_TCL_MAJOR,NEED_TCL_MINOR);
+	    return TCL_ERROR;
 	}
 
-	/* save last known interp for emergencies */
-	exp_interp = interp;
-
-	/* initialize commands */
-	exp_init_most_cmds(interp);	/* add misc     cmds to interpreter */
-	exp_init_expect_cmds(interp);	/* add expect   cmds to interpreter */
-	exp_init_main_cmds(interp);	/* add main     cmds to interpreter */
-	exp_init_trap_cmds(interp);	/* add trap     cmds to interpreter */
-	exp_init_tty_cmds(interp);	/* add tty      cmds to interpreter */
-	exp_init_interact_cmds(interp);	/* add interact cmds to interpreter */
-
-	exp_init_spawn_id_vars(interp);
-
-	if (Tcl_Eval(interp, initScript) != TCL_OK) {
-		return TCL_ERROR;
+#ifdef __WIN32__
+	{
+	    extern void ExpWinInit ();
+	    ExpWinInit();
 	}
+#endif
+
+	exp_getpid = getpid();
+	exp_init_spawn_ids(interp);
+	exp_init_pty(interp);
+	exp_init_pty_exit();
+	exp_init_tty(interp); /* do this only now that we have
+	* looked at original tty state */
+	exp_init_stdio();
+	exp_init_sig();
+	exp_init_event();
+	exp_init_trap();
+	exp_init_unit_random();
+
+	Tcl_CreateExitHandler(exp_exit_handlers,(ClientData)interp);
+
+	first_time = FALSE;
+    }
+
+    /* save last known interp for emergencies */
+    exp_interp = interp;
+
+    /* initialize commands */
+    exp_init_most_cmds(interp);	/* add misc     cmds to interpreter */
+    exp_init_expect_cmds(interp);	/* add expect   cmds to interpreter */
+    exp_init_main_cmds(interp);	/* add main     cmds to interpreter */
+    exp_init_trap_cmds(interp);	/* add trap     cmds to interpreter */
+    exp_init_tty_cmds(interp);	/* add tty      cmds to interpreter */
+    exp_init_interact_cmds(interp);	/* add interact cmds to interpreter */
+
+    exp_init_spawn_id_vars(interp);
+
+    if (Tcl_Eval(interp, initScript) != TCL_OK) {
+	return TCL_ERROR;
+    }
 
 #ifdef TCL_DEBUGGER
-	Dbg_IgnoreFuncs(interp,ignore_procs);
+    Dbg_IgnoreFuncs(interp,ignore_procs);
 #endif
 
-	return TCL_OK;
+#if TCL_DOES_STUBS
+    {
+	extern ExpStubs expStubs;
+	if (Tcl_PkgProvideEx(interp, "Expect", EXP_VERSION,
+		(ClientData)&expStubs) != TCL_OK) {
+	    return TCL_ERROR;
+	}
+    }
+#else
+    if (Tcl_PkgProvide(interp, "Expect", EXP_VERSION) != TCL_OK) {
+	return TCL_ERROR;
+    }
+#endif
+
+    return TCL_OK;
 }
 
 static char sigexit_init_default[] = "trap exit {SIGINT SIGTERM}";

@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: exp.h,v 1.1.4.4 2002/02/10 10:17:04 davygrvy Exp $
+ * RCS: @(#) $Id: exp.h,v 1.1.4.5 2002/02/10 12:04:21 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -75,9 +75,6 @@
  */
 #ifndef RC_INVOKED
 
-
-/* according to Karl Vogel, time.h is insufficient on Pyramid */
-/* the following is recommended by autoconf */
 
 #ifdef TIME_WITH_SYS_TIME
 #   include <sys/time.h>

@@ -25,7 +25,7 @@
 #	   http://expect.sf.net/
 #	   http://bmrc.berkeley.edu/people/chaffee/expectnt.html
 # ----------------------------------------------------------------------------
-# RCS: @(#) $Id: exp.h,v 1.1.4.4 2002/02/10 10:17:04 davygrvy Exp $
+# RCS: @(#) $Id: exp.decls,v 1.1.4.3 2002/02/10 12:04:21 davygrvy Exp $
 # ----------------------------------------------------------------------------
 
 library exp
@@ -258,129 +258,76 @@ declare 69 generic {
 	int toWrite, int *errorPtr)
 }
 declare 70 generic {
-    void exp_create_commands (Tcl_Interp *interp, struct exp_cmd_data *c)
-}
-declare 71 generic {
     void exp_init_main_cmds (Tcl_Interp *interp)
 }
-declare 72 generic {
+declare 71 generic {
     void exp_init_expect_cmds (Tcl_Interp *interp)
 }
-declare 73 generic {
+declare 72 generic {
     void exp_init_most_cmds (Tcl_Interp *interp)
 }
-declare 74 generic {
+declare 73 generic {
     void exp_init_trap_cmds (Tcl_Interp *interp)
 }
-declare 75 generic {
+declare 74 generic {
     void exp_init_interact_cmds (Tcl_Interp *interp)
 }
-declare 76 generic {
+declare 75 generic {
     int exp_init_tty_cmds (Tcl_Interp *interp)
 }
-#declare 77 generic {
+#declare 76 generic {
 #    int exp_getpidproc (void)
 #}
-#declare 78 generic {
+#declare 77 generic {
 #    void exp_busy (int fd)
 #}
-declare 79 generic {
-    int exp_exact_write (struct exp_f * f, char *buffer, int rembytes)
-}
-#declare 80 generic {
-#    void exp_sys_close (int fd, struct exp_f *f)
-#}
-declare 81 generic {
-    struct exp_f * exp_f_find (Tcl_Interp *interp, char *spawnId)
-}
-declare 82 generic {
-    struct exp_f * exp_f_new (Tcl_Interp *interp, Tcl_Channel chan,
-	char *spawnId, int pid)
-}
-declare 83 generic {
-    int exp_f_new_platform (struct exp_f *f)
-}
-declare 84 generic {
-    void exp_f_free (struct exp_f *f)
-}
-declare 85 generic {
-    void exp_f_free_platform (struct exp_f *f)
-}
-declare 86 generic {
+declare 78 generic {
     Tcl_Channel ExpCreatePairChannel (Tcl_Interp *interp, CONST char *chanInId,
 	CONST char *chanOutId, CONST char *chanName)
 }
-declare 87 generic {
+declare 79 generic {
     int ExpSpawnOpen (Tcl_Interp *interp, char *chanId, int leaveopen)
 }
-declare 88 generic {
+declare 80 generic {
     struct exp_f * exp_update_master (Tcl_Interp *interp ,int opened,
 	int adjust)
 }
-declare 89 generic {
+declare 81 generic {
     CONST char * exp_get_var (Tcl_Interp *interp, char *var)
 }
-declare 90 generic {
+declare 82 generic {
     void exp_exit (Tcl_Interp *interp, int status)
 }
 
 ### From exp_event.h
-declare 91 generic {
-    int exp_get_next_event (Tcl_Interp *interp, struct exp_f **masters, int n,
-	struct exp_f **master_out, int timeout, int key)
-}
-declare 92 generic {
-    int exp_get_next_event_info (Tcl_Interp *interp, struct exp_f *fd, int ready_mask)
-}
-declare 93 generic {
+declare 83 generic {
     int exp_dsleep (Tcl_Interp *interp, double sec)
 }
-declare 94 generic {
+declare 84 generic {
     void exp_init_event (void)
 }
-#declare 95 generic {
+#declare 85 generic {
 #    void exp_event_exit (Tcl_Interp *interp)
 #}
-declare 96 generic {
-    void exp_event_disarm (struct exp_f *f)
-}
-declare 97 generic {
-    void exp_arm_background_filehandler (struct exp_f *f)
-}
-declare 98 generic {
-    void exp_disarm_background_filehandler (struct exp_f *f)
-}
-declare 99 generic {
-    void exp_disarm_background_filehandler_force (struct exp_f *f)
-}
-declare 100 generic {
-    void exp_unblock_background_filehandler (struct exp_f *f)
-}
-declare 101 generic {
-    void exp_block_background_filehandler (struct exp_f *f)
-}
-declare 102 generic {
+declare 86 generic {
     void exp_background_filehandler (ClientData clientData, int mask)
 }
-declare 103 generic {
+declare 87 generic {
     void exp_exit_handlers (ClientData clientData)
 }
-declare 104 generic {
+declare 88 generic {
     void exp_close_on_exec (int fd)
 }
-declare 105 generic {
+declare 89 generic {
     int exp_flageq_code (char *flag, char *string, int minlen)
 }
-declare 106 generic {
-    void exp_tty_break (Tcl_Interp *interp, struct exp_f *f)
-}
-declare 107 generic {
+declare 90 generic {
     void exp_close_tcl_files (void)
 }
-declare 108 generic {
+declare 91 generic {
     void exp_lowmemcpy (char *dest, CONST char *src, int n)
 }
-declare 109 generic {
+declare 92 generic {
     void exp_timestamp (Tcl_Interp *interp, time_t *timeval, char *array)
 }
 
@@ -472,6 +419,61 @@ declare 26 generic {
     void exp_strftime (char *format, const struct tm *timeptr,
 	Tcl_DString *dstring)
 }
+declare 27 generic {
+    void exp_create_commands (Tcl_Interp *interp, struct exp_cmd_data *c)
+}
+declare 28 generic {
+    void exp_tty_break (Tcl_Interp *interp, struct exp_f *f)
+}
+declare 29 generic {
+    void exp_event_disarm (struct exp_f *f)
+}
+declare 30 generic {
+    void exp_arm_background_filehandler (struct exp_f *f)
+}
+declare 31 generic {
+    void exp_disarm_background_filehandler (struct exp_f *f)
+}
+declare 32 generic {
+    void exp_disarm_background_filehandler_force (struct exp_f *f)
+}
+declare 33 generic {
+    void exp_unblock_background_filehandler (struct exp_f *f)
+}
+declare 34 generic {
+    void exp_block_background_filehandler (struct exp_f *f)
+}
+declare 35 generic {
+    int exp_get_next_event (Tcl_Interp *interp, struct exp_f **masters, int n,
+	struct exp_f **master_out, int timeout, int key)
+}
+declare 36 generic {
+    int exp_get_next_event_info (Tcl_Interp *interp, struct exp_f *fd, int ready_mask)
+}
+declare 37 generic {
+    struct exp_f * exp_f_find (Tcl_Interp *interp, char *spawnId)
+}
+declare 38 generic {
+    struct exp_f * exp_f_new (Tcl_Interp *interp, Tcl_Channel chan,
+	char *spawnId, int pid)
+}
+declare 39 generic {
+    int exp_f_new_platform (struct exp_f *f)
+}
+declare 40 generic {
+    void exp_f_free (struct exp_f *f)
+}
+declare 41 generic {
+    void exp_f_free_platform (struct exp_f *f)
+}
+declare 42 generic {
+    int exp_exact_write (struct exp_f * f, char *buffer, int rembytes)
+}
+#declare 43 generic {
+#    void exp_sys_close (int fd, struct exp_f *f)
+#}
+
+
 
 interface expIntPlat
 

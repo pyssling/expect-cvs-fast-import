@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: exp.h,v 1.1.4.4 2002/02/10 10:17:04 davygrvy Exp $
+ * RCS: @(#) $Id: expStubInit.c,v 1.1.4.3 2002/02/10 12:04:22 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -67,6 +67,22 @@ ExpIntStubs expIntStubs = {
     exp_fcheck, /* 24 */
     exp_close, /* 25 */
     exp_strftime, /* 26 */
+    exp_create_commands, /* 27 */
+    exp_tty_break, /* 28 */
+    exp_event_disarm, /* 29 */
+    exp_arm_background_filehandler, /* 30 */
+    exp_disarm_background_filehandler, /* 31 */
+    exp_disarm_background_filehandler_force, /* 32 */
+    exp_unblock_background_filehandler, /* 33 */
+    exp_block_background_filehandler, /* 34 */
+    exp_get_next_event, /* 35 */
+    exp_get_next_event_info, /* 36 */
+    exp_f_find, /* 37 */
+    exp_f_new, /* 38 */
+    exp_f_new_platform, /* 39 */
+    exp_f_free, /* 40 */
+    exp_f_free_platform, /* 41 */
+    exp_exact_write, /* 42 */
 };
 
 ExpIntPlatStubs expIntPlatStubs = {
@@ -168,46 +184,29 @@ ExpStubs expStubs = {
     exp_getpidproc, /* 67 */
     ExpCreateSpawnChannel, /* 68 */
     ExpPlatformSpawnOutput, /* 69 */
-    exp_create_commands, /* 70 */
-    exp_init_main_cmds, /* 71 */
-    exp_init_expect_cmds, /* 72 */
-    exp_init_most_cmds, /* 73 */
-    exp_init_trap_cmds, /* 74 */
-    exp_init_interact_cmds, /* 75 */
-    exp_init_tty_cmds, /* 76 */
+    exp_init_main_cmds, /* 70 */
+    exp_init_expect_cmds, /* 71 */
+    exp_init_most_cmds, /* 72 */
+    exp_init_trap_cmds, /* 73 */
+    exp_init_interact_cmds, /* 74 */
+    exp_init_tty_cmds, /* 75 */
+    NULL, /* 76 */
     NULL, /* 77 */
-    NULL, /* 78 */
-    exp_exact_write, /* 79 */
-    NULL, /* 80 */
-    exp_f_find, /* 81 */
-    exp_f_new, /* 82 */
-    exp_f_new_platform, /* 83 */
-    exp_f_free, /* 84 */
-    exp_f_free_platform, /* 85 */
-    ExpCreatePairChannel, /* 86 */
-    ExpSpawnOpen, /* 87 */
-    exp_update_master, /* 88 */
-    exp_get_var, /* 89 */
-    exp_exit, /* 90 */
-    exp_get_next_event, /* 91 */
-    exp_get_next_event_info, /* 92 */
-    exp_dsleep, /* 93 */
-    exp_init_event, /* 94 */
-    NULL, /* 95 */
-    exp_event_disarm, /* 96 */
-    exp_arm_background_filehandler, /* 97 */
-    exp_disarm_background_filehandler, /* 98 */
-    exp_disarm_background_filehandler_force, /* 99 */
-    exp_unblock_background_filehandler, /* 100 */
-    exp_block_background_filehandler, /* 101 */
-    exp_background_filehandler, /* 102 */
-    exp_exit_handlers, /* 103 */
-    exp_close_on_exec, /* 104 */
-    exp_flageq_code, /* 105 */
-    exp_tty_break, /* 106 */
-    exp_close_tcl_files, /* 107 */
-    exp_lowmemcpy, /* 108 */
-    exp_timestamp, /* 109 */
+    ExpCreatePairChannel, /* 78 */
+    ExpSpawnOpen, /* 79 */
+    exp_update_master, /* 80 */
+    exp_get_var, /* 81 */
+    exp_exit, /* 82 */
+    exp_dsleep, /* 83 */
+    exp_init_event, /* 84 */
+    NULL, /* 85 */
+    exp_background_filehandler, /* 86 */
+    exp_exit_handlers, /* 87 */
+    exp_close_on_exec, /* 88 */
+    exp_flageq_code, /* 89 */
+    exp_close_tcl_files, /* 90 */
+    exp_lowmemcpy, /* 91 */
+    exp_timestamp, /* 92 */
 };
 
 /* !END!: Do not edit above this line. */

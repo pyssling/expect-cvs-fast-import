@@ -1,7 +1,7 @@
 /*
  * expIntDecls.h --
  *
- *	Declarations of functions in the platform independent public
+ *	Declarations of functions in the platform independent internal
  *	Expect API.
  *
  * ----------------------------------------------------------------------------
@@ -23,7 +23,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expIntDecls.h,v 1.1.4.2 2002/02/10 10:17:04 davygrvy Exp $
+ * RCS: @(#) $Id: expIntDecls.h,v 1.1.4.3 2002/02/10 12:04:22 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -114,6 +114,53 @@ TCL_EXTERN(int)		exp_close _ANSI_ARGS_((Tcl_Interp * interp,
 TCL_EXTERN(void)	exp_strftime _ANSI_ARGS_((char * format, 
 				const struct tm * timeptr, 
 				Tcl_DString * dstring));
+/* 27 */
+TCL_EXTERN(void)	exp_create_commands _ANSI_ARGS_((Tcl_Interp * interp, 
+				struct exp_cmd_data * c));
+/* 28 */
+TCL_EXTERN(void)	exp_tty_break _ANSI_ARGS_((Tcl_Interp * interp, 
+				struct exp_f * f));
+/* 29 */
+TCL_EXTERN(void)	exp_event_disarm _ANSI_ARGS_((struct exp_f * f));
+/* 30 */
+TCL_EXTERN(void)	exp_arm_background_filehandler _ANSI_ARGS_((
+				struct exp_f * f));
+/* 31 */
+TCL_EXTERN(void)	exp_disarm_background_filehandler _ANSI_ARGS_((
+				struct exp_f * f));
+/* 32 */
+TCL_EXTERN(void)	exp_disarm_background_filehandler_force _ANSI_ARGS_((
+				struct exp_f * f));
+/* 33 */
+TCL_EXTERN(void)	exp_unblock_background_filehandler _ANSI_ARGS_((
+				struct exp_f * f));
+/* 34 */
+TCL_EXTERN(void)	exp_block_background_filehandler _ANSI_ARGS_((
+				struct exp_f * f));
+/* 35 */
+TCL_EXTERN(int)		exp_get_next_event _ANSI_ARGS_((Tcl_Interp * interp, 
+				struct exp_f ** masters, int n, 
+				struct exp_f ** master_out, int timeout, 
+				int key));
+/* 36 */
+TCL_EXTERN(int)		exp_get_next_event_info _ANSI_ARGS_((
+				Tcl_Interp * interp, struct exp_f * fd, 
+				int ready_mask));
+/* 37 */
+TCL_EXTERN(struct exp_f *) exp_f_find _ANSI_ARGS_((Tcl_Interp * interp, 
+				char * spawnId));
+/* 38 */
+TCL_EXTERN(struct exp_f *) exp_f_new _ANSI_ARGS_((Tcl_Interp * interp, 
+				Tcl_Channel chan, char * spawnId, int pid));
+/* 39 */
+TCL_EXTERN(int)		exp_f_new_platform _ANSI_ARGS_((struct exp_f * f));
+/* 40 */
+TCL_EXTERN(void)	exp_f_free _ANSI_ARGS_((struct exp_f * f));
+/* 41 */
+TCL_EXTERN(void)	exp_f_free_platform _ANSI_ARGS_((struct exp_f * f));
+/* 42 */
+TCL_EXTERN(int)		exp_exact_write _ANSI_ARGS_((struct exp_f * f, 
+				char * buffer, int rembytes));
 
 typedef struct ExpIntStubs {
     int magic;
@@ -146,6 +193,22 @@ typedef struct ExpIntStubs {
     int (*exp_fcheck) _ANSI_ARGS_((Tcl_Interp * interp, struct exp_f * f, int opened, int adjust, CONST char * msg)); /* 24 */
     int (*exp_close) _ANSI_ARGS_((Tcl_Interp * interp, struct exp_f * f)); /* 25 */
     void (*exp_strftime) _ANSI_ARGS_((char * format, const struct tm * timeptr, Tcl_DString * dstring)); /* 26 */
+    void (*exp_create_commands) _ANSI_ARGS_((Tcl_Interp * interp, struct exp_cmd_data * c)); /* 27 */
+    void (*exp_tty_break) _ANSI_ARGS_((Tcl_Interp * interp, struct exp_f * f)); /* 28 */
+    void (*exp_event_disarm) _ANSI_ARGS_((struct exp_f * f)); /* 29 */
+    void (*exp_arm_background_filehandler) _ANSI_ARGS_((struct exp_f * f)); /* 30 */
+    void (*exp_disarm_background_filehandler) _ANSI_ARGS_((struct exp_f * f)); /* 31 */
+    void (*exp_disarm_background_filehandler_force) _ANSI_ARGS_((struct exp_f * f)); /* 32 */
+    void (*exp_unblock_background_filehandler) _ANSI_ARGS_((struct exp_f * f)); /* 33 */
+    void (*exp_block_background_filehandler) _ANSI_ARGS_((struct exp_f * f)); /* 34 */
+    int (*exp_get_next_event) _ANSI_ARGS_((Tcl_Interp * interp, struct exp_f ** masters, int n, struct exp_f ** master_out, int timeout, int key)); /* 35 */
+    int (*exp_get_next_event_info) _ANSI_ARGS_((Tcl_Interp * interp, struct exp_f * fd, int ready_mask)); /* 36 */
+    struct exp_f * (*exp_f_find) _ANSI_ARGS_((Tcl_Interp * interp, char * spawnId)); /* 37 */
+    struct exp_f * (*exp_f_new) _ANSI_ARGS_((Tcl_Interp * interp, Tcl_Channel chan, char * spawnId, int pid)); /* 38 */
+    int (*exp_f_new_platform) _ANSI_ARGS_((struct exp_f * f)); /* 39 */
+    void (*exp_f_free) _ANSI_ARGS_((struct exp_f * f)); /* 40 */
+    void (*exp_f_free_platform) _ANSI_ARGS_((struct exp_f * f)); /* 41 */
+    int (*exp_exact_write) _ANSI_ARGS_((struct exp_f * f, char * buffer, int rembytes)); /* 42 */
 } ExpIntStubs;
 
 #ifdef __cplusplus
@@ -263,6 +326,70 @@ extern ExpIntStubs *expIntStubsPtr;
 #ifndef exp_strftime
 #define exp_strftime \
 	(expIntStubsPtr->exp_strftime) /* 26 */
+#endif
+#ifndef exp_create_commands
+#define exp_create_commands \
+	(expIntStubsPtr->exp_create_commands) /* 27 */
+#endif
+#ifndef exp_tty_break
+#define exp_tty_break \
+	(expIntStubsPtr->exp_tty_break) /* 28 */
+#endif
+#ifndef exp_event_disarm
+#define exp_event_disarm \
+	(expIntStubsPtr->exp_event_disarm) /* 29 */
+#endif
+#ifndef exp_arm_background_filehandler
+#define exp_arm_background_filehandler \
+	(expIntStubsPtr->exp_arm_background_filehandler) /* 30 */
+#endif
+#ifndef exp_disarm_background_filehandler
+#define exp_disarm_background_filehandler \
+	(expIntStubsPtr->exp_disarm_background_filehandler) /* 31 */
+#endif
+#ifndef exp_disarm_background_filehandler_force
+#define exp_disarm_background_filehandler_force \
+	(expIntStubsPtr->exp_disarm_background_filehandler_force) /* 32 */
+#endif
+#ifndef exp_unblock_background_filehandler
+#define exp_unblock_background_filehandler \
+	(expIntStubsPtr->exp_unblock_background_filehandler) /* 33 */
+#endif
+#ifndef exp_block_background_filehandler
+#define exp_block_background_filehandler \
+	(expIntStubsPtr->exp_block_background_filehandler) /* 34 */
+#endif
+#ifndef exp_get_next_event
+#define exp_get_next_event \
+	(expIntStubsPtr->exp_get_next_event) /* 35 */
+#endif
+#ifndef exp_get_next_event_info
+#define exp_get_next_event_info \
+	(expIntStubsPtr->exp_get_next_event_info) /* 36 */
+#endif
+#ifndef exp_f_find
+#define exp_f_find \
+	(expIntStubsPtr->exp_f_find) /* 37 */
+#endif
+#ifndef exp_f_new
+#define exp_f_new \
+	(expIntStubsPtr->exp_f_new) /* 38 */
+#endif
+#ifndef exp_f_new_platform
+#define exp_f_new_platform \
+	(expIntStubsPtr->exp_f_new_platform) /* 39 */
+#endif
+#ifndef exp_f_free
+#define exp_f_free \
+	(expIntStubsPtr->exp_f_free) /* 40 */
+#endif
+#ifndef exp_f_free_platform
+#define exp_f_free_platform \
+	(expIntStubsPtr->exp_f_free_platform) /* 41 */
+#endif
+#ifndef exp_exact_write
+#define exp_exact_write \
+	(expIntStubsPtr->exp_exact_write) /* 42 */
 #endif
 
 #endif /* defined(USE_EXP_STUBS) && !defined(USE_EXP_STUB_PROCS) */
