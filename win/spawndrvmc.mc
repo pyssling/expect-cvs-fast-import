@@ -122,6 +122,23 @@ Language=English
 
 
 
+MessageId=0x0
+Severity=Error
+Facility=Mailbox
+SymbolicName=MSG_MB_CANTOPENCLIENT1
+Language=English
+%1 : %2 (%3,%4): Can't open client-side IPC mailbox for named mailbox "%5".
+.
+
+MessageId=0x1
+Severity=Error
+Facility=Mailbox
+SymbolicName=MSG_MB_CANTOPENCLIENT2
+Language=English
+%1 : %2 (%3,%4): Can't open client-side IPC mailbox for named mailbox "%5".  Got system error %6
+.
+
+
 
 MessageId=0x1
 Severity=Fatal
@@ -234,7 +251,7 @@ Severity=Error
 Facility=DbgTrap
 SymbolicName=MSG_DT_CANTGETCONSOLEHANDLE
 Language=English
-%1 : %2 (%3,%4): Can't open a console handle. CreateFile("%5") returned: %6
+%1 : %2 (%3,%4): Can't open the console handle. CreateFile("%5") returned: %6
 .
 
 MessageId=0x2

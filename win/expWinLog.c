@@ -1,21 +1,35 @@
-/* 
+/* ----------------------------------------------------------------------------
  * expWinLog.c --
  *
  *	This file logs to the NT system log.  Use the Event Viewer to
  *	see these logs.  This was predominately used to debug the
  *	slavedrv.exe process.
  *
+ * ----------------------------------------------------------------------------
+ *
+ * Written by: Don Libes, libes@cme.nist.gov, NIST, 12/3/90
+ * 
+ * Design and implementation of this program was paid for by U.S. tax
+ * dollars.  Therefore it is public domain.  However, the author and NIST
+ * would appreciate credit if this program or parts of it are used.
+ * 
  * Copyright (c) 1997 Mitel Corporation
+ *	work by Gordon Chaffee <chaffee@bmrc.berkeley.edu> for the WinNT port.
  *
- * See the file "license.terms" for information on usage and redistribution
- * of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+ * Copyright (c) 2001 Telindustrie, LLC
+ *	work by David Gravereaux <davygrvy@pobox.com> for any Win32 OS.
  *
+ * ----------------------------------------------------------------------------
+ * URLs:    http://expect.nist.gov/
+ *	    http://expect.sf.net/
+ *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
+ * ----------------------------------------------------------------------------
+ * RCS: @(#) $Id: exp.h,v 1.1.2.5 2001/10/29 06:40:29 davygrvy Exp $
+ * ----------------------------------------------------------------------------
  */
 
-#define STRICT    /* ask windows.h to be agressive about the HANDLE type */
-#include "tclPort.h"
-#include "expWin.h"
-#include "spawndrvmc.h"
+#include "expWinInt.h"
+#include <crtdbg.h>
 
 #ifdef _MSC_VER
 #   pragma comment (lib, "advapi32.lib")
@@ -52,7 +66,7 @@ static void AddEventSource();
  */
 
 void
-ExpSyslog TCL_VARARGS_DEF(DWORD,arg1)
+ExpWinSyslog TCL_VARARGS_DEF(DWORD,arg1)
 {
     DWORD errCode;
     va_list args;
@@ -61,12 +75,18 @@ ExpSyslog TCL_VARARGS_DEF(DWORD,arg1)
     TCHAR *errMsg;
     static TCHAR codeBuf[33];
     DWORD dwWritten;
+    char *file;
+    int line;
+    static TCHAR fileInfo[MAX_PATH];
 
     /* Get the error code */
     errCode = TCL_VARARGS_START(DWORD,arg1,args);
 
     /* Get the file info */
-    errData[cnt++] = va_arg(args, char *);
+    file = va_arg(args, char *);
+    line = va_arg(args, int);
+    _stprintf(fileInfo, "%s(%d)", file, line);
+    errData[cnt++] = fileInfo;
 
     /* Set the textual severity */
     switch(GETSEVERITY(errCode)) {
@@ -122,7 +142,7 @@ ExpSyslog TCL_VARARGS_DEF(DWORD,arg1)
 		&dwWritten, NULL);
 
 	/* Stop the world, I want to get off. */
-	DebugBreak();
+	//DebugBreak();
 
 	Sleep(5000);
 	ExitProcess(255);

@@ -15,9 +15,9 @@ expect :   setup $(EXPLIB)
 slavedrv : setup $(SLAVEDRV)
 
 setup :
-	@if not exist "$(TMP_DIR)\nul" mkdir "$(TMP_DIR)" &\
+	@if not exist $(TMP_DIR)\nul mkdir $(TMP_DIR) & \
 		echo Created directory '$(TMP_DIR)'
-	@if not exist "$(OUT_DIR)\nul" mkdir "$(OUT_DIR)" &\
+	@if not exist $(OUT_DIR)\nul mkdir $(OUT_DIR) & \
 		echo Created directory '$(OUT_DIR)'
 
 
@@ -71,6 +71,11 @@ $<
 <<
 
 {$(WINDIR)}.c{$(TMP_DIR)}.obj ::
+    $(cc32) $(cflags) -MD$(DBGX) $(cdebug) $(expcflags) @<<
+$<
+<<
+
+{$(WINDIR)}.cpp{$(TMP_DIR)}.obj ::
     $(cc32) $(cflags) -MD$(DBGX) $(cdebug) $(expcflags) @<<
 $<
 <<

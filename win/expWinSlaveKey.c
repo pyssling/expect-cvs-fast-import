@@ -1,21 +1,38 @@
-/*
+/* ----------------------------------------------------------------------------
  * expWinSlaveKey.c --
  *
  *	This has tables to do conversions from ASCII characters to 
  *	console keyboard input records.  Using them, a slave process
  *	can be driven as if someone was typing at the keyboard.
  *
- * Copyright (c) 1997 by Mitel Corporation
+ * ----------------------------------------------------------------------------
  *
- * See the file "license.terms" for information on usage and redistribution
- * of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+ * Written by: Don Libes, libes@cme.nist.gov, NIST, 12/3/90
+ * 
+ * Design and implementation of this program was paid for by U.S. tax
+ * dollars.  Therefore it is public domain.  However, the author and NIST
+ * would appreciate credit if this program or parts of it are used.
+ * 
+ * Copyright (c) 1997 Mitel Corporation
+ *	work by Gordon Chaffee <chaffee@bmrc.berkeley.edu> for the WinNT port.
  *
+ * Copyright (c) 2001 Telindustrie, LLC
+ *	work by David Gravereaux <davygrvy@pobox.com> for any Win32 OS.
+ *
+ * ----------------------------------------------------------------------------
+ * URLs:    http://expect.nist.gov/
+ *	    http://expect.sf.net/
+ *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
+ * ----------------------------------------------------------------------------
+ * RCS: @(#) $Id: exp.h,v 1.1.2.5 2001/10/29 06:40:29 davygrvy Exp $
+ * ----------------------------------------------------------------------------
  */
 
-#include "tcl.h"
-#include "tclPort.h"
-#include "expWin.h"
-#include "expWinSlave.h"
+#if !defined(BUILD_spawndrv) && !defined(STATIC_BUILD)
+#   error "build instruction error"
+#endif
+
+#include "expWinInt.h"
 
 EXP_KEY ExpModifierKeyArray[] = {
 /* Control */ { 17,  29, 0},

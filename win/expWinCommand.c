@@ -1,26 +1,42 @@
-/*
+/* ----------------------------------------------------------------------------
  * expWinCommand.c --
  *
- *	Implements Windows NT specific parts required by expCommand.c.
+ *	Implements Windows specific parts required by expCommand.c.
  *
- * Copyright (c) 1997 by Mitel Corporation
+ * ----------------------------------------------------------------------------
  *
- * See the file "license.terms" for information on usage and redistribution
- * of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+ * Written by: Don Libes, libes@cme.nist.gov, NIST, 12/3/90
+ * 
+ * Design and implementation of this program was paid for by U.S. tax
+ * dollars.  Therefore it is public domain.  However, the author and NIST
+ * would appreciate credit if this program or parts of it are used.
+ * 
+ * Copyright (c) 1997 Mitel Corporation
+ *	work by Gordon Chaffee <chaffee@bmrc.berkeley.edu> for the WinNT port.
  *
+ * Copyright (c) 2001 Telindustrie, LLC
+ *	work by David Gravereaux <davygrvy@pobox.com> for any Win32 OS.
+ *
+ * ----------------------------------------------------------------------------
+ * URLs:    http://expect.nist.gov/
+ *	    http://expect.sf.net/
+ *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
+ * ----------------------------------------------------------------------------
+ * RCS: @(#) $Id: exp.h,v 1.1.2.5 2001/10/29 06:40:29 davygrvy Exp $
+ * ----------------------------------------------------------------------------
  */
 
-#include "tclInt.h"
-#include "tclPort.h"
-//#include "tclWinInt.h"
-#include "expect_tcl.h"
+#include "expInt.h"
 #include "expWin.h"
-#include "exp_command.h"
-#include "exp_rename.h"
-#include "exp_log.h"
-#include "exp_event.h"
-#include "exp_prog.h"
-#include "exp_tty.h"
+
+//#include "tclPort.h"
+//#include "expect_tcl.h"
+//#include "exp_command.h"
+//#include "exp_rename.h"
+//#include "exp_log.h"
+//#include "exp_event.h"
+//#include "exp_prog.h"
+//#include "exp_tty.h"
 
 #ifdef TCL_DEBUGGER
 #include "Dbg.h"
@@ -130,7 +146,7 @@ Exp_SpawnCmd(ClientData clientData,Tcl_Interp *interp,int argc,char **argv)
     Tcl_Channel spawnChan = NULL;
     TclFile masterRFile;
     TclFile masterWFile;
-    char *openarg = NULL;
+    //char *openarg = NULL;
     int leaveopen = 0;
     char *val;
     int hide;
@@ -168,17 +184,8 @@ Exp_SpawnCmd(ClientData clientData,Tcl_Interp *interp,int argc,char **argv)
 	    exp_error(interp, "%s -pty is unsupported on NT", argv0);
 	    return TCL_ERROR;
 	} else if (streq(*argv,"-open")) {
-	    /*
-	     * This allows us to treat an open file id as an
-	     * expect process id.  We should be eventually be able
-	     * to support this under NT.
-	     */
-	    if (argc < 2) {
-		exp_error(interp,"usage: %s -open file-identifier", argv0);
-		return TCL_ERROR;
-	    }
-	    openarg = argv[1];
-	    argc--; argv++;
+	    exp_error(interp,"%s -open is unsupported on NT", argv0);
+	    return TCL_ERROR;
 	} else if (streq(*argv,"-leaveopen")) {
 	    /*
 	     * This leaves the file id open when the process id
@@ -212,7 +219,11 @@ Exp_SpawnCmd(ClientData clientData,Tcl_Interp *interp,int argc,char **argv)
 	    exp_error(interp,"usage: -[leave]open [fileXX]");
 	    return TCL_ERROR;
 	}
-	if (echo) exp_log(0,"%s [open ...]\r\n",argv0);
+	if (echo) {
+	    expStdoutLogU(argv0,0);
+	    expStdoutLogU(" [open ...]\r\n",0);
+	}
+
 
 	return ExpSpawnOpen(interp, openarg, leaveopen);
     }
@@ -260,7 +271,7 @@ Exp_SpawnCmd(ClientData clientData,Tcl_Interp *interp,int argc,char **argv)
 
     /*
      * The whole point of this is that named pipes don't exist on Win95,
-     * so we have the sockets as a backup communications protocol.  The user
+     * so we have the sockets as a backup communications transport.  The user
      * can specify that they get sockets at all times if they want.
      */
     if (useSocket == 0) {
@@ -291,8 +302,8 @@ Exp_SpawnCmd(ClientData clientData,Tcl_Interp *interp,int argc,char **argv)
     }
 
     if (channel2 == NULL && hSlaveDrv == NULL ) {
-	debuglog("CreateNamedPipe failed: error=0x%08x\r\n", GetLastError());
-	debuglog("socket failed: error=0x%08x\r\n", GetLastError());
+	exp_debuglog("CreateNamedPipe failed: error=0x%08x\r\n", GetLastError());
+	exp_debuglog("socket failed: error=0x%08x\r\n", GetLastError());
 	TclWinConvertError(GetLastError());
 	exp_error(interp, "unable to create either named pipe or socket: %s",
 		  Tcl_PosixError(interp));
@@ -301,7 +312,7 @@ Exp_SpawnCmd(ClientData clientData,Tcl_Interp *interp,int argc,char **argv)
 
     hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
     if (hEvent == NULL) {
-	debuglog("CreateEvent failed: error=0x%08x\r\n", GetLastError());
+	exp_debuglog("CreateEvent failed: error=0x%08x\r\n", GetLastError());
 	TclWinConvertError(GetLastError());
 	exp_error(interp, "unable to create event: %s",
 		  Tcl_PosixError(interp));
@@ -410,7 +421,7 @@ Exp_SpawnCmd(ClientData clientData,Tcl_Interp *interp,int argc,char **argv)
     /*
      * wait for slave driver to initialize before allowing user to send to it
      */
-    debuglog("parent: waiting for sync bytes\r\n");
+    exp_debuglog("parent: waiting for sync bytes\r\n");
 
     if (!useSocket) {
 	ResetEvent(hEvent);
@@ -488,7 +499,7 @@ Exp_SpawnCmd(ClientData clientData,Tcl_Interp *interp,int argc,char **argv)
     Tcl_RegisterChannel(interp, spawnChan);
 
     sprintf(interp->result,"%d",(int) globalPid);
-    debuglog("spawn: returns {%s}\r\n",interp->result);
+    exp_debuglog("spawn: returns {%s}\r\n",interp->result);
     ckfree((char *) nargv);
     return(TCL_OK);
 

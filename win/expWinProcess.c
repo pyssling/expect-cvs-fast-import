@@ -1,21 +1,32 @@
-/* 
+/* ----------------------------------------------------------------------------
  * expWinProcess.c --
  *
  *	This file contains utility procedures.  It primarily handled
  *	processes for Expect.
  *
- * Copyright (c) 1987-1993 The Regents of the University of California.
- * Copyright (c) 1994-1997 Sun Microsystems, Inc.
+ * ----------------------------------------------------------------------------
+ *
+ * Written by: Don Libes, libes@cme.nist.gov, NIST, 12/3/90
+ * 
+ * Design and implementation of this program was paid for by U.S. tax
+ * dollars.  Therefore it is public domain.  However, the author and NIST
+ * would appreciate credit if this program or parts of it are used.
+ * 
  * Copyright (c) 1997 Mitel Corporation
+ *	work by Gordon Chaffee <chaffee@bmrc.berkeley.edu> for the WinNT port.
  *
- * See the file "license.terms" for information on usage and redistribution
- * of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+ * Copyright (c) 2001 Telindustrie, LLC
+ *	work by David Gravereaux <davygrvy@pobox.com> for any Win32 OS.
  *
+ * ----------------------------------------------------------------------------
+ * URLs:    http://expect.nist.gov/
+ *	    http://expect.sf.net/
+ *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
+ * ----------------------------------------------------------------------------
+ * RCS: @(#) $Id: exp.h,v 1.1.2.5 2001/10/29 06:40:29 davygrvy Exp $
+ * ----------------------------------------------------------------------------
  */
-
-#define STRICT    /* ask windows.h to agressive about the HANDLE type */
-#include "tclPort.h"
-#include "expWin.h"
+#include "expWinInt.h"
 
 /*
  * This list is used to map from pids to process handles.
@@ -30,65 +41,7 @@ typedef struct ProcInfo {
 static ProcInfo *procList = NULL;
 
 
-typedef struct {
-    int useWide;
-    HANDLE (WINAPI *createFileProc)(CONST TCHAR *, DWORD, DWORD, 
-	    LPSECURITY_ATTRIBUTES, DWORD, DWORD, HANDLE);
-    BOOL (WINAPI *createProcessProc)(CONST TCHAR *, TCHAR *, 
-	    LPSECURITY_ATTRIBUTES, LPSECURITY_ATTRIBUTES, BOOL, DWORD, 
-	    LPVOID, CONST TCHAR *, LPSTARTUPINFOA, LPPROCESS_INFORMATION);
-    DWORD (WINAPI *getFileAttributesProc)(CONST TCHAR *);
-    DWORD (WINAPI *getShortPathNameProc)(CONST TCHAR *, WCHAR *, DWORD); 
-    DWORD (WINAPI *searchPathProc)(CONST TCHAR *, CONST TCHAR *, 
-	    CONST TCHAR *, DWORD, WCHAR *, TCHAR **);
-} ExpWinProcs;
 
-static ExpWinProcs asciiProcs = {
-    0,
-    (HANDLE (WINAPI *)(CONST TCHAR *, DWORD, DWORD, SECURITY_ATTRIBUTES *, 
-	    DWORD, DWORD, HANDLE)) CreateFileA,
-    (BOOL (WINAPI *)(CONST TCHAR *, TCHAR *, LPSECURITY_ATTRIBUTES, 
-	    LPSECURITY_ATTRIBUTES, BOOL, DWORD, LPVOID, CONST TCHAR *, 
-	    LPSTARTUPINFOA, LPPROCESS_INFORMATION)) CreateProcessA,
-    (DWORD (WINAPI *)(CONST TCHAR *)) GetFileAttributesA,
-    (DWORD (WINAPI *)(CONST TCHAR *, WCHAR *, DWORD)) GetShortPathNameA,
-    (DWORD (WINAPI *)(CONST TCHAR *, CONST TCHAR *, CONST TCHAR *, DWORD, 
-	    WCHAR *, TCHAR **)) SearchPathA
-};
-
-static ExpWinProcs unicodeProcs = {
-    1,
-    (HANDLE (WINAPI *)(CONST TCHAR *, DWORD, DWORD, SECURITY_ATTRIBUTES *, 
-	    DWORD, DWORD, HANDLE)) CreateFileW,
-    (BOOL (WINAPI *)(CONST TCHAR *, TCHAR *, LPSECURITY_ATTRIBUTES, 
-	    LPSECURITY_ATTRIBUTES, BOOL, DWORD, LPVOID, CONST TCHAR *, 
-	    LPSTARTUPINFOA, LPPROCESS_INFORMATION)) CreateProcessW,
-    (DWORD (WINAPI *)(CONST TCHAR *)) GetFileAttributesW,
-    (DWORD (WINAPI *)(CONST TCHAR *, WCHAR *, DWORD)) GetShortPathNameW,
-    (DWORD (WINAPI *)(CONST TCHAR *, CONST TCHAR *, CONST TCHAR *, DWORD, 
-	    WCHAR *, TCHAR **)) SearchPathW
-};
-
-static ExpWinProcs *expWinProcs = &asciiProcs;
-
-/* add this change here instead to help minimize the code changes. */
-#define tclWinProcs expWinProcs
-
-void
-ExpInitWinProcessAPI (void)
-{
-    OSVERSIONINFO os;
-    os.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
-    
-    if (GetVersionEx(&os) != 0) {    
-	switch (os.dwPlatformId) {
-	    case VER_PLATFORM_WIN32_WINDOWS:
-		expWinProcs = &asciiProcs; break;
-	    case VER_PLATFORM_WIN32_NT:
-		expWinProcs = &unicodeProcs; break;
-	}
-    }
-}
 
 /*
  *----------------------------------------------------------------------
@@ -112,7 +65,7 @@ ExpInitWinProcessAPI (void)
 static BOOL
 HasConsole()
 {
-    HANDLE handle = CreateFile("CONOUT$", GENERIC_WRITE, FILE_SHARE_WRITE,
+    HANDLE handle = CreateFile(_T("CONOUT$"), GENERIC_WRITE, FILE_SHARE_WRITE,
 	    NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 
     if (handle != INVALID_HANDLE_VALUE) {
@@ -126,7 +79,7 @@ HasConsole()
 /*
  *--------------------------------------------------------------------
  *
- * ExpApplicationType --
+ * ExpWinApplicationType --
  *
  *	Search for the specified program and identify if it refers to a DOS,
  *	Windows 3.X, or Win32 program.  Used to determine how to invoke 
@@ -162,7 +115,7 @@ HasConsole()
  */
 
 DWORD
-ExpApplicationType(
+ExpWinApplicationType(
     const char *originalName,	/* Name of the application to find. */
     char fullName[])		/* Filled with complete path to 
 				 * application. */
@@ -181,7 +134,7 @@ ExpApplicationType(
     } header;
     Tcl_DString nameBuf, ds;
     TCHAR *nativeName;
-    WCHAR nativeFullPath[MAX_PATH];
+    TCHAR nativeFullPath[MAX_PATH * 2];   /* needed for unicode space */
     static char extensions[][5] = {"", ".com", ".exe", ".bat", ".cmd"};
 
     /* Look for the program as an external program.  First try the name
@@ -207,7 +160,7 @@ ExpApplicationType(
 	Tcl_DStringAppend(&nameBuf, extensions[i], -1);
         nativeName = Tcl_WinUtfToTChar(Tcl_DStringValue(&nameBuf), 
 		Tcl_DStringLength(&nameBuf), &ds);
-	found = (*tclWinProcs->searchPathProc)(NULL, nativeName, NULL, 
+	found = (*expWinProcs->searchPathProc)(NULL, nativeName, NULL, 
 		MAX_PATH, nativeFullPath, &rest);
 	Tcl_DStringFree(&ds);
 	if (found == 0) {
@@ -219,7 +172,7 @@ ExpApplicationType(
 	 * a known type.
 	 */
 
-	attr = (*tclWinProcs->getFileAttributesProc)((TCHAR *) nativeFullPath);
+	attr = (*expWinProcs->getFileAttributesProc)((TCHAR *) nativeFullPath);
 	if ((attr == 0xffffffff) || (attr & FILE_ATTRIBUTE_DIRECTORY)) {
 	    continue;
 	}
@@ -233,7 +186,7 @@ ExpApplicationType(
 	    break;
 	}
 	
-	hFile = (*tclWinProcs->createFileProc)((TCHAR *) nativeFullPath, 
+	hFile = (*expWinProcs->createFileProc)((TCHAR *) nativeFullPath, 
 		GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 
 		FILE_ATTRIBUTE_NORMAL, NULL);
 	if (hFile == INVALID_HANDLE_VALUE) {
@@ -387,7 +340,7 @@ ExpApplicationType(
 	 * application name from the arguments.
 	 */
 
-	(*tclWinProcs->getShortPathNameProc)((TCHAR *) nativeFullPath,
+	(*expWinProcs->getShortPathNameProc)((TCHAR *) nativeFullPath,
 		nativeFullPath, MAX_PATH);
 	strcpy(fullName, Tcl_WinTCharToUtf((TCHAR *) nativeFullPath, -1, &ds));
 	Tcl_DStringFree(&ds);
@@ -411,7 +364,7 @@ ExpApplicationType(
  * Side effects:
  *	None.
  *
- * Comment: COPY OF NON_PUBLIC CORE FUNCTION!
+ * Comment: COPY OF NON_PUBLIC CORE FUNCTION WITH CHANGES!
  *
  *----------------------------------------------------------------------
  */
@@ -611,7 +564,7 @@ Exp_KillProcess(pid)
 /*
  *----------------------------------------------------------------------
  *
- * ExpCreateProcess --
+ * ExpWinCreateProcess --
  *
  *	Create a child process that has the specified files as its 
  *	standard input, output, and error.  The child process is set
@@ -629,13 +582,13 @@ Exp_KillProcess(pid)
  * Side effects:
  *	A process is created.
  *
- * Comment: *ALMOST* A COPY OF NON_PUBLIC CORE FUNCTION!
+ * Comment: *ALMOST* A COPY OF A NON_PUBLIC CORE FUNCTION!
  *
  *----------------------------------------------------------------------
  */
 
 DWORD
-ExpCreateProcess(argc, argv, inputHandle, outputHandle, errorHandle,
+ExpWinCreateProcess(argc, argv, inputHandle, outputHandle, errorHandle,
 		 allocConsole, hideConsole, debug, newProcessGroup,
 		 pidPtr, globalPidPtr)
     int argc;			/* Number of arguments in following array. */
@@ -678,7 +631,7 @@ ExpCreateProcess(argc, argv, inputHandle, outputHandle, errorHandle,
     LONG result;
 
     result = 0;
-    applType = ExpApplicationType(argv[0], execPath);
+    applType = ExpWinApplicationType(argv[0], execPath);
     if (applType == EXP_APPL_NONE) {
 	return GetLastError();
     } else if (applType == EXP_APPL_WIN32GUI) {
@@ -914,7 +867,7 @@ ExpCreateProcess(argc, argv, inputHandle, outputHandle, errorHandle,
 
     BuildCommandLine(execPath, argc, argv, &cmdLine);
 
-    if ((*tclWinProcs->createProcessProc)(NULL, 
+    if ((*expWinProcs->createProcessProc)(NULL, 
 	    (TCHAR *) Tcl_DStringValue(&cmdLine), NULL, NULL, TRUE, 
 	    (DWORD) createFlags, NULL, NULL, &startInfo, &procInfo) == 0) {
 	//EXP_LOG("couldn't CreateProcess(): 0x%x", (result = GetLastError()));
@@ -922,7 +875,7 @@ ExpCreateProcess(argc, argv, inputHandle, outputHandle, errorHandle,
     }
 
     /*
-     * This wait is used to force the OS to give some time to the DOS
+     * This wait is used to force the OS to give some time to the character-mode
      * process.
      */
 

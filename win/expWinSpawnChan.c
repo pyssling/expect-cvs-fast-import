@@ -1,8 +1,8 @@
 /*
  * expWinSpawnChan.c --
  *
- *	Implements the Windows specific portion of the exp_spawn
- *	channel id.
+ *	Implements the Windows specific portion of the exp
+ *	channel type.
  *
  * Copyright (c) 1997 by Mitel Corporation
  *
@@ -11,21 +11,30 @@
  *
  */
 
-#include "tclInt.h"
-#include "tclPort.h"
-#include "expect_tcl.h"
-#include "exp_command.h"
-#include "expWin.h"
+#include "expInt.h"
+#include "expPort.h"
+
+#define PROTO_SLAVEWRITE(buf,len) \
+	{ \
+	    buf[0] = EXP_SLAVE_WRITE; \
+	    buf[1] = len & 0xff; \
+	    buf[2] = (len & 0xff00) >> 8; \
+	    buf[3] = (len & 0xff0000) >> 16; \
+	    buf[4] = (len & 0xff000000) >> 24; \
+	}
+
+#define PROTO_SLAVEWRITE_LEN	5
+
 
 /*
  *----------------------------------------------------------------------
  *
  * ExpPlatformSpawnOutput --
  *
- *	Write routine for exp_spawn channel
+ *	Windows specific write routine for the exp channel.
  *
  * Results:
- *	Amount written or -1 with errorcode in errorPtr
+ *	Amount written or -1 with errorcode in errorPtr.
  *    
  * Side Effects:
  *	None. 
@@ -40,33 +49,61 @@ ExpPlatformSpawnOutput(instanceData, bufPtr, toWrite, errorPtr)
     int toWrite;		/* (in) amount to write */
     int *errorPtr;		/* (out) error code */
 {
-    ExpSpawnState *ssPtr = (ExpSpawnState *) instanceData;
-    Tcl_Channel channelPtr = ssPtr->channelPtr;
-    unsigned char lenbuf[5];
-    int n;
+    ExpState *esPtr = (ExpState *) instanceData;
+    int n = 0;
 
-    if (ssPtr->toWrite == 0) {
-	lenbuf[0] = EXP_SLAVE_WRITE;
-	lenbuf[1] = toWrite & 0xff;
-	lenbuf[2] = (toWrite & 0xff00) >> 8;
-	lenbuf[3] = (toWrite & 0xff0000) >> 16;
-	lenbuf[4] = (toWrite & 0xff000000) >> 24;
+    if (expSizeZero(esPtr)) {
+	unsigned char proto[PROTO_SLAVEWRITE_LEN];
 
-	n = (Tcl_GetChannelType(channelPtr)->outputProc)
-	    (Tcl_GetChannelInstanceData(channelPtr), lenbuf, 5, errorPtr);
+	/* protocol header */
+	PROTO_SLAVEWRITE(proto, expSizeGet(esPtr));
+
+	n = (Tcl_GetChannelType(esPtr->channel)->outputProc)
+		(Tcl_GetChannelInstanceData(esPtr->channel), proto,
+		PROTO_SLAVEWRITE_LEN, errorPtr);
+
 	if (n < 0) {
 	    return n;
 	}
-	if (n != 5) {
+	if (n != PROTO_SLAVEWRITE_LEN) {
 	    return 0;
 	}
-	ssPtr->toWrite = toWrite;
+	//ssPtr->toWrite = toWrite;
     }
 
-    n = (Tcl_GetChannelType(channelPtr)->outputProc)
-	(Tcl_GetChannelInstanceData(channelPtr), bufPtr, toWrite, errorPtr);
-    if (n > 0) {
-	ssPtr->toWrite -= n;
-    }
+    n = (Tcl_GetChannelType(esPtr->channel)->outputProc)
+		(Tcl_GetChannelInstanceData(esPtr->channel), bufPtr, toWrite,
+		errorPtr);
+
+    //if (n > 0) {
+//	ssPtr->toWrite -= n;
+    //}
+
     return n;
+}
+
+/*
+ *----------------------------------------------------------------------
+ *
+ * ExpPlatformSpawnInput --
+ *
+ *	Read routine for exp channel
+ *
+ * Results:
+ *	Amount read or -1 with errorcode in errorPtr
+ *    
+ * Side Effects:
+ *	None. 
+ *
+ *----------------------------------------------------------------------
+ */
+
+int
+ExpPlatformSpawnInput(instanceData, bufPtr, toRead, errorPtr)
+    ClientData instanceData;
+    char *bufPtr;	    /* (in) Ptr to buffer */
+    int toRead;		    /* (in) amount to read */
+    int *errorPtr;	    /* (out) error code */
+{
+    return 0;  /* TODO: fix me!  Make me work. */
 }

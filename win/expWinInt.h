@@ -1,8 +1,7 @@
 /* ----------------------------------------------------------------------------
- * expWinPort.h --
+ * expWinInt.h --
  *
- *	This header file handles porting issues that occur because of
- *	differences between Windows and Unix. 
+ *	Declarations of Windows-specific shared variables and procedures.
  *
  * ----------------------------------------------------------------------------
  *
@@ -26,52 +25,28 @@
  * RCS: @(#) $Id: exp.h,v 1.1.2.5 2001/10/29 06:40:29 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
-
-#ifndef _EXPWINPORT
-#define _EXPWINPORT
+#ifndef _EXPWININT
+#define _EXPWININT
 
 #ifndef _EXPINT
+#   ifndef _EXP
+#	define STRICT		    /* Ask windows.h to be agressive about the HANDLE type. */
+#	define WINVER 0x0400	    /* Make sure we get the Win95 API. */
+#   endif
 #   include "expInt.h"
 #endif
 
-
-#define HAVE_SV_TIMEZONE 1
-
-#define EXP_SLAVE_CREATE 'c'
-#define EXP_SLAVE_KEY    'k'
-#define EXP_SLAVE_MOUSE  'm'
-#define EXP_SLAVE_WRITE  'w'
-#define EXP_SLAVE_KILL   'x'
-
-/*
- * Define the types of attempts to use to kill the subprocess
- */
-#define EXP_KILL_TERMINATE  0x1
-#define EXP_KILL_CTRL_C     0x2
-#define EXP_KILL_CTRL_BREAK 0x4
-
-/*
- * Errors and logging
- */
-#define EXP_LOG0(errCode)		ExpWinSyslog(errCode, __FILE__, (int)__LINE__, 0)
-#define EXP_LOG1(errCode, arg1)		ExpWinSyslog(errCode, __FILE__, (int)__LINE__, arg1, 0)
-#define EXP_LOG2(errCode, arg1, arg2)	ExpWinSyslog(errCode, __FILE__, (int)__LINE__, arg1, arg2, 0)
-
-/*
- * The following defines identify the various types of applications that 
- * run under windows.  There is special case code for the various types.
- */
-
-#define EXP_APPL_NONE	    0
-#define EXP_APPL_DOS	    1
-#define EXP_APPL_WIN3X	    2
-#define EXP_APPL_WIN32CUI   3
-#define EXP_APPL_WIN32GUI   4
-
+#ifndef _EXPPORT
+#   include "expPort.h"
+#endif
 
 #undef TCL_STORAGE_CLASS
 #if defined(BUILD_spawndriver)
 #   define TCL_STORAGE_CLASS
+extern TCL_CPP void ExpInitWinProcessAPI (void);
+extern TCL_CPP void ExpDynloadTclStubs (void);
+#   include "expWinSlave.h"
+#   include "spawndrvmc.h"
 #elif defined(BUILD_exp)
 #   define TCL_STORAGE_CLASS DLLEXPORT
 #else
@@ -83,9 +58,27 @@
 #endif
 
 
-#include "expPlatDecls.h"
+typedef struct {
+    int useWide;
+    HANDLE (WINAPI *createFileProc)(CONST TCHAR *, DWORD, DWORD, 
+	    LPSECURITY_ATTRIBUTES, DWORD, DWORD, HANDLE);
+    BOOL (WINAPI *createProcessProc)(CONST TCHAR *, TCHAR *, 
+	    LPSECURITY_ATTRIBUTES, LPSECURITY_ATTRIBUTES, BOOL, DWORD, 
+	    LPVOID, CONST TCHAR *, LPSTARTUPINFO, LPPROCESS_INFORMATION);
+    DWORD (WINAPI *getFileAttributesProc)(CONST TCHAR *);
+    DWORD (WINAPI *getShortPathNameProc)(CONST TCHAR *, TCHAR *, DWORD); 
+    DWORD (WINAPI *searchPathProc)(CONST TCHAR *, CONST TCHAR *, 
+	    CONST TCHAR *, DWORD, TCHAR *, TCHAR **);
+} ExpWinProcs;
+
+
+extern ExpWinProcs *expWinProcs;
+
+
+
+#include "expIntPlatDecls.h"
 
 #undef TCL_STORAGE_CLASS
 #define TCL_STORAGE_CLASS DLLIMPORT
 
-#endif /* _EXPWINPORT */
+#endif /* _EXPWININT */

@@ -1,15 +1,30 @@
-/*
- * expWinSlave.h
+/* ----------------------------------------------------------------------------
+ * expWinSlave.h --
  *
  *	Useful definitions used by the slave driver but not useful
  *	for anybody else.
  *
- * Copyright (c) 1997 by Mitel, Inc.
- * Copyright (c) 1997 by Gordon Chaffee (chaffee@home.com)
+ * ----------------------------------------------------------------------------
  *
- * See the file "license.terms" for information on usage and redistribution
- * of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+ * Written by: Don Libes, libes@cme.nist.gov, NIST, 12/3/90
+ * 
+ * Design and implementation of this program was paid for by U.S. tax
+ * dollars.  Therefore it is public domain.  However, the author and NIST
+ * would appreciate credit if this program or parts of it are used.
+ * 
+ * Copyright (c) 1997 Mitel Corporation
+ *	work by Gordon Chaffee <chaffee@bmrc.berkeley.edu> for the WinNT port.
  *
+ * Copyright (c) 2001 Telindustrie, LLC
+ *	work by David Gravereaux <davygrvy@pobox.com> for any Win32 OS.
+ *
+ * ----------------------------------------------------------------------------
+ * URLs:    http://expect.nist.gov/
+ *	    http://expect.sf.net/
+ *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
+ * ----------------------------------------------------------------------------
+ * RCS: @(#) $Id: exp.h,v 1.1.2.5 2001/10/29 06:40:29 davygrvy Exp $
+ * ----------------------------------------------------------------------------
  */
 
 typedef struct ExpSlaveDebugArg {
@@ -27,7 +42,7 @@ typedef struct ExpSlaveDebugArg {
 
     /* Args for ExpCreateProcess */
     int argc;			/* Number of args to start slave program */
-    char **argv;		/* Argument list of slave program */
+    char **argv;		/* Argument list of slave program (in UTF-8) */
     HANDLE slaveStdin;		/* stdin for slave program */
     HANDLE slaveStdout;		/* stdout for slave program */
     HANDLE slaveStderr;		/* stderr for slave program */
@@ -87,20 +102,24 @@ extern DWORD   ExpConsoleInputMode;
 extern HANDLE  ExpConsoleOut;
 extern int     ExpDebug;
 
-extern void			ExpAddToWaitQueue(HANDLE handle);
-extern void			ExpKillProcessList();
-extern DWORD WINAPI		ExpSlaveDebugThread(LPVOID *arg);
-extern DWORD WINAPI		ExpGetExecutablePathA(PSTR pathInOut);
-extern DWORD WINAPI		ExpGetExecutablePathW(PWSTR pathInOut);
-extern BOOL			ExpWriteMaster(int useSocket, HANDLE hFile,
+extern TCL_CPP void			ExpAddToWaitQueue(HANDLE handle);
+extern TCL_CPP void			ExpKillProcessList();
+extern TCL_CPP DWORD WINAPI		ExpSlaveDebugThread(LPVOID arg);
+extern TCL_CPP DWORD WINAPI		ExpGetExecutablePathA(PSTR pathInOut);
+extern TCL_CPP DWORD WINAPI		ExpGetExecutablePathW(PWSTR pathInOut);
+extern TCL_CPP BOOL			ExpWriteMaster(int useSocket, HANDLE hFile,
 				    LPCVOID buf, DWORD n, LPOVERLAPPED over);
-extern BOOL			ExpReadMaster(int useSocket, HANDLE hFile,
+extern TCL_CPP BOOL			ExpReadMaster(int useSocket, HANDLE hFile,
 				    void *buf, DWORD n, PDWORD pCount,
 				    LPWSAOVERLAPPED over, PDWORD pError);
-extern void			ExpNewConsoleSequences(int useSocket,
+extern TCL_CPP void			ExpNewConsoleSequences(int useSocket,
 				    HANDLE hMaster, LPWSAOVERLAPPED over);
-extern void			ExpProcessFreeByHandle(HANDLE hProcess);
-extern void			ExpSetConsoleSize(HANDLE hConsoleInW,
+extern TCL_CPP void			ExpProcessFreeByHandle(HANDLE hProcess);
+extern TCL_CPP void			ExpSetConsoleSize(HANDLE hConsoleInW,
 				    HANDLE hConsoleOut,
 				    int w, int h, int useSocket,
 				    HANDLE hMaster, LPWSAOVERLAPPED over);
+
+/* Mailbox API */
+extern TCL_CPP void SpawnOpenClientMailbox (const char *box);
+

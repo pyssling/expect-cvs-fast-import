@@ -43,10 +43,6 @@
 #define EXP_APPL_WIN32CUI	3
 #define EXP_APPL_WIN32GUI	4
 
-typedef struct {
-    Tcl_Channel channelPtr;
-    int toWrite;
-} ExpSpawnState;
 
 extern DWORD		ExpApplicationType (const char *originalName,
 			    char *fullPath);

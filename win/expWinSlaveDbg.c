@@ -1,4 +1,4 @@
-/* 
+/* ----------------------------------------------------------------------------
  * expWinSlaveDbg.c --
  *
  *	The slave driver acts as a debugger for the slave program.  It
@@ -7,50 +7,63 @@
  *	echoing behavior while our keystrokes are lying in its console
  *	input buffer, but it is much better than nothing.  The debugger
  *	thread sets up breakpoints on the functions we want to intercept,
- *	and it writes data that is written directly to the console to
- *	the master pipe.
+ *	and it writes data that is written directly to the console of
+ *	the master over a method of IPC.
  *
- * Copyright (c) 1997 by Mitel Corporation
- * Copyright (c) 1997-1998 by Gordon Chaffee
+ * ----------------------------------------------------------------------------
  *
- * See the file "license.terms" for information on usage and redistribution
- * of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+ * Written by: Don Libes, libes@cme.nist.gov, NIST, 12/3/90
+ * 
+ * Design and implementation of this program was paid for by U.S. tax
+ * dollars.  Therefore it is public domain.  However, the author and NIST
+ * would appreciate credit if this program or parts of it are used.
+ * 
+ * Copyright (c) 1997 Mitel Corporation
+ *	work by Gordon Chaffee <chaffee@bmrc.berkeley.edu> for the first WinNT
+ *	port.
  *
- * TODO:
- *  * Maintain cursor information for each console screen buffer.
- *  * Intercept additional console input and output characters to better
- *    keep track of current console state.
- *  * Keep all keyboard strokes within the slave until we see a call
- *    made ReadConsoleInput, ReadConsole, or some call like that.
- *    Maybe a better idea is to not echo characters until we see how
- *    they are read.  So never write more than a line at a time to
- *    the console input, but as soon as wee see a call to ReadConsole, we
- *    echo characters (if necessary) on the way into the call.
- *    If the call is made instead to ReadConsoleInput, then we remove
- *    a character from our echo list (assuming of course the input
- *    event was a key stroke).  This would give the most accurate
- *    accounting of characters.
- *  * I've been having trouble with cmd.exe.  If there is a file such asa
- *    x.in that you try to run, and there is no application tied to .in,
- *    a graphical message pops up telling you there is no program associated
- *    with this file.  For some reason, if I run cmd.exe under apispy32
- *    from Matt Pietrek, the graphical message doesn't pop up.  I tried
- *    starting the program with the same sort of flags as he uses, but it
- *    doesn't seem to work to make the messages go away.  I suspect that
- *    the messages are coming from the shell somehow.
+ * Copyright (c) 2001 Telindustrie, LLC
+ *	work by David Gravereaux <davygrvy@pobox.com> for any Win32 OS.
+ *
+ * ----------------------------------------------------------------------------
+ * URLs:    http://expect.nist.gov/
+ *	    http://expect.sf.net/
+ *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
+ * ----------------------------------------------------------------------------
+ *
+ * TODO: (from Gordon)
+ *	o Maintain cursor information for each console screen buffer.
+ *	o Intercept additional console input and output characters to better
+ *	  keep track of current console state.
+ *	o Keep all keyboard strokes within the slave until we see a call
+ *	  made ReadConsoleInput, ReadConsole, or some call like that.
+ *	  Maybe a better idea is to not echo characters until we see how
+ *	  they are read.  So never write more than a line at a time to
+ *	  the console input, but as soon as wee see a call to ReadConsole, we
+ *	  echo characters (if necessary) on the way into the call.
+ *	  If the call is made instead to ReadConsoleInput, then we remove
+ *	  a character from our echo list (assuming of course the input
+ *	  event was a key stroke).  This would give the most accurate
+ *	  accounting of characters.
+ *	o I've been having trouble with cmd.exe.  If there is a file such asa
+ *	  x.in that you try to run, and there is no application tied to .in,
+ *	  a graphical message pops up telling you there is no program
+ *	  associated with this file.  For some reason, if I run cmd.exe under
+ *	  apispy32 from Matt Pietrek, the graphical message doesn't pop up.  I
+ *	  tried starting the program with the same sort of flags as he uses,
+ *	  but it doesn't seem to work to make the messages go away.  I suspect
+ *	  that the messages are coming from the shell somehow.
+ *
+ * ----------------------------------------------------------------------------
+ * RCS: @(#) $Id: exp.h,v 1.1.2.5 2001/10/29 06:40:29 davygrvy Exp $
+ * ----------------------------------------------------------------------------
  */
+#include "expWinInt.h"
 
-/*
- * Even though we won't have access to most of the commands, use the
- * same headers 
- */
-
-#define STRICT    /* ask windows.h to agressive about the HANDLE type */
-#include "tclPort.h"
-#include "expWin.h"
-#include "expWinSlave.h"
-#include "spawndrvmc.h"
 #include <imagehlp.h>
+#ifdef _MSC_VER
+#   pragma comment (lib, "imagehlp.lib")
+#endif
 #include <stddef.h>
 #include <assert.h>
 
@@ -432,7 +445,7 @@ ExpProcessFree(ExpProcess *proc)
  *
  * ExpProcessFreeByHandle --
  *
- *	Fine a process structure by its handle and free it.
+ *	Find a process structure by its handle and free it.
  *
  * Results:
  *	None
@@ -500,7 +513,7 @@ ExpKillProcessList()
  */
 
 DWORD WINAPI
-ExpSlaveDebugThread(LPVOID *lparg)
+ExpSlaveDebugThread(LPVOID lparg)
 {
     ExpSlaveDebugArg *arg = (ExpSlaveDebugArg *) lparg;
     ExpProcess *proc;
@@ -509,20 +522,26 @@ ExpSlaveDebugThread(LPVOID *lparg)
     HMaster = arg->hMaster;		/* Set the master program */
     UseSocket = arg->useSocket;
 
-    /* Make sure the child does not ignore Ctrl-C */
+    /* Make sure the master does not ignore Ctrl-C */
     SetConsoleCtrlHandler(NULL, FALSE);
-    arg->result =
-	ExpCreateProcess(arg->argc, arg->argv,
-			 arg->slaveStdin, arg->slaveStdout, arg->slaveStderr,
-			 FALSE, FALSE,
-			 arg->passThrough ? FALSE : TRUE /* debug */,
-			 TRUE /* newProcessGroup */,
-			 (Tcl_Pid *) &arg->process, &arg->globalPid);
+    arg->result = ExpWinCreateProcess(
+	    arg->argc,
+	    arg->argv,
+	    arg->slaveStdin,
+	    arg->slaveStdout,
+	    arg->slaveStderr,
+	    FALSE,
+	    FALSE,
+	    arg->passThrough ? FALSE : TRUE, /* debug */
+	    TRUE, /* newProcessGroup */
+	    (Tcl_Pid *) &arg->process,
+	    &arg->globalPid);
+
     if (arg->result) {
 	arg->lastError = GetLastError();
     }
 
-    /* Make sure we ignore Ctrl-C */
+    /* Make sure we now ignore Ctrl-C */
     SetConsoleCtrlHandler(NULL, TRUE);
     SetEvent(arg->event);
 
@@ -532,8 +551,14 @@ ExpSlaveDebugThread(LPVOID *lparg)
 
     proc = ExpProcessNew();
     proc->hPid = arg->globalPid;
-    if (! arg->passThrough) {
+    if (arg->passThrough) {
+	ExpProcess *proc;
 
+	proc = ExpProcessNew();
+	proc->overlapped.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+	proc->hProcess = arg->process;
+	ExpAddToWaitQueue(proc->hProcess);
+    } else {
 	CloseHandle(arg->process);
 	proc->hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, arg->globalPid);
 	arg->process = proc->hProcess;
@@ -542,17 +567,8 @@ ExpSlaveDebugThread(LPVOID *lparg)
 	    ExitThread(0);
 	}
 	ExpAddToWaitQueue(proc->hProcess);
-
 	proc->overlapped.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
-
 	ExpCommonDebugger();
-    } else {
-	ExpProcess *proc;
-
-	proc = ExpProcessNew();
-	proc->overlapped.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
-	proc->hProcess = arg->process;
-	ExpAddToWaitQueue(proc->hProcess);
     }
 
     return 0;			/* Never executes */
@@ -992,7 +1008,7 @@ OnXDeleteThread(ExpProcess *proc, LPDEBUG_EVENT pDebEvent)
 static CONTEXT FirstContext;
 static UCHAR   FirstPage[PAGESIZE];
 static HANDLE  FirstThread;
-#pragma pack(push,1)
+#include <pshpack1.h>
 typedef struct _InjectCode {
     UCHAR instPush1;
     DWORD argMemProtect;
@@ -1006,7 +1022,7 @@ typedef struct _InjectCode {
     DWORD argCallAddr;
     DWORD instIntr;
 } InjectCode;
-#pragma pack(pop)
+#include <poppack.h>
 
 void
 OnXFirstBreakpoint(ExpProcess *proc, LPDEBUG_EVENT pDebEvent)
