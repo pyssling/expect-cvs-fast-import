@@ -3,6 +3,9 @@ support are in ChangeLog. - Don
 
 Date	Version	Description
 -------	-------	------------------------------------------------------
+		Egil Kvaleberg <egil@kvaleberg.no> provided fix due to new gcc
+		which defines strchr as a macro.
+
 		Dave Morrison <drmorris@corp.phone.com> noted some printfs
 		in exp_log.c that misinterpreted embedded %'s with resulting
 		core dumps.

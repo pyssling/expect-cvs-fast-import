@@ -98,8 +98,12 @@ static int weeknumber();
 adddecl(static int iso8601wknum();)
 #else
 
+#ifndef strchr
 extern char *strchr(const char *str, int ch);
+#endif
+
 extern char *getenv(const char *v);
+
 static int weeknumber(const struct tm *timeptr, int firstweekday);
 adddecl(static int iso8601wknum(const struct tm *timeptr);)
 #endif
