@@ -12,7 +12,7 @@
  *
  */
 
-#define STRICT    /* ask windows.h to agressive about the HANDLE type */
+#define STRICT    /* ask windows.h to be agressive about the HANDLE type */
 #include "tclPort.h"
 #include "expWin.h"
 #include "spawndrvmc.h"
@@ -120,8 +120,9 @@ ExpSyslog TCL_VARARGS_DEF(DWORD,arg1)
 	 * route instead */
 	WriteFile(GetStdHandle(STD_OUTPUT_HANDLE), errMsg, _tcslen(errMsg),
 		&dwWritten, NULL);
+
 	/* Stop the world, I want to get off. */
-	if (IsDebuggerPresent()) DebugBreak();
+	DebugBreak();
 
 	Sleep(5000);
 	ExitProcess(255);
