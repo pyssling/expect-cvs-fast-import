@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinClientTransportStdio.cpp,v 1.1.2.1 2002/06/23 09:20:40 davygrvy Exp $
+ * RCS: @(#) $Id: expWinTestClientStdio.cpp,v 1.1.2.1 2002/06/27 04:37:51 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -70,7 +70,7 @@ private:
     HANDLE hStdIn;
 };
 
-ClientStdio::ClientStdio(const char *name, CMclQueue<Message *> &_mQ)
+ClientStdio::ClientStdio(CMclQueue<Message *> &_mQ)
     : mQ(_mQ)
 {
     hStdOut = GetStdHandle(STD_OUTPUT_HANDLE);

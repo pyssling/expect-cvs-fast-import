@@ -1,17 +1,16 @@
 /* ----------------------------------------------------------------------------
- * expWinMessage.hpp --
+ * expWinTestClientInteract.cpp --
  *
- *	Declare the Message class.  This is what is passed over the thread-safe
- *	event queue.
+ *	This tests the interact capabilities.
  *
  * ----------------------------------------------------------------------------
  *
  * Written by: Don Libes, libes@cme.nist.gov, NIST, 12/3/90
- * 
+ *
  * Design and implementation of this program was paid for by U.S. tax
  * dollars.  Therefore it is public domain.  However, the author and NIST
  * would appreciate credit if this program or parts of it are used.
- * 
+ *
  * Copyright (c) 1997 Mitel Corporation
  *	work by Gordon Chaffee <chaffee@bmrc.berkeley.edu> for the WinNT port.
  *
@@ -23,37 +22,21 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinMessage.hpp,v 1.1.2.8 2002/06/22 14:02:03 davygrvy Exp $
+ * RCS: @(#) $Id: expWinTestClientConio.cpp,v 1.1.2.1 2002/06/27 04:37:51 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
-#ifndef INC_expWinMessage_hpp__
-#define INC_expWinMessage_hpp__
+#include "expWinTestClient.hpp"
 
-#include <stddef.h>	// for size_t
-
-class Message
+ClientInteract::ClientInteract(CMclQueue<Message *> &_mQ)
+    : mQ(_mQ), ConOut(0L), ConIn(0L), ConInteract(0L), oldBuffer(0L)
 {
-public:
-    Message();
-    ~Message();
-    Message(Message &);
+}
 
-    enum Mode {
-	TYPE_BLANK,
-	TYPE_NORMAL,
-	TYPE_ERROR,
-	TYPE_WARNING,
-	TYPE_INSTREAM,
-	TYPE_INRECORD,
-	TYPE_ENTERINTERACT,
-	TYPE_EXITINTERACT,
-	TYPE_SLAVEDONE
-    };
+ClientInteract::~ClientInteract()
+{
+}
 
-    Mode type;
-    size_t length;
-    void *bytes;
-};
-
-#endif
+void ClientInteract::Write(Message *)
+{
+}

@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinSlaveMain.cpp,v 1.1.4.24 2002/06/27 03:43:34 davygrvy Exp $
+ * RCS: @(#) $Id: expWinSlaveMain.cpp,v 1.1.4.25 2002/06/27 04:37:51 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -32,7 +32,7 @@
 // local protos
 static TestClient *OpenTestClient(const char *, CMclQueue<Message *> &);
 static SlaveTrap *SlaveOpenTrap(const char *, int, char * const *, CMclQueue<Message *> &);
-static int DoEvents(TestClient *, SlaveTrap *, CMclQueue<Message *> &, CMclEvent &);
+static int DoEvents(TestClient *, SlaveTrap *, CMclQueue<Message *> &);
 static char *OurGetCmdLine();
 
 // Turns on/off special debugger hooks used in development.
@@ -50,7 +50,6 @@ main (void)
     TestClient *client;		    // class pointer of transport client.
     SlaveTrap *slave;		    // trap method class pointer.
     CMclQueue<Message *> messageQ;  // Our message Queue we hand off to everyone.
-    CMclEvent Shutdown;		    // global shutdown for the event queue.
     int code;			    // exitcode.
     CHAR *cmdLine;		    // commandline to use.
 
@@ -84,7 +83,7 @@ main (void)
 
     //  Process messages.
     //
-    code = DoEvents(client, slave, messageQ, Shutdown);
+    code = DoEvents(client, slave, messageQ);
 
     //  Close up.
     //
@@ -109,10 +108,13 @@ TestClient *
 OpenTestClient(const char *method, CMclQueue<Message *> &mQ)
 {
     if (!strcmp(method, "stdio")) {
-	return new ClientStdio(method, mQ);
+	return new ClientStdio(mQ);
     }
     else if (!strcmp(method, "conio")) {
-	return new ClientConio(method, mQ);
+	return new ClientConio(mQ);
+    }
+    else if (!strcmp(method, "interact")) {
+	return new ClientInteract(mQ);
     }
     else EXP_LOG1(MSG_IO_TRANSPRTARGSBAD, method);
 
@@ -127,7 +129,7 @@ OpenTestClient(const char *method, CMclQueue<Message *> &mQ)
  *	The factory method for creating the trap class instance.
  *
  *  Returns:
- *	a polymorphed SpawnTrap pointer or die.
+ *	a polymorphed SlaveTrap pointer or die.
  *
  *----------------------------------------------------------------------
  */
@@ -159,8 +161,7 @@ SlaveOpenTrap(const char *method, int argc, char * const argv[],
  */
 
 int
-DoEvents(TestClient *client, SlaveTrap *slave,
-    CMclQueue<Message *> &msgQ, CMclEvent &sd)
+DoEvents(TestClient *client, SlaveTrap *slave, CMclQueue<Message *> &msgQ)
 {
     Message *msg;
 
@@ -175,25 +176,25 @@ DoEvents(TestClient *client, SlaveTrap *slave,
 	    break;
 
 	case Message::TYPE_INRECORD:
+	case Message::TYPE_ENTERINTERACT:
+	case Message::TYPE_EXITINTERACT:
 	    //  Send stuff to the slave.
 	    //
 	    slave->Write(msg);
 	    break;
 
 	case Message::TYPE_INSTREAM:
-	    // do conversion here.  These get reposted back as
-	    // TYPE_INRECORD messages.
-	    MapToKeys(msg, msgQ);
-	    break;
-
-	case Message::TYPE_FUNCTION:
-	    //  Internal mode switching and info gathering.
+	    //  Do char to keypress conversion here.
+	    //  These get reposted back as TYPE_INRECORD messages.
 	    //
+	    MapToKeys(msg, msgQ);
 	    break;
 
 	case Message::TYPE_SLAVEDONE:
 	    delete slave;
 	    delete client;
+	    //  Returning the exitcode of the slave is not yet supported.
+	    //
 	    return 0;
 	}
     }

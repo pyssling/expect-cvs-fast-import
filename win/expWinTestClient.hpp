@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinClientTransport.hpp,v 1.1.2.4 2002/06/27 03:43:34 davygrvy Exp $
+ * RCS: @(#) $Id: expWinTestClient.hpp,v 1.1.2.1 2002/06/27 04:37:51 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -44,8 +44,8 @@ class ReadCon;
 class ClientStdio : public TestClient
 {
 public:
-    ClientStdio(const char *name, CMclQueue<Message *> &_mQ);
-    ~ClientStdio();
+    ClientStdio(CMclQueue<Message *> &_mQ);
+    virtual ~ClientStdio();
     virtual void Write(Message *);
 private:
     CMclQueue<Message *> &mQ;
@@ -58,8 +58,8 @@ private:
 class ClientConio : public TestClient
 {
 public:
-    ClientConio(const char *name, CMclQueue<Message *> &_mQ);
-    ~ClientConio();
+    ClientConio(CMclQueue<Message *> &_mQ);
+    virtual ~ClientConio();
     virtual void Write(Message *);
 private:
     CMclQueue<Message *> &mQ;
@@ -67,4 +67,15 @@ private:
     ReadCon *reader;
     CMclEvent Stop;
     CMclThread *readThread;
+};
+
+class ClientInteract : public TestClient
+{
+public:
+    ClientInteract(CMclQueue<Message *> &_mQ);
+    virtual ~ClientInteract();
+    virtual void Write(Message *);
+private:
+    CMclQueue<Message *> &mQ;
+    HANDLE ConOut, ConIn, ConInteract, oldBuffer;
 };

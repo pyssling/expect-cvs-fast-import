@@ -29,7 +29,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinSlaveTrapDbg.cpp,v 1.1.4.11 2002/06/21 03:01:51 davygrvy Exp $
+ * RCS: @(#) $Id: expWinSlaveTrapDbg.cpp,v 1.1.4.12 2002/06/22 14:02:03 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -56,8 +56,18 @@ SlaveTrapDbg::~SlaveTrapDbg()
 
 void SlaveTrapDbg::Write(Message *msg)
 {
-    if (msg->type == Message::TYPE_INRECORD) {
+    switch (msg->type) {
+    case Message::TYPE_ENTERINTERACT:
+	debugger->EnterInteract(static_cast<HANDLE>(msg->bytes));
+	break;
+
+    case Message::TYPE_EXITINTERACT:
+	debugger->ExitInteract();
+	break;
+
+    case Message::TYPE_INRECORD:
 	debugger->WriteRecord(static_cast<INPUT_RECORD *>(msg->bytes));
-	delete msg;
+	break;
     }
+    delete msg;
 }
