@@ -20,15 +20,14 @@
  *	work by Gordon Chaffee <chaffee@bmrc.berkeley.edu> for the WinNT port.
  *
  * Copyright (c) 2001-2002 Telindustrie, LLC
- *	work by David Gravereaux <davygrvy@pobox.com> for full Stubs complience
- *	and any Win32 OS.
+ *	work by David Gravereaux <davygrvy@pobox.com> for any Win32 OS.
  *
  * ----------------------------------------------------------------------------
  * URLs:    http://expect.nist.gov/
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinSpawnMailboxCli.cpp,v 1.1.2.2 2001/11/15 07:25:19 davygrvy Exp $
+ * RCS: @(#) $Id: expWinSpawnMailboxCli.cpp,v 1.1.4.1 2002/03/06 01:51:53 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -41,34 +40,34 @@ ExpSpawnMailboxClient::ExpSpawnMailboxClient(const char *name)
     TCHAR boxName[24];
     DWORD err;
 
-    /* Connect to the out-going. */
+    // Connect to the out-going.
     wsprintf(boxName, "%sTo", name);
     MasterToExpect = new CMclMailbox(boxName);
 
-    /* Check status. */
+    // Check status.
     err = MasterToExpect->Status();
     if (err == NO_ERROR) {
-	/* Not allowed to be the creator. */
+	// Not allowed to be the creator.
 	delete MasterToExpect;
-	//EXP_LOG1(MSG_MB_CANTOPENCLIENT1, name);
+//	EXP_LOG1(MSG_MB_CANTOPENCLIENT1, name);
     } else if (err != ERROR_ALREADY_EXISTS) {
 	delete MasterToExpect;
-	//EXP_LOG2(MSG_MB_CANTOPENCLIENT2, name, ExpSyslogGetSysMsg(err));
+//	EXP_LOG2(MSG_MB_CANTOPENCLIENT2, name, ExpSyslogGetSysMsg(err));
     }
 
-    /* Connect to the in-coming. */
+    // Connect to the in-coming.
     wsprintf(boxName, "%sFrom", name);
     MasterFromExpect = new CMclMailbox(boxName);
 
-    /* Check status. */
+    // Check status.
     err = MasterToExpect->Status();
     if (err == NO_ERROR) {
-	/* Not allowed to be the creator. */
+	// Not allowed to be the creator.
 	delete MasterToExpect;
-	//EXP_LOG1(MSG_MB_CANTOPENCLIENT1, name);
+//	EXP_LOG1(MSG_MB_CANTOPENCLIENT1, name);
     } else if (err != ERROR_ALREADY_EXISTS) {
 	delete MasterToExpect;
-	//EXP_LOG2(MSG_MB_CANTOPENCLIENT2, name, ExpSyslogGetSysMsg(err));
+//	EXP_LOG2(MSG_MB_CANTOPENCLIENT2, name, ExpSyslogGetSysMsg(err));
     }
 }
 

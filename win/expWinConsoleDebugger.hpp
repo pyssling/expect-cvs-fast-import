@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinConsoleDebugger.hpp,v 1.1.2.4 2002/03/08 23:20:49 davygrvy Exp $
+ * RCS: @(#) $Id: expWinConsoleDebugger.hpp,v 1.1.2.5 2002/03/09 00:10:17 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -207,6 +207,7 @@ private:
     void CommonDebugger		();
     BOOL SetBreakpoint		(Process *, BreakInfo *);
     Breakpoint * SetBreakpointAtAddr(Process *, BreakInfo *, PVOID);
+    int LoadedModule		(Process *, HANDLE, LPVOID, int, LPVOID, DWORD);
     BOOL ReadSubprocessMemory	(Process *, LPVOID, LPVOID, DWORD);
     BOOL WriteSubprocessMemory	(Process *, LPVOID, LPVOID, DWORD);
     int ReadSubprocessStringA	(Process *, PVOID, PCHAR, int);
@@ -225,7 +226,7 @@ private:
     HANDLE	HConsole;	// Master console handle (us).
     COORD	ConsoleSize;    // Size of the console in the slave.
     COORD	CursorPosition; // Coordinates of the cursor in the slave.
-    BOOL	CursorKnown;    // Do we know where the remote cursor is?
+    BOOL	CursorKnown;    // Do we know where the slave's cursor is?
     char	*SymbolPath;    // Storage for setting OS kernel symbols path.
     int		_argc;		// Debugee process commandline count
     char * const * _argv;	// Debugee process commandline args

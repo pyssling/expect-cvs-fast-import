@@ -30,13 +30,11 @@
  *	    http://expect.nist.gov/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: MsvcDbgControl.cpp,v 1.1.2.3 2002/02/10 02:59:46 davygrvy Exp $
+ * RCS: @(#) $Id: MsvcDbgControl.cpp,v 1.1.2.4 2002/02/10 12:03:30 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
-extern "C" {
-    #include "expWinInt.h"
-}
+#include "expWinInt.h"
 
 #include <atlbase.h>
 extern CComModule _Module;

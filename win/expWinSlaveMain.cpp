@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinSlaveMain.cpp,v 1.1.4.1 2002/03/06 01:51:53 davygrvy Exp $
+ * RCS: @(#) $Id: expWinSlaveMain.cpp,v 1.1.4.2 2002/03/08 23:29:47 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -202,8 +202,8 @@ ExpWinMasterDoEvents(ExpSpawnClientTransport *transport, ExpSlaveTrap *masterCtr
 
 static void
 SetArgv(
-    int *argcPtr,		/* Filled with number of argument strings. */
-    char ***argvPtr)		/* Filled with argument strings in UTF (malloc'd). */
+    int *argcPtr,	// Filled with number of argument strings.
+    char ***argvPtr)	// Filled with argument strings in UTF (malloc'd).
 {
     char *p, *arg, *argSpace;
     char **argv;
@@ -217,11 +217,10 @@ SetArgv(
     if (IsDebuggerPresent()) {
 #   ifdef _MSC_VER
 
-	/*
-	 *  There will be a unicode loss here.  I don't feel it's a bad
-	 *  trade-off when running in a debugger.
-	 *  cp1251 != utf-8, though.
-	 */
+	//  There will be a unicode loss here.  I don't feel it's a bad
+	//  trade-off when running in a debugger.
+	//  cp1251 != utf-8, though.
+	//
 	Tcl_DStringAppend(&cmdLine, MsvcDbg_GetCommandLine(), -1);
 
 #   else
@@ -230,12 +229,13 @@ SetArgv(
     } else {
 #endif
 
-	/*
-	 * Always get the unicode commandline because *ALL* Win32 platforms
-	 * support it.
-	 */
+	// Always get the unicode commandline because *ALL* Win32 platforms
+	// support it.
+	//
 	cmdLineUni = GetCommandLineW();
-	size = WideCharToMultiByte(CP_UTF8, 0, cmdLineUni, -1, 0, 0, NULL, NULL);
+	// calculate the size needed.
+	size = WideCharToMultiByte(CP_UTF8, 0, cmdLineUni, -1, 0, 0, NULL,
+		NULL);
 	Tcl_DStringSetLength(&cmdLine, size);
 	WideCharToMultiByte(CP_UTF8, 0, cmdLineUni, -1,
 		Tcl_DStringValue(&cmdLine), size, NULL, NULL);

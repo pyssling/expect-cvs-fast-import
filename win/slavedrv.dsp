@@ -74,7 +74,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept
-# ADD LINK32 kernel32.lib user32.lib advapi32.lib ws2_32.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept /libpath:"d:\tcl_workspace\tcl_head\win\Release"
+# ADD LINK32 kernel32.lib user32.lib advapi32.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept /libpath:"d:\tcl_workspace\tcl_head\win\Release"
 
 !ENDIF 
 
@@ -94,6 +94,46 @@ SOURCE=.\expWinInt.h
 SOURCE=.\expWinSlave.hpp
 # End Source File
 # End Group
+# Begin Group "genheaders"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=..\generic\exp.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\generic\expInt.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\generic\expIntDecls.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\generic\expIntPlatDecls.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\generic\expPlatDecls.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\expWinPort.h
+# End Source File
+# End Group
+# Begin Source File
+
+SOURCE=.\expWinConsoleDebugger.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\expWinConsoleDebugger.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\expWinConsoleDebuggerBreakPoints.cpp
+# End Source File
 # Begin Source File
 
 SOURCE=.\expWinDynloadTclStubs.c
@@ -113,10 +153,28 @@ SOURCE=.\expWinProcess.c
 # Begin Source File
 
 SOURCE=.\expWinSlaveDbg.c
+
+!IF  "$(CFG)" == "slavedrv - Win32 Release"
+
+!ELSEIF  "$(CFG)" == "slavedrv - Win32 Debug"
+
+# PROP Exclude_From_Build 1
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\expWinSlaveDrv.c
+
+!IF  "$(CFG)" == "slavedrv - Win32 Release"
+
+!ELSEIF  "$(CFG)" == "slavedrv - Win32 Debug"
+
+# PROP Exclude_From_Build 1
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
@@ -125,6 +183,10 @@ SOURCE=.\expWinSlaveKey.c
 # Begin Source File
 
 SOURCE=.\expWinSlaveMain.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\expWinSlaveTrapDbg.cpp
 # End Source File
 # Begin Source File
 

@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinInt.h,v 1.1.4.3 2002/02/10 12:03:30 davygrvy Exp $
+ * RCS: @(#) $Id: expWinInt.h,v 1.1.4.4 2002/03/06 01:51:53 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 #ifndef _EXPWININT
@@ -124,7 +124,7 @@ typedef struct {
 	    DWORD);
 } ExpWinProcs;
 
-extern ExpWinProcs *expWinProcs;
+extern TCL_CPP ExpWinProcs *expWinProcs;
 
 
 #include "expIntPlatDecls.h"

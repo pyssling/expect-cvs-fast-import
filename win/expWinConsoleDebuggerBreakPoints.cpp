@@ -24,7 +24,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinConsoleDebuggerBreakPoints.cpp,v 1.1.2.2 2002/03/07 03:25:43 davygrvy Exp $
+ * RCS: @(#) $Id: expWinConsoleDebuggerBreakPoints.cpp,v 1.1.2.3 2002/03/08 23:20:49 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -1030,4 +1030,30 @@ ConsoleDebugger::OnWriteConsoleOutputCharacterW(Process *proc,
 	delete [] p, a;
     }
     CursorKnown = FALSE;
+}
+
+/*
+ *----------------------------------------------------------------------
+ *
+ * ConsoleDebugger::OnIsWindowVisible --
+ *
+ *	This routine gets called when IsWindowVisible is called.
+ *	The MKS Korn shell uses this as an indication of a window
+ *	that can be seen by the user.  If the window can't be seen,
+ *	it pops up a graphical error notification.  We really, really
+ *	don't want those damn things popping up, so this helps avoid
+ *	it.  And there really doesn't seem to be any good reason to
+ *	return FALSE given that nobody is ever going to see anything.
+ *
+ * Results:
+ *	None
+ *
+ *----------------------------------------------------------------------
+ */
+
+void
+ConsoleDebugger::OnIsWindowVisible(Process *proc, ThreadInfo *threadInfo,
+    Breakpoint *brkpt, PDWORD returnValue, DWORD direction)
+{
+    *returnValue = TRUE;
 }
