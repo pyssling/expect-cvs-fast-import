@@ -6185,7 +6185,7 @@ if test $ac_cv_sys_long_file_names = no; then
     EXP_LIB_VERSION=$EXP_VERSION_NODOTS
 fi
 
-EXP_BUILD_LIB_SPEC="-L`pwd` -lexpect${EXP_LIB_VERSION}"
+EXP_BUILD_LIB_SPEC="-L`pwd` -lexpect${EXP_LIB_VERSION}${TCL_DBGX}"
 EXP_LIB_SPEC="-L\${INSTALL_ROOT}\${exec_prefix}/lib -lexpect${EXP_LIB_VERSION}"
 EXP_UNSHARED_LIB_FILE=libexpect${EXP_LIB_VERSION}${TCL_DBGX}.a
 
@@ -6374,7 +6374,8 @@ done
 ac_given_srcdir=$srcdir
 ac_given_INSTALL="$INSTALL"
 
-trap 'rm -fr `echo "Makefile pkgIndex expect_cf.h" | sed "s/:[^ ]*//g"` conftest*; exit 1' 1 2 15
+trap 'rm -fr `echo "Makefile \
+	pkgIndex expect_cf.h" | sed "s/:[^ ]*//g"` conftest*; exit 1' 1 2 15
 EOF
 cat >> $CONFIG_STATUS <<EOF
 
@@ -6517,7 +6518,8 @@ EOF
 
 cat >> $CONFIG_STATUS <<EOF
 
-CONFIG_FILES=\${CONFIG_FILES-"Makefile pkgIndex"}
+CONFIG_FILES=\${CONFIG_FILES-"Makefile \
+	pkgIndex"}
 EOF
 cat >> $CONFIG_STATUS <<\EOF
 for ac_file in .. $CONFIG_FILES; do if test "x$ac_file" != x..; then
@@ -6688,7 +6690,7 @@ cat >> $CONFIG_STATUS <<EOF
 
 EOF
 cat >> $CONFIG_STATUS <<\EOF
-
+chmod +x ${srcdir}/install-sh ${srcdir}/mkinstalldirs
 exit 0
 EOF
 chmod +x $CONFIG_STATUS
