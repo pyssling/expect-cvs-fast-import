@@ -179,7 +179,7 @@ char *num;	/* string representation of number */
 	/* with it.  This allows us to rigorously test the */
 	/* pty is usable. */
 	if (exp_pty_lock(bank,num) == 0) {
-		debuglog("pty master (%s) is locked...skipping\r\n",master_name);
+		exp_debuglog("pty master (%s) is locked...skipping\r\n",master_name);
 		return(-1);
 	}
 	/* verify no one else is using slave by attempting */
@@ -196,7 +196,7 @@ char *num;	/* string representation of number */
 
 #ifdef HAVE_PTYTRAP
 	if (access(slave_name, R_OK|W_OK) != 0) {
-		debuglog("could not open slave for pty master (%s)...skipping\r\n",
+		exp_debuglog("could not open slave for pty master (%s)...skipping\r\n",
 			master_name);
 		(void) close(master);
 		return -1;
@@ -211,7 +211,7 @@ char *num;	/* string representation of number */
 	cc = i_read(master,&c,1,10);
 	(void) close(master);
 	if (!(cc == 0 || cc == -1)) {
-		debuglog("%s slave open, skipping\r\n",slave_name);
+		exp_debuglog("%s slave open, skipping\r\n",slave_name);
 		locked = FALSE;	/* leave lock file around so Expect's avoid */
 				/* retrying this pty for near future */
 		return -1;
@@ -228,12 +228,12 @@ char *num;	/* string representation of number */
 	cc = i_read(slave,&c,1,10);
 	(void) close(slave);
 	if (!(cc == 0 || cc == -1)) {
-		debuglog("%s master open, skipping\r\n",master_name);
+		exp_debuglog("%s master open, skipping\r\n",master_name);
 		return -1;
 	}
 
 	/* seems ok, let's use it */
-	debuglog("using master pty %s\n",master_name);
+	exp_debuglog("using master pty %s\n",master_name);
 	return(open(master_name,RDWR));
 #endif
 }

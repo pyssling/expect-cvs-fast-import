@@ -92,7 +92,7 @@ int code;
 	exp_debuglog("sighandler: handling signal(%d)\r\n",got_sig);
 
 	if (got_sig <= 0 || got_sig >= NSIG) {
-		errorlog("caught impossible signal %d\r\n",got_sig);
+		exp_errorlog("caught impossible signal %d\r\n",got_sig);
 		abort();
 	}
 
@@ -115,7 +115,7 @@ int code;
 		/* signaler predefined, since we are calling explicitly */
 		/* from another part of the program, and it is just simpler */
 		if (current_sig == 0) return code;
-		errorlog("caught unexpected signal: %s (%d)\r\n",
+		exp_errorlog("caught unexpected signal: %s (%d)\r\n",
 			signal_to_string(current_sig),current_sig);
 		abort();
 	}
@@ -370,7 +370,7 @@ char **argv;
 
 	/* argv[1] is the list of signals - crack it open */
 	if (TCL_OK != Tcl_SplitList(interp,argv[1],&n,&list)) {
-		errorlog("%s\r\n",interp->result);
+		exp_errorlog("%s\r\n",interp->result);
 		goto usage_error;
 	}
 
@@ -478,7 +478,7 @@ int oldcode;
 		exp_debuglog("return value = %d for trap %s, action %s\r\n",
 				newcode,signal_to_string(sig),trap->action);
 		if (*interp->result != 0) {
-			errorlog("%s\r\n",interp->result);
+			exp_errorlog("%s\r\n",interp->result);
 
 			/*
 			 * Check errorinfo and see if it contains -nostack.

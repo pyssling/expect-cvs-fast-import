@@ -293,7 +293,7 @@ char *name;
 
 	Tcl_HashEntry *entry = Tcl_FindHashEntry(&slaveNames,name);
 	if (!entry) {
-		debuglog("exp_trap_off: no entry found for %s\n",name);
+		exp_debuglog("exp_trap_off: no entry found for %s\n",name);
 		return -1;
 	}
 
@@ -750,7 +750,7 @@ char **argv;
 			}
 
 			if (TCL_OK != Tcl_SplitList(interp,argv[1],&n,&list)) {
-				errorlog("%s\r\n",interp->result);
+				exp_errorlog("%s\r\n",interp->result);
 				exp_error(interp,"usage: -trap {siglist} ...");
 				return TCL_ERROR;
 			}
@@ -1003,7 +1003,7 @@ when trapping, see below in child half of fork */
 			Tcl_SetVar2(interp,SPAWN_OUT,"slave,fd",value,0);
 		}
 		sprintf(interp->result,"%d",EXP_NOPID);
-		debuglog("spawn: returns {%s}\r\n",interp->result);
+		exp_debuglog("spawn: returns {%s}\r\n",interp->result);
 
 		return TCL_OK;
 	}
@@ -1098,12 +1098,12 @@ when trapping, see below in child half of fork */
 		 * user to send to it
 		 */ 
 
-		debuglog("parent: waiting for sync byte\r\n");
+		exp_debuglog("parent: waiting for sync byte\r\n");
 		while (((rc = read(sync_fds[0],&sync_byte,1)) < 0) && (errno == EINTR)) {
 			/* empty */;
 		}
 		if (rc == -1) {
-			errorlog("parent sync byte read: %s\r\n",Tcl_ErrnoMsg(errno));
+			exp_errorlog("parent sync byte read: %s\r\n",Tcl_ErrnoMsg(errno));
 			exit(-1);
 		}
 
@@ -1114,14 +1114,14 @@ when trapping, see below in child half of fork */
 		 * tell slave to go on now now that we have initialized pty
 		 */
 
-		debuglog("parent: telling child to go ahead\r\n");
+		exp_debuglog("parent: telling child to go ahead\r\n");
 		wc = write(sync2_fds[1]," ",1);
 		if (wc == -1) {
-			errorlog("parent sync byte write: %s\r\n",Tcl_ErrnoMsg(errno));
+			exp_errorlog("parent sync byte write: %s\r\n",Tcl_ErrnoMsg(errno));
 			exit(-1);
 		}
 
-		debuglog("parent: now unsynchronized from child\r\n");
+		exp_debuglog("parent: now unsynchronized from child\r\n");
 		close(sync_fds[0]);
 		close(sync2_fds[1]);
 
@@ -1156,7 +1156,7 @@ when trapping, see below in child half of fork */
 		Tcl_SetVar(interp,SPAWN_ID_VARNAME,buf,0);
 
 		sprintf(interp->result,"%d",pid);
-		debuglog("spawn: returns {%s}\r\n",interp->result);
+		exp_debuglog("spawn: returns {%s}\r\n",interp->result);
 
 		Tcl_DStringFree(&dstring);
 		return(TCL_OK);
@@ -1243,13 +1243,13 @@ parent_error:
 
 	if (0 > (slave = getptyslave(ttycopy,ttyinit,stty_init))) {
 		restore_error_fd
-		errorlog("open(slave pty): %s\r\n",Tcl_ErrnoMsg(errno));
+		exp_errorlog("open(slave pty): %s\r\n",Tcl_ErrnoMsg(errno));
 		exit(-1);
 	}
 	/* sanity check */
 	if (slave != 0) {
 		restore_error_fd
-		errorlog("getptyslave: slave = %d but expected 0\n",slave);
+		exp_errorlog("getptyslave: slave = %d but expected 0\n",slave);
 		exit(-1);
 	}
 
@@ -1269,7 +1269,7 @@ parent_error:
 	if (ioctl(0,TIOCSCTTY,(char *)0) < 0) {
 #endif
 		restore_error_fd
-		errorlog("failed to get controlling terminal using TIOCSCTTY");
+		exp_errorlog("failed to get controlling terminal using TIOCSCTTY");
 		exit(-1);
 	}
 #endif
@@ -1280,7 +1280,7 @@ parent_error:
  	(void) close(0);
  	if (open("/dev/tty", O_RDWR) < 0) {
 		restore_error_fd
- 		errorlog("open(/dev/tty): %s\r\n",Tcl_ErrnoMsg(errno));
+ 		exp_errorlog("open(/dev/tty): %s\r\n",Tcl_ErrnoMsg(errno));
  		exit(-1);
  	}
  	(void) close(1);
@@ -1300,7 +1300,7 @@ parent_error:
 	 */
 	if ((pid = fork()) == -1) {
 		restore_error_fd
-		errorlog("second fork: %s\r\n",Tcl_ErrnoMsg(errno));
+		exp_errorlog("second fork: %s\r\n",Tcl_ErrnoMsg(errno));
 		exit(-1);
 	}
 
@@ -1363,17 +1363,17 @@ parent_error:
 	/* tell parent that we are done setting up pty */
 	/* The actual char sent back is irrelevant. */
 
-	/* debuglog("child: telling parent that pty is initialized\r\n");*/
+	/* exp_debuglog("child: telling parent that pty is initialized\r\n");*/
 	wc = write(sync_fds[1]," ",1);
 	if (wc == -1) {
 		restore_error_fd
-		errorlog("child: sync byte write: %s\r\n",Tcl_ErrnoMsg(errno));
+		exp_errorlog("child: sync byte write: %s\r\n",Tcl_ErrnoMsg(errno));
 		exit(-1);
 	}
 	close(sync_fds[1]);
 
 	/* wait for master to let us go on */
-	/* debuglog("child: waiting for go ahead from parent\r\n"); */
+	/* exp_debuglog("child: waiting for go ahead from parent\r\n"); */
 
 /*	close(master);	/* force master-side close so we can read */
 
@@ -1383,12 +1383,12 @@ parent_error:
 
 	if (rc == -1) {
 		restore_error_fd
-		errorlog("child: sync byte read: %s\r\n",Tcl_ErrnoMsg(errno));
+		exp_errorlog("child: sync byte read: %s\r\n",Tcl_ErrnoMsg(errno));
 		exit(-1);
 	}
 	close(sync2_fds[0]);
 
-	/* debuglog("child: now unsynchronized from parent\r\n"); */
+	/* exp_debuglog("child: now unsynchronized from parent\r\n"); */
 
 	/* So much for close-on-exec.  Tcl doesn't mark its files that way */
 	/* everything has to be closed explicitly. */
@@ -1402,7 +1402,7 @@ parent_error:
 	   part of the program output.  This will be picked up in an
 	   expect or interact command.
 	*/
-	errorlog("%s: %s\r\n",argv[0],Tcl_ErrnoMsg(errno));
+	exp_errorlog("%s: %s\r\n",argv[0],Tcl_ErrnoMsg(errno));
 #endif
 	/* if exec failed, communicate the reason back to the parent */
 	write(status_pipe[1], &errno, sizeof errno);
@@ -1452,7 +1452,7 @@ Tcl_Interp *interp;
 int argc;
 char **argv;
 {
-	debuglog("getpid is deprecated, use pid\r\n");
+	exp_debuglog("getpid is deprecated, use pid\r\n");
 	sprintf(interp->result,"%d",getpid());
 	return(TCL_OK);
 }
@@ -1663,7 +1663,7 @@ struct human_arg *arg;
 	int wc;
 	int in_word = TRUE;
 
-	debuglog("human_write: avg_arr=%f/%f  1/shape=%f  min=%f  max=%f\r\n",
+	exp_debuglog("human_write: avg_arr=%f/%f  1/shape=%f  min=%f  max=%f\r\n",
 		arg->alpha,arg->alpha_eow,arg->c,arg->min,arg->max);
 
 	for (sp = buffer;*sp;sp++) {
@@ -1824,11 +1824,11 @@ Tcl_VarTraceProc *updateproc;	/* proc to invoke if indirect is written */
 /* cannot fail */
 struct exp_i *
 exp_new_i_complex(interp,arg,duration,updateproc)
-Tcl_Interp *interp;
-char *arg;		/* spawn id list or a variable containing a list */
-int duration;		/* if we have to copy the args */
+    Tcl_Interp *interp;
+    char *arg;		/* spawn id list or a variable containing a list */
+    int duration;		/* if we have to copy the args */
 			/* should only need do this in expect_before/after */
-Tcl_VarTraceProc *updateproc;	/* proc to invoke if indirect is written */
+    Tcl_VarTraceProc *updateproc;	/* proc to invoke if indirect is written */
 {
 	struct exp_i *i;
 	char **stringp;
@@ -2122,7 +2122,7 @@ char **argv;
 
 	if (send_to_proc) {
 		want_cooked = FALSE;
-		debuglog("send: sending \"%s\" to {",dprintify(string));
+		exp_debuglog("send: sending \"%s\" to {",dprintify(string));
 		/* if closing brace doesn't appear, that's because an error */
 		/* was encountered before we could send it */
 	} else {
@@ -2136,7 +2136,7 @@ char **argv;
 		m = fd->fd;
 
 		if (send_to_proc) {
-			debuglog(" %d ",m);
+			exp_debuglog(" %d ",m);
 		}
 
 		/* true if called as Send with user_spawn_id */
@@ -2183,7 +2183,7 @@ char **argv;
 			goto finish;
 		}
 	}
-	if (send_to_proc) debuglog("}\r\n");
+	if (send_to_proc) exp_debuglog("}\r\n");
 
 	rc = TCL_OK;
  finish:
@@ -2698,9 +2698,9 @@ char *argv[];
 	int i;
 
 	/* come out on stderr, by using errorlog */
-	errorlog("%2d",level);
+	exp_errorlog("%2d",level);
 	for (i = 0;i<level;i++) exp_nferrorlog("  ",0/*ignored - satisfy lint*/);
-	errorlog("%s\r\n",command);
+	exp_errorlog("%s\r\n",command);
 }
 
 /*ARGSUSED*/
@@ -3065,7 +3065,7 @@ char **argv;
 
 	/* both child and parent follow remainder of code */
 	sprintf(interp->result,"%d",rc);
-	debuglog("fork: returns {%s}\r\n",interp->result);
+	exp_debuglog("fork: returns {%s}\r\n",interp->result);
 	return(TCL_OK);
 }
 
@@ -3190,9 +3190,9 @@ char **argv;
 		}
 		oldfd = atoi(argv[0]);
 		argc--; argv++;
-		debuglog("overlay: mapping fd %d to %d\r\n",oldfd,newfd);
+		exp_debuglog("overlay: mapping fd %d to %d\r\n",oldfd,newfd);
 		if (oldfd != newfd) (void) dup2(oldfd,newfd);
-		else debuglog("warning: overlay: old fd == new fd (%d)\r\n",oldfd);
+		else exp_debuglog("warning: overlay: old fd == new fd (%d)\r\n",oldfd);
 	}
 	if (argc == 0) {
 		exp_error(interp,"need program name");
@@ -3288,7 +3288,7 @@ char **argv;
 	if (argc == 1) return(TCL_CONTINUE);
 	else if (argc == 2) {
 		if (streq(argv[1],"-expect")) {
-			debuglog("continue -expect is deprecated, use exp_continue\r\n");
+			exp_debuglog("continue -expect is deprecated, use exp_continue\r\n");
 			return(EXP_CONTINUE);
 		}
 	}

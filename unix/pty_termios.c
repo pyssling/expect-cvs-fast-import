@@ -301,7 +301,7 @@ char *s;	/* stty args */
 /* As long as BSD stty insists on stdout == stderr, we can no longer write */
 /* diagnostics to parent stderr, since stderr has is now child's */
 /* Maybe someday they will fix stty? */
-/*			debuglog("getptyslave: (default) stty %s\n",DFLT_STTY);*/
+/*			exp_debuglog("getptyslave: (default) stty %s\n",DFLT_STTY);*/
 			pty_stty(DFLT_STTY,slave_name);
 		}
 #endif
@@ -309,7 +309,7 @@ char *s;	/* stty args */
 		/* lastly, give user chance to override any terminal parms */
 		if (s) {
 			/* give user a chance to override any terminal parms */
-/*			debuglog("getptyslave: (user-requested) stty %s\n",s);*/
+/*			exp_debuglog("getptyslave: (user-requested) stty %s\n",s);*/
 			pty_stty(s,slave_name);
 		}
 	}
@@ -605,18 +605,18 @@ char *stty_args;
 #if defined(HAVE_PTMX_BSD)
 	if (ioctl (slave, I_LOOK, buf) != 0)
 		if (ioctl (slave, I_PUSH, "ldterm")) {
-			debuglog("ioctl(%s,I_PUSH,\"ldterm\") = %s\n",Tcl_ErrnoMsg(errno));
+			exp_debuglog("ioctl(%s,I_PUSH,\"ldterm\") = %s\n",Tcl_ErrnoMsg(errno));
 	}
 #else
 #if defined(HAVE_PTMX)
 	if (ioctl(slave, I_PUSH, "ptem")) {
-		debuglog("ioctl(%s,I_PUSH,\"ptem\") = %s\n",Tcl_ErrnoMsg(errno));
+		exp_debuglog("ioctl(%s,I_PUSH,\"ptem\") = %s\n",Tcl_ErrnoMsg(errno));
 	}
 	if (ioctl(slave, I_PUSH, "ldterm")) {
-		debuglog("ioctl(%s,I_PUSH,\"ldterm\") = %s\n",Tcl_ErrnoMsg(errno));
+		exp_debuglog("ioctl(%s,I_PUSH,\"ldterm\") = %s\n",Tcl_ErrnoMsg(errno));
 	}
 	if (ioctl(slave, I_PUSH, "ttcompat")) {
-		debuglog("ioctl(%s,I_PUSH,\"ttcompat\") = %s\n",Tcl_ErrnoMsg(errno));
+		exp_debuglog("ioctl(%s,I_PUSH,\"ttcompat\") = %s\n",Tcl_ErrnoMsg(errno));
 	}
 #endif
 #endif
@@ -692,39 +692,39 @@ int fd;
 		(SELECT_MASK_TYPE *)&excep,
 		&t);
 	if (rc != 1) {
-		debuglog("spawned process never started, errno = %d\n",errno);
+		exp_debuglog("spawned process never started, errno = %d\n",errno);
 		return(-1);
 	}
 	if (ioctl(fd,TIOCREQCHECK,&ioctl_info) < 0) {
-		debuglog("ioctl(TIOCREQCHECK) failed, errno = %d\n",errno);
+		exp_debuglog("ioctl(TIOCREQCHECK) failed, errno = %d\n",errno);
 		return(-1);
 	}
 
 	found = ioctl_info.request;
 
-	debuglog("trapped pty op = %x",found);
+	exp_debuglog("trapped pty op = %x",found);
 	if (found == TIOCOPEN) {
-		debuglog(" TIOCOPEN");
+		exp_debuglog(" TIOCOPEN");
 	} else if (found == TIOCCLOSE) {
-		debuglog(" TIOCCLOSE");
+		exp_debuglog(" TIOCCLOSE");
 	}
 
 #ifdef TIOCSCTTY
 	if (found == TIOCSCTTY) {
-		debuglog(" TIOCSCTTY");
+		exp_debuglog(" TIOCSCTTY");
 	}
 #endif
 
 	if (found & IOC_IN) {
-		debuglog(" IOC_IN (set)");
+		exp_debuglog(" IOC_IN (set)");
 	} else if (found & IOC_OUT) {
-		debuglog(" IOC_OUT (get)");
+		exp_debuglog(" IOC_OUT (get)");
 	}
 
-	debuglog("\n");
+	exp_debuglog("\n");
 
 	if (ioctl(fd, TIOCREQSET, &ioctl_info) < 0) {
-		debuglog("ioctl(TIOCREQSET) failed, errno = %d\n",errno);
+		exp_debuglog("ioctl(TIOCREQSET) failed, errno = %d\n",errno);
 		return(-1);
 	}
 	return(found);

@@ -146,13 +146,13 @@ int *was_raw, *was_echo;
 	*tty_old = tty_current;		/* save old parameters */
 	*was_raw = is_raw;
 	*was_echo = !is_noecho;
-	debuglog("tty_raw_noecho: was raw = %d  echo = %d\r\n",is_raw,!is_noecho);
+	exp_debuglog("tty_raw_noecho: was raw = %d  echo = %d\r\n",is_raw,!is_noecho);
 
 	exp_tty_raw(1);
 	exp_tty_echo(-1);
 
 	if (exp_tty_set_simple(&tty_current) == -1) {
-		errorlog("ioctl(raw): %s\r\n",Tcl_PosixError(interp));
+		exp_errorlog("ioctl(raw): %s\r\n",Tcl_PosixError(interp));
 		exp_exit(interp,1);
 	}
 
@@ -175,13 +175,13 @@ int *was_raw, *was_echo;
 	*tty_old = tty_current;		/* save old parameters */
 	*was_raw = is_raw;
 	*was_echo = !is_noecho;
-	debuglog("tty_cooked_echo: was raw = %d  echo = %d\r\n",is_raw,!is_noecho);
+	exp_debuglog("tty_cooked_echo: was raw = %d  echo = %d\r\n",is_raw,!is_noecho);
 
 	exp_tty_raw(-1);
 	exp_tty_echo(1);
 
 	if (exp_tty_set_simple(&tty_current) == -1) {
-		errorlog("ioctl(noraw): %s\r\n",Tcl_PosixError(interp));
+		exp_errorlog("ioctl(noraw): %s\r\n",Tcl_PosixError(interp));
 		exp_exit(interp,1);
 	}
 	exp_ioctled_devtty = TRUE;
@@ -197,13 +197,13 @@ int raw;
 int echo;
 {
 	if (exp_tty_set_simple(tty) == -1) {
-		errorlog("ioctl(set): %s\r\n",Tcl_PosixError(interp));
+		exp_errorlog("ioctl(set): %s\r\n",Tcl_PosixError(interp));
 		exp_exit(interp,1);
 	}
 	is_raw = raw;
 	is_noecho = !echo;
 	tty_current = *tty;
-	debuglog("tty_set: raw = %d, echo = %d\r\n",is_raw,!is_noecho);
+	exp_debuglog("tty_set: raw = %d, echo = %d\r\n",is_raw,!is_noecho);
 	exp_ioctled_devtty = TRUE;
 }	
 
@@ -377,7 +377,7 @@ char **argv;
 			redirect = argv;
 			infile = *(argv+1);
 			if (!infile) {
-				errorlog("usage: < ttyname");
+				exp_errorlog("usage: < ttyname");
 				return TCL_ERROR;
 			}
 			if (streq(infile,"/dev/tty")) {
@@ -388,7 +388,7 @@ char **argv;
 			} else {
 				master = exp_trap_off(infile);
 				if (-1 == (fd = open(infile,2))) {
-					errorlog("couldn't open %s: %s",
+					exp_errorlog("couldn't open %s: %s",
 					 infile,Tcl_PosixError(interp));
 					return TCL_ERROR;
 				}
@@ -452,7 +452,7 @@ char **argv;
 
 			/* find out what weird options user asked for */
 			if (exp_tty_get_simple(&tty_current) == -1) {
-				errorlog("ioctl(get): %s\r\n",Tcl_PosixError(interp));
+				exp_errorlog("ioctl(get): %s\r\n",Tcl_PosixError(interp));
 				exp_exit(interp,1);
 			}
 			if (cooked) {
@@ -462,8 +462,8 @@ char **argv;
 		} else if (saw_known_stty_arg) {
 			if (exp_tty_set_simple(&tty_current) == -1) {
 			    if (exp_disconnected || (exp_dev_tty == -1) || !isatty(exp_dev_tty)) {
-				errorlog("stty: impossible in this context\n");
-				errorlog("are you disconnected or in a batch, at, or cron script?");
+				exp_errorlog("stty: impossible in this context\n");
+				exp_errorlog("are you disconnected or in a batch, at, or cron script?");
 				/* user could've conceivably closed /dev/tty as well */
 			    }
 			    exp_error(interp,"stty: ioctl(user): %s\r\n",Tcl_PosixError(interp));
@@ -566,7 +566,7 @@ char **argv;
 	if (argc == 1) return TCL_OK;
 
 	if (streq(argv[1],"stty")) {
-		debuglog("system stty is deprecated, use stty\r\n");
+		exp_debuglog("system stty is deprecated, use stty\r\n");
 
 		cmd_is_stty = TRUE;
 		was_raw = exp_israw();
@@ -599,8 +599,8 @@ char **argv;
 		        if (ioctl(exp_dev_tty, TCSETSW, &tty_current) == -1) {
 #endif
 			    if (exp_disconnected || (exp_dev_tty == -1) || !isatty(exp_dev_tty)) {
-				errorlog("system stty: impossible in this context\n");
-				errorlog("are you disconnected or in a batch, at, or cron script?");
+				exp_errorlog("system stty: impossible in this context\n");
+				exp_errorlog("are you disconnected or in a batch, at, or cron script?");
 				/* user could've conceivably closed /dev/tty as well */
 			    }
 			    exp_error(interp,"system stty: ioctl(user): %s\r\n",Tcl_PosixError(interp));
@@ -633,7 +633,7 @@ char **argv;
 	old = signal(SIGCHLD, SIG_DFL);
 	systemStatus = system(buf);
 	signal(SIGCHLD, old);	/* restore signal handler */
-	debuglog("system(%s) = %d\r\n",buf,i);
+	exp_debuglog("system(%s) = %d\r\n",buf,i);
 
 	if (systemStatus == -1) {
 		exp_error(interp,Tcl_PosixError(interp));
@@ -648,7 +648,7 @@ char **argv;
 #else
 	        if (ioctl(exp_dev_tty, TCGETS, &tty_current) == -1) {
 #endif
-			errorlog("ioctl(get): %s\r\n",Tcl_PosixError(interp));
+			exp_errorlog("ioctl(get): %s\r\n",Tcl_PosixError(interp));
 			exp_exit(interp,1);
 		}
 		if (cooked) {
