@@ -1,0 +1,179 @@
+:Base MCL.HLP
+:Title Mcl/Mcl4Mfc C++ Class Libraries Help
+:Index Mcl4Mfc C++ Class Library Reference=Mcl4mfc.hlp
+1 Mcl C++ Class Library Reference
+2 Introduction=Mcl_C___Class_Library_Reference
+2 CMclAutoLock Class
+3 CMclAutoLock Description=CMclAutoLock
+3 CMclAutoLock::CMclAutoLock=CMclAutoLock__CMclAutoLock
+3 CMclAutoLock::~CMclAutoLock=CMclAutoLock___CMclAutoLock
+2 CMclCondition Class
+3 CMclCondition Description=CMclCondition
+3 CMclCondition::CMclCondition=CMclCondition__CMclCondition
+3 CMclCondition::~CMclCondition=CMclCondition___CMclCondition
+3 CMclCondition::Condition=CMclCondition__Condition
+3 CMclCondition::SignalEvent=CMclCondition__SignalEvent
+3 CMclCondition::WaitForEvent=CMclCondition__WaitForEvent
+2 CMclCritSec Class
+3 CMclCritSec Description=CMclCritSec
+3 CMclCritSec::CMclCritSec=CMclCritSec__CMclCritSec
+3 CMclCritSec::~CMclCritSec=CMclCritSec___CMclCritSec
+3 CMclCritSec::Enter=CMclCritSec__Enter
+3 CMclCritSec::Leave=CMclCritSec__Leave
+2 CMclDerivedAutoPtr Class
+3 CMclDerivedAutoPtr Description=CMclDerivedAutoPtr
+3 CMclDerivedAutoPtr::CMclDerivedAutoPtr=CMclDerivedAutoPtr__CMclDerivedAutoPtr
+3 CMclDerivedAutoPtr::operator *=RTF_TOPIC_872844507
+3 CMclDerivedAutoPtr::operator ==CMclDerivedAutoPtr__operator__
+3 CMclDerivedAutoPtr::operator ->=CMclDerivedAutoPtr__operator___
+2 CMclEvent Class
+3 CMclEvent Description=CMclEvent
+3 CMclEvent::CMclEvent=CMclEvent__CMclEvent
+3 CMclEvent::Pulse=CMclEvent__Pulse
+3 CMclEvent::Reset=CMclEvent__Reset
+3 CMclEvent::Set=CMclEvent__Set
+2 CMclEventAutoPtr Class
+3 CMclEventAutoPtr Description=CMclEventAutoPtr
+2 CMclKernel Class
+3 CMclKernel Description=CMclKernel
+3 CMclKernel::~CMclKernel=CMclKernel___CMclKernel
+3 CMclKernel::CMclKernel=CMclKernel__CMclKernel
+3 CMclKernel::GetHandle=CMclKernel__GetHandle
+3 CMclKernel::m_dwStatus=CMclKernel__m_dwStatus
+3 CMclKernel::m_hHandle=CMclKernel__m_hHandle
+3 CMclKernel::operator HANDLE=CMclKernel__operator_HANDLE
+3 CMclKernel::Status=CMclKernel__Status
+3 CMclKernel::ThrowError=CMclKernel__ThrowError
+3 CMclKernel::Wait=CMclKernel__Wait
+3 CMclKernel::WaitForTwo=CMclKernel__WaitForTwo
+2 CMclKernelAutoPtr Class
+3 CMclKernelAutoPtr Description=CMclKernelAutoPtr
+3 CMclKernelAutoPtr::~CMclKernelAutoPtr=CMclKernelAutoPtr___CMclKernelAutoPtr
+3 CMclKernelAutoPtr::CMclKernelAutoPtr=CMclKernelAutoPtr__CMclKernelAutoPtr
+3 CMclKernelAutoPtr::GetHandle=CMclKernelAutoPtr__GetHandle
+3 CMclKernelAutoPtr::IsNull=CMclKernelAutoPtr__IsNull
+3 CMclKernelAutoPtr::m_pObjectPtr=CMclKernelAutoPtr__m_pObjectPtr
+3 CMclKernelAutoPtr::operator *=CMclKernelAutoPtr__operator__
+3 CMclKernelAutoPtr::operator ->=CMclKernelAutoPtr__operator___
+3 CMclKernelAutoPtr::Reset=CMclKernelAutoPtr__Reset
+3 CMclKernelAutoPtr::Status=CMclKernelAutoPtr__Status
+2 CMclLinkedList Class
+3 CMclLinkedList Description=CMclLinkedList
+3 CMclLinkedList::~CMclLinkedList=CMclLinkedList___CMclLinkedList
+3 CMclLinkedList::AddToFreeList=CMclLinkedList__AddToFreeList
+3 CMclLinkedList::AllocateListNode=CMclLinkedList__AllocateListNode
+3 CMclLinkedList::Cleanup=CMclLinkedList__Cleanup
+3 CMclLinkedList::CMclLinkedList=CMclLinkedList__CMclLinkedList
+3 CMclLinkedList::CMclLinkedListDataNode=CMclLinkedList__CMclLinkedListDataNode
+3 CMclLinkedList::CMclLinkedListNode=CMclLinkedList__CMclLinkedListNode
+3 CMclLinkedList::CMclLinkedListSentinelNode=CMclLinkedList__CMclLinkedListSentinelNode
+3 CMclLinkedList::GetFromHeadOfList=CMclLinkedList__GetFromHeadOfList
+3 CMclLinkedList::GetFromTailOfList=CMclLinkedList__GetFromTailOfList
+3 CMclLinkedList::m_cCritSec=CMclLinkedList__m_cCritSec
+3 CMclLinkedList::m_cNotEmpty=CMclLinkedList__m_cNotEmpty
+3 CMclLinkedList::m_dwStatus=CMclLinkedList__m_dwStatus
+3 CMclLinkedList::m_FreeNode=CMclLinkedList__m_FreeNode
+3 CMclLinkedList::m_MasterNode=CMclLinkedList__m_MasterNode
+3 CMclLinkedList::PutOnHeadOfList=CMclLinkedList__PutOnHeadOfList
+3 CMclLinkedList::PutOnTailOfList=CMclLinkedList__PutOnTailOfList
+3 CMclLinkedList::Status=CMclLinkedList__Status
+2 CMclLinkedListDataNode Class
+3 CMclLinkedListDataNode::CMclLinkedListDataNode=CMclLinkedListDataNode__CMclLinkedListDataNode
+3 CMclLinkedListDataNode::GetData=CMclLinkedListDataNode__GetData
+3 CMclLinkedListDataNode::m_data=CMclLinkedListDataNode__m_data
+3 CMclLinkedListDataNode::SetData=CMclLinkedListDataNode__SetData
+3 CMclLinkedListNode::GetData=CMclLinkedListNode__GetData
+3 CMclLinkedListNode::m_pNext=CMclLinkedListNode__m_pNext
+3 CMclLinkedListNode::m_pPrev=CMclLinkedListNode__m_pPrev
+3 CMclLinkedListNode::SetData=CMclLinkedListNode__SetData
+2 CMclLinkedListSentinelNode Class
+3 CMclLinkedListSentinelNode::GetData=CMclLinkedListSentinelNode__GetData
+3 CMclLinkedListSentinelNode::SetData=CMclLinkedListSentinelNode__SetData
+2 CMclMailbox Class
+3 CMclMailbox Description=CMclMailbox
+3 CMclMailbox::~CMclMailbox=CMclMailbox___CMclMailbox
+3 CMclMailbox::CMclMailbox=CMclMailbox__CMclMailbox
+3 CMclMailbox::Get=CMclMailbox__Get
+3 CMclMailbox::GetAlertable=CMclMailbox__GetAlertable
+3 CMclMailbox::GetProperties=CMclMailbox__GetProperties
+3 CMclMailbox::IsCreator=CMclMailbox__IsCreator
+3 CMclMailbox::Post=CMclMailbox__Post
+3 CMclMailbox::PostAlertable=CMclMailbox__PostAlertable
+3 CMclMailbox::Status=CMclMailbox__Status
+2 CMclMonitor Class
+3 CMclMonitor Description=CMclMonitor
+3 CMclMonitor::~CMclMonitor=CMclMonitor___CMclMonitor
+3 CMclMonitor::CMclMonitor=CMclMonitor__CMclMonitor
+3 CMclMonitor::Enter=CMclMonitor__Enter
+3 CMclMonitor::Leave=CMclMonitor__Leave
+3 CMclMonitor::Status=CMclMonitor__Status
+3 CMclMonitor::WaitForCondition=CMclMonitor__WaitForCondition
+2 CMclMutex Class
+3 CMclMutex Description=CMclMutex
+3 CMclMutex::CMclMutex=CMclMutex__CMclMutex
+3 CMclMutex::Release=CMclMutex__Release
+3 CMclMutexAutoPtr=CMclMutexAutoPtr
+2 CMclQueue Class
+3 CMclQueue Description=CMclQueue
+3 CMclQueue::Get=CMclQueue__Get
+3 CMclQueue::Put=CMclQueue__Put
+3 CMclQueue::Status=CMclQueue__Status
+2 CMclSemaphore Class
+3 CMclSemaphore Description=CMclSemaphore
+3 CMclSemaphore::CMclSemaphore=CMclSemaphore__CMclSemaphore
+3 CMclSemaphore::Release=CMclSemaphore__Release
+2 CMclSemaphoreAutoPtr Class
+3 CMclSemaphoreAutoPtr Description=CMclSemaphoreAutoPtr
+2 CMclSharedMemory Class
+3 CMclSharedMemory Description=CMclSharedMemory
+3 CMclSharedMemory::~CMclSharedMemory=CMclSharedMemory___CMclSharedMemory
+3 CMclSharedMemory::CMclSharedMemory=CMclSharedMemory__CMclSharedMemory
+3 CMclSharedMemory::GetPtr=CMclSharedMemory__GetPtr
+3 CMclSharedMemory::IsCreator=CMclSharedMemory__IsCreator
+3 CMclSharedMemory::Status=CMclSharedMemory__Status
+2 CMclStack Class
+3 CMclStack Description=CMclStack
+3 CMclStack::Pop=CMclStack__Pop
+3 CMclStack::Push=CMclStack__Push
+3 CMclStack::Status=CMclStack__Status
+2 CMclThread Class
+3 CMclThread Description=CMclThread
+3 CMclThread::CMclThread=CMclThread__CMclThread
+3 CMclThread::GetExitCode=CMclThread__GetExitCode
+3 CMclThread::GetPriority=CMclThread__GetPriority
+3 CMclThread::GetThreadId=CMclThread__GetThreadId
+3 CMclThread::m_pcThreadHandler=CMclThread__m_pcThreadHandler
+3 CMclThread::m_uiThreadID=CMclThread__m_uiThreadID
+3 CMclThread::Resume=CMclThread__Resume
+3 CMclThread::SetPriority=CMclThread__SetPriority
+3 CMclThread::Suspend=CMclThread__Suspend
+3 CMclThread::Terminate=CMclThread__Terminate
+2 CMclThreadAutoPtr Class
+3 CMclThreadAutoPtr Description=CMclThreadAutoPtr
+2 CMclThreadHandler Class
+3 CMclThreadHandler Description=CMclThreadHandler
+3 CMclThreadHandler::~CMclThreadHandler=CMclThreadHandler___CMclThreadHandler
+3 CMclThreadHandler::ThreadHandlerProc=CMclThreadHandler__ThreadHandlerProc
+2 CMclWaitableCollection Class
+3 CMclWaitableCollection=CMclWaitableCollection
+3 CMclWaitableCollection::~CMclWaitableCollection=CMclWaitableCollection___CMclWaitableCollection
+3 CMclWaitableCollection::AddCollection=CMclWaitableCollection__AddCollection
+3 CMclWaitableCollection::AddObject=CMclWaitableCollection__AddObject
+3 CMclWaitableCollection::CMclWaitableCollection=CMclWaitableCollection__CMclWaitableCollection
+3 CMclWaitableCollection::GetCount=CMclWaitableCollection__GetCount
+3 CMclWaitableCollection::operator ==CMclWaitableCollection__operator__
+3 CMclWaitableCollection::Wait=CMclWaitableCollection__Wait
+2 CMclWaitableObject Class
+3 CMclWaitableObject Description=CMclWaitableObject
+3 CMclWaitableObject::GetHandle=CMclWaitableObject__GetHandle
+3 CMclWaitableObject::Status=CMclWaitableObject__Status
+2 Utility Functions
+3 CMclIsValidHandle=CMclIsValidHandle
+3 CMclThrowError=CMclThrowError
+3 CMclWaitAbandoned=CMclWaitAbandoned
+3 CMclWaitAbandonedIndex=CMclWaitAbandonedIndex
+3 CMclWaitFailed=CMclWaitFailed
+3 CMclWaitSucceeded=CMclWaitSucceeded
+3 CMclWaitSucceededIndex=CMclWaitSucceededIndex
+3 CMclWaitTimeout=CMclWaitTimeout
+:Include  D:\books\win32threads\Help\mcl4mfc.CNT
