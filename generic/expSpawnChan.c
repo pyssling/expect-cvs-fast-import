@@ -54,12 +54,6 @@ static Tcl_ChannelType ExpSpawnChannelType = {
     NULL			/* no handler */
 };
 
-typedef struct ThreadSpecificData {
-    int expSpawnCount;
-} ThreadSpecificData;
-
-static Tcl_ThreadDataKey dataKey;
-
 /*
  *----------------------------------------------------------------------
  *
@@ -81,33 +75,25 @@ ExpCreateSpawnChannel(interp, chan)
     Tcl_Interp *interp;
     Tcl_Channel chan;
 {
-//    char channelNameStr[20];
-//    Tcl_Channel chan2;
-    Tcl_Channel chan3;
+    Tcl_Channel chan2;
     ExpSpawnState *ssPtr;
-    ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
 
     ssPtr = (ExpSpawnState *) ckalloc(sizeof(ExpSpawnState));
     ssPtr->channelPtr = chan;
     ssPtr->toWrite = 0;
 
-//    sprintf(channelNameStr, "exp_spawn%d", tsdPtr->expSpawnCount++);
-
-//    chan2 = Tcl_CreateChannel(&ExpSpawnChannelType, channelNameStr,
-//			     (ClientData) NULL, TCL_READABLE|TCL_WRITABLE);
-
-    chan3 = Tcl_StackChannel(interp, &ExpSpawnChannelType,
+    chan2 = Tcl_StackChannel(interp, &ExpSpawnChannelType,
 	    (ClientData) ssPtr, TCL_READABLE|TCL_WRITABLE, chan);
 
     /*
      * Setup the expect channel to always flush immediately
      */
 
-    Tcl_SetChannelOption(interp, chan3, "-buffering",  "none");
-    Tcl_SetChannelOption(interp, chan3, "-blocking",   "0");
-    Tcl_SetChannelOption(interp, chan3, "-translation","binary");
+    Tcl_SetChannelOption(interp, chan2, "-buffering",  "none");
+    Tcl_SetChannelOption(interp, chan2, "-blocking",   "0");
+    Tcl_SetChannelOption(interp, chan2, "-translation","binary");
 
-    return chan3;
+    return chan2;
 }
 
 /*
@@ -132,13 +118,7 @@ ExpSpawnClose(instanceData, interp)
     ClientData instanceData;
     Tcl_Interp *interp;
 {
-    ExpSpawnState *ssPtr = (ExpSpawnState *) instanceData;
-    //Tcl_Channel channelPtr = ssPtr->channelPtr;
-    //int ret;
-
-    //ret = Tcl_UnStackChannel(interp, channelPtr);
-    ckfree((char *)ssPtr);
-
+    ckfree((char *)(ExpSpawnState *)instanceData);
     return TCL_OK;
 }
 
