@@ -23,7 +23,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinSlave.hpp,v 1.1.4.7 2002/03/12 07:09:36 davygrvy Exp $
+ * RCS: @(#) $Id: expWinSlave.hpp,v 1.1.4.8 2002/03/12 07:59:14 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 #ifndef _EXPWINSLAVE_HPP
@@ -45,6 +45,9 @@ extern int     ExpDebug;
 //extern TCL_CPP void ExpNewConsoleSequences(int useSocket, HANDLE hMaster, LPWSAOVERLAPPED over);
 //extern TCL_CPP void ExpProcessFreeByHandle(HANDLE hProcess);
 //extern TCL_CPP void ExpSetConsoleSize(HANDLE hConsoleInW, HANDLE hConsoleOut, int w, int h, int useSocket, HANDLE hMaster, LPWSAOVERLAPPED over);
+
+void DynloadTclStubs (void);
+void ShutdownTcl (void);
 
 
 #include "Mcl/include/CMcl.h"

@@ -22,16 +22,47 @@
  *	    http://expect.nist.gov/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinDynloadTclStubs.c,v 1.1.4.6 2002/03/12 18:13:12 davygrvy Exp $
+ * RCS: @(#) $Id: expWinDynloadTclStubs.cpp,v 1.1.2.1 2002/03/12 18:41:38 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
-#include <windows.h>
 #include "tcl.h"
+
+// We need at least the Tcl_Obj interface that was started in 8.0
+#if TCL_MAJOR_VERSION < 8
+#   error "we need Tcl 8.0 or greater to build this"
+
+// Check for Stubs compatibility when asked for it.
+#elif defined(USE_TCL_STUBS) && TCL_MAJOR_VERSION == 8 && \
+	(TCL_MINOR_VERSION == 0 || \
+        (TCL_MINOR_VERSION == 1 && TCL_RELEASE_LEVEL != TCL_FINAL_RELEASE))
+#   error "Stubs interface doesn't work in 8.0 and alpha/beta 8.1; only 8.1.0+"
+#endif
+
+#ifdef _MSC_VER
+    // Only do this when MSVC++ is compiling us.
+#   ifdef USE_TCL_STUBS
+	// Mark this .obj as needing tcl's Stubs library.
+#	pragma comment(lib, "tclstub" \
+	    STRINGIFY(JOIN(TCL_MAJOR_VERSION,TCL_MINOR_VERSION)) ".lib")
+#	if !defined(_MT) || !defined(_DLL) || defined(_DEBUG)
+	    // This fixes a bug with how the Stubs library was compiled.
+	    // The requirement for msvcrt.lib from tclstubXX.lib should
+	    // be removed.
+#	    pragma comment(linker, "-nodefaultlib:msvcrt.lib")
+#	endif
+#   else
+    // Mark this .obj needing the import library
+#   pragma comment(lib, "tcl" \
+	STRINGIFY(JOIN(TCL_MAJOR_VERSION,TCL_MINOR_VERSION)) ".lib")
+#   endif
+#endif
+
 #include "slavedrvmc.h"
+#include <windows.h>
 #include "expWinUtils.hpp"
 
-HMODULE hTclMod;
+static HMODULE hTclMod;
 
 void
 DynloadTclStubs (void)
@@ -71,4 +102,11 @@ DynloadTclStubs (void)
 	/* envar not found */
 	EXP_LOG0(MSG_STUBS_ENVARNOTSET);
     }
+}
+
+void
+ShutdownTcl (void)
+{
+    Tcl_Finalize();
+    FreeLibrary(hTclMod);
 }
