@@ -22,9 +22,10 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: exp.h,v 1.1.2.5 2001/10/29 06:40:29 davygrvy Exp $
+ * RCS: @(#) $Id: expSlaveDrvMain.c,v 1.1.2.1 2001/11/07 10:04:57 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
+
 #include "expWinInt.h"
 
 

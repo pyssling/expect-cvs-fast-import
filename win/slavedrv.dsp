@@ -43,15 +43,15 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /c
-# ADD CPP /nologo /G5 /MD /W3 /GX /O2 /I "d:\tcl_workspace\tcl_head\generic" /I "..\generic" /I "$(IntDir)" /D "NDEBUG" /D "WIN32" /D "_CONSOLE" /D "USE_TCL_STUBS" /D "TCL_THREADS" /D "BUILD_spawndriver" /D "STATIC_BUILD" /YX"exp.h" /FD /c
+# ADD CPP /nologo /G5 /MD /W3 /GX /O2 /I "D:\tcl_workspace\tcl_head\generic" /I "..\generic" /I "$(IntDir)" /D "NDEBUG" /D "WIN32" /D "_CONSOLE" /D "USE_TCL_STUBS" /D "TCL_THREADS" /D "BUILD_spawndriver" /D "STATIC_BUILD" /YX"exp.h" /FD /c
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
-# ADD RSC /l 0x409 /i "d:\tcl_workspace\tcl_head\generic" /i "..\generic" /i "$(INTDIR)" /d "NDEBUG"
+# ADD RSC /l 0x409 /i "D:\tcl_workspace\tcl_head\generic" /i "..\generic" /i "$(INTDIR)" /d "NDEBUG"
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /machine:I386
-# ADD LINK32 kernel32.lib user32.lib gdi32.lib /nologo /machine:I386 /libpath:"d:\tcl_workspace\tcl_head\win\release" /subsystem:console,4.00
+# ADD LINK32 kernel32.lib user32.lib gdi32.lib /nologo /machine:I386 /libpath:"D:\tcl_workspace\tcl_head\win\release" /subsystem:console,4.00
 # SUBTRACT LINK32 /pdb:none
 
 !ELSEIF  "$(CFG)" == "slavedrv - Win32 Debug"
@@ -68,15 +68,15 @@ LINK32=link.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /GZ /c
-# ADD CPP /nologo /G5 /MDd /W3 /Gm /ZI /Od /I "d:\tcl_workspace\tcl_head\generic" /I "..\generic" /I "$(IntDir)" /D "_DEBUG" /D "WIN32" /D "_CONSOLE" /D "BUILD_exp" /D "USE_TCL_STUBS" /D "TCL_THREADS" /D "BUILD_spawndriver" /D "STATIC_BUILD" /YX"exp.h" /FD /GZ /c
+# ADD CPP /nologo /G5 /MDd /W3 /Gm /ZI /Od /I "D:\tcl_workspace\tcl_head\generic" /I "..\generic" /I "$(IntDir)" /D "_DEBUG" /D "WIN32" /D "_CONSOLE" /D "BUILD_exp" /D "USE_TCL_STUBS" /D "TCL_THREADS" /D "BUILD_spawndriver" /D "STATIC_BUILD" /YX"exp.h" /FD /GZ /c
 # ADD BASE RSC /l 0x409 d "_DEBUG"
-# ADD RSC /l 0x409 /i "d:\tcl_workspace\tcl_head\generic" /i "..\generic" /i "$(INTDIR)" /d "_DEBUG"
+# ADD RSC /l 0x409 /i "D:\tcl_workspace\tcl_head\generic" /i "..\generic" /i "$(INTDIR)" /d "_DEBUG"
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept
-# ADD LINK32 kernel32.lib user32.lib gdi32.lib /nologo /debug /machine:I386 /pdbtype:sept /libpath:"d:\tcl_workspace\tcl_head\win\release" /subsystem:console,4.00
+# ADD LINK32 kernel32.lib user32.lib gdi32.lib /nologo /debug /machine:I386 /pdbtype:sept /libpath:"D:\tcl_workspace\tcl_head\win\release" /subsystem:console,4.00
 # SUBTRACT LINK32 /pdb:none
 
 !ELSEIF  "$(CFG)" == "slavedrv - Win32 Debug Unicode"
@@ -93,17 +93,17 @@ LINK32=link.exe
 # PROP Intermediate_Dir "DebugU"
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
-# ADD BASE CPP /nologo /G5 /MDd /W3 /Gm /ZI /Od /I "d:\tcl_workspace\tcl_head\generic" /I "..\generic" /I "$(IntDir)" /D "_DEBUG" /D "WIN32" /D "_UNICODE" /D "UNICODE" /D "_CONSOLE" /D "BUILD_exp" /D "USE_TCL_STUBS" /D "TCL_THREADS" /D "BUILD_spawndriver" /D "STATIC_BUILD" /YX"exp.h" /FD /GZ /c
-# ADD CPP /nologo /G5 /MDd /W3 /Gm /ZI /Od /I "d:\tcl_workspace\tcl_head\generic" /I "..\generic" /I "$(IntDir)" /D "_DEBUG" /D "WIN32" /D "_UNICODE" /D "UNICODE" /D "_CONSOLE" /D "BUILD_exp" /D "USE_TCL_STUBS" /D "TCL_THREADS" /D "BUILD_spawndriver" /D "STATIC_BUILD" /YX"exp.h" /FD /GZ /c
-# ADD BASE RSC /l 0x409 /i "d:\tcl_workspace\tcl_head\generic" /i "..\generic" /i "$(INTDIR)" /d "_DEBUG"
-# ADD RSC /l 0x409 /i "d:\tcl_workspace\tcl_head\generic" /i "..\generic" /i "$(INTDIR)" /d "_DEBUG"
+# ADD BASE CPP /nologo /G5 /MDd /W3 /Gm /ZI /Od /I "$(TCL_SRCDIR)\generic" /I "..\generic" /I "$(IntDir)" /D "_DEBUG" /D "WIN32" /D "_UNICODE" /D "UNICODE" /D "_CONSOLE" /D "BUILD_exp" /D "USE_TCL_STUBS" /D "TCL_THREADS" /D "BUILD_spawndriver" /D "STATIC_BUILD" /YX"exp.h" /FD /GZ /c
+# ADD CPP /nologo /G5 /MDd /W3 /Gm /ZI /Od /I "D:\tcl_workspace\tcl_head\generic" /I "..\generic" /I "$(IntDir)" /D "_DEBUG" /D "WIN32" /D "_UNICODE" /D "UNICODE" /D "_CONSOLE" /D "BUILD_exp" /D "USE_TCL_STUBS" /D "TCL_THREADS" /D "BUILD_spawndriver" /D "STATIC_BUILD" /YX"exp.h" /FD /GZ /c
+# ADD BASE RSC /l 0x409 /i "$(TCL_SRCDIR)\generic" /i "..\generic" /i "$(INTDIR)" /d "_DEBUG"
+# ADD RSC /l 0x409 /i "D:\tcl_workspace\tcl_head\generic" /i "..\generic" /i "$(INTDIR)" /d "_DEBUG"
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib /nologo /debug /machine:I386 /pdbtype:sept /libpath:"d:\tcl_workspace\tcl_head\win\release" /subsystem:console,4.00
 # SUBTRACT BASE LINK32 /pdb:none
-# ADD LINK32 kernel32.lib user32.lib gdi32.lib /nologo /debug /machine:I386 /pdbtype:sept /libpath:"d:\tcl_workspace\tcl_head\win\release" /subsystem:console,4.00
+# ADD LINK32 kernel32.lib user32.lib gdi32.lib /nologo /debug /machine:I386 /pdbtype:sept /libpath:"D:\tcl_workspace\tcl_head\win\release" /subsystem:console,4.00
 # SUBTRACT LINK32 /pdb:none
 
 !ENDIF 
@@ -135,15 +135,6 @@ SOURCE=.\expWinLog.c
 # Begin Source File
 
 SOURCE=.\expWinMailboxCli.cpp
-
-!IF  "$(CFG)" == "slavedrv - Win32 Release"
-
-!ELSEIF  "$(CFG)" == "slavedrv - Win32 Debug"
-
-!ELSEIF  "$(CFG)" == "slavedrv - Win32 Debug Unicode"
-
-!ENDIF 
-
 # End Source File
 # Begin Source File
 

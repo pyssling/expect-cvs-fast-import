@@ -24,7 +24,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: exp.h,v 1.1.2.5 2001/10/29 06:40:29 davygrvy Exp $
+ * RCS: @(#) $Id: expWinLog.c,v 1.1.2.5 2001/11/07 10:04:57 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -38,7 +38,7 @@
 static HANDLE hSyslog = NULL;
 static HANDLE hToken;
 static TOKEN_USER *hUserTokPtr;
-static TCHAR sysMsgSpace[1024];
+static char sysMsgSpace[1024];
 
 /* local protos */
 static void ExpNTLog (DWORD errCode, char *errData[], int cnt);
@@ -73,11 +73,11 @@ ExpWinSyslog TCL_VARARGS_DEF(DWORD,arg1)
     char *errData[10];
     int cnt = 0;
     TCHAR *errMsg;
-    static TCHAR codeBuf[33];
+    static char codeBuf[33];
     DWORD dwWritten;
     char *file;
     int line;
-    static TCHAR fileInfo[MAX_PATH];
+    static char fileInfo[MAX_PATH];
 
     /* Get the error code */
     errCode = TCL_VARARGS_START(DWORD,arg1,args);
@@ -85,43 +85,43 @@ ExpWinSyslog TCL_VARARGS_DEF(DWORD,arg1)
     /* Get the file info */
     file = va_arg(args, char *);
     line = va_arg(args, int);
-    _stprintf(fileInfo, "%s(%d)", file, line);
+    wsprintfA(fileInfo, "%s(%d)", file, line);
     errData[cnt++] = fileInfo;
 
     /* Set the textual severity */
     switch(GETSEVERITY(errCode)) {
 	case STATUS_SEVERITY_WARNING:
-	    errData[cnt++] = _T("Warning"); break;
+	    errData[cnt++] = "Warning"; break;
 	case STATUS_SEVERITY_SUCCESS:
-	    errData[cnt++] = _T("Success"); break;
+	    errData[cnt++] = "Success"; break;
 	case STATUS_SEVERITY_INFORMATIONAL:
-	    errData[cnt++] = _T("Info"); break;
+	    errData[cnt++] = "Info"; break;
 	case STATUS_SEVERITY_FATAL:
-	    errData[cnt++] = _T("Fatal"); break;
+	    errData[cnt++] = "Fatal"; break;
     }
 
     /* Set the textual Facility */
     switch(GETFACILITY(errCode)) {
 	case FACILITY_WINSOCK:
-	    errData[cnt++] = _T("Winsock IPC"); break;
+	    errData[cnt++] = "Winsock IPC"; break;
 	case FACILITY_SYSTEM:
-	    errData[cnt++] = _T("System"); break;
+	    errData[cnt++] = "System"; break;
 	case FACILITY_STUBS:
-	    errData[cnt++] = _T("Stubs"); break;
+	    errData[cnt++] = "Stubs"; break;
 	case FACILITY_NAMEDPIPE:
-	    errData[cnt++] = _T("NamedPipe IPC"); break;
+	    errData[cnt++] = "NamedPipe IPC"; break;
 	case FACILITY_MSPROTO:
-	    errData[cnt++] = _T("Master/Slave Protocol"); break;
+	    errData[cnt++] = "Master/Slave Protocol"; break;
 	case FACILITY_MAILBOX:
-	    errData[cnt++] = _T("MailBoxing IPC"); break;
+	    errData[cnt++] = "MailBoxing IPC"; break;
 	case FACILITY_IO:
-	    errData[cnt++] = _T("I/O general"); break;
+	    errData[cnt++] = "I/O general"; break;
 	case FACILITY_DBGTRAP:
-	    errData[cnt++] = _T("Debug/Trap"); break;
+	    errData[cnt++] = "Debug/Trap"; break;
     }
     /* Set the textual Code */
     errData[cnt++] = codeBuf;
-    wsprintf(codeBuf, "0x%04X", GETCODE(errCode));
+    wsprintfA(codeBuf, "0x%04X", GETCODE(errCode));
 
     /* set everyone else */
     while ((errData[cnt] = va_arg(args, char *)) != NULL) cnt++;
@@ -151,11 +151,11 @@ ExpWinSyslog TCL_VARARGS_DEF(DWORD,arg1)
     LocalFree(errMsg);
 }
 
-TCHAR *ExpSyslogGetSysMsg (DWORD id)
+char *ExpSyslogGetSysMsg (DWORD id)
 {
     int chars;
 
-    chars = wsprintf(sysMsgSpace, "[%d] ", id);
+    chars = wsprintfA(sysMsgSpace, "[%d] ", id);
 
     FormatMessage(
 	    FORMAT_MESSAGE_FROM_SYSTEM |
@@ -213,7 +213,7 @@ void ExpNTLog (DWORD errCode, char *errData[], int cnt)
 	    wSev = EVENTLOG_ERROR_TYPE; break;
     }
 
-    ReportEvent(hSyslog, wSev, GETFACILITY(errCode), errCode,
+    ReportEventA(hSyslog, wSev, GETFACILITY(errCode), errCode,
 	    hUserTokPtr->User.Sid, cnt, 0, errData, NULL);
     GlobalFree(hUserTokPtr);
     DeregisterEventSource(hSyslog);

@@ -1,7 +1,7 @@
 /* ----------------------------------------------------------------------------
  * expWinProcess.c --
  *
- *	This file contains utility procedures.  It primarily handled
+ *	This file contains utility procedures.  It primarily handles
  *	processes for Expect.
  *
  * ----------------------------------------------------------------------------
@@ -23,7 +23,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: exp.h,v 1.1.2.5 2001/10/29 06:40:29 davygrvy Exp $
+ * RCS: @(#) $Id: expWinProcess.c,v 1.1.2.11 2001/11/07 10:04:57 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 #include "expWinInt.h"
@@ -109,7 +109,7 @@ HasConsole()
  * Side effects:
  *	None.
  *
- * Comment: COPY OF NON_PUBLIC CORE FUNCTION!
+ * Comment: COPY OF NON_PUBLIC CORE FUNCTION WITH CHANGES!
  *
  *----------------------------------------------------------------------
  */
@@ -134,7 +134,7 @@ ExpWinApplicationType(
     } header;
     Tcl_DString nameBuf, ds;
     TCHAR *nativeName;
-    TCHAR nativeFullPath[MAX_PATH * 2];   /* needed for unicode space */
+    WCHAR nativeFullPath[MAX_PATH];   /* needed for unicode space */
     static char extensions[][5] = {"", ".com", ".exe", ".bat", ".cmd"};
 
     /* Look for the program as an external program.  First try the name
@@ -161,7 +161,7 @@ ExpWinApplicationType(
         nativeName = Tcl_WinUtfToTChar(Tcl_DStringValue(&nameBuf), 
 		Tcl_DStringLength(&nameBuf), &ds);
 	found = (*expWinProcs->searchPathProc)(NULL, nativeName, NULL, 
-		MAX_PATH, nativeFullPath, &rest);
+		MAX_PATH, (TCHAR *) nativeFullPath, &rest);
 	Tcl_DStringFree(&ds);
 	if (found == 0) {
 	    continue;
@@ -341,7 +341,7 @@ ExpWinApplicationType(
 	 */
 
 	(*expWinProcs->getShortPathNameProc)((TCHAR *) nativeFullPath,
-		nativeFullPath, MAX_PATH);
+		(TCHAR *) nativeFullPath, MAX_PATH);
 	strcpy(fullName, Tcl_WinTCharToUtf((TCHAR *) nativeFullPath, -1, &ds));
 	Tcl_DStringFree(&ds);
     }
