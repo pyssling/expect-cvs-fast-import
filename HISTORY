@@ -9,7 +9,7 @@ Date	Version	Description
 		linux, but no linux hackers have weighed in on this subject			yet.
 
 		Andrew Tannenbaum <trb@world.std.com> noted exp_internal
-		command was broken.
+		command and "expect -exact" were broken.
 
 6/29/99 5.31.0	See the NEWS file for this date for an overview.  (I'm
 		too tired to add all the details.  Maybe later.)
