@@ -4,7 +4,7 @@
  *	Declarations of functions in the platform independent public
  *	Expect API.
  *
- * RCS: $Id: expDecls.h,v 1.1.2.3 2001/10/28 11:12:34 davygrvy Exp $
+ * RCS: $Id: expDecls.h,v 1.1.2.4 2001/10/29 06:40:29 davygrvy Exp $
  */
 
 #ifndef _EXPDECLS
@@ -45,6 +45,11 @@ TCL_EXTERN(void)	exp_interpret_rcfiles _ANSI_ARGS_((
 TCL_EXTERN(char *)	exp_cook _ANSI_ARGS_((char * s, int * len));
 /* 8 */
 TCL_EXTERN(void)	expCloseOnExec _ANSI_ARGS_((int fd));
+/* 9 */
+TCL_EXTERN(int)		exp_getpidproc _ANSI_ARGS_((void));
+/* 10 */
+TCL_EXTERN(Tcl_Channel)	 ExpCreateSpawnChannel _ANSI_ARGS_((
+				Tcl_Interp * interp, Tcl_Channel chan));
 
 typedef struct ExpStubHooks {
     struct ExpPlatStubs *expPlatStubs;
@@ -65,6 +70,8 @@ typedef struct ExpStubs {
     void (*exp_interpret_rcfiles) _ANSI_ARGS_((Tcl_Interp * interp, int my_rc, int sys_rc)); /* 6 */
     char * (*exp_cook) _ANSI_ARGS_((char * s, int * len)); /* 7 */
     void (*expCloseOnExec) _ANSI_ARGS_((int fd)); /* 8 */
+    int (*exp_getpidproc) _ANSI_ARGS_((void)); /* 9 */
+    Tcl_Channel (*expCreateSpawnChannel) _ANSI_ARGS_((Tcl_Interp * interp, Tcl_Channel chan)); /* 10 */
 } ExpStubs;
 
 #ifdef __cplusplus
@@ -116,6 +123,14 @@ extern ExpStubs *expStubsPtr;
 #ifndef expCloseOnExec
 #define expCloseOnExec \
 	(expStubsPtr->expCloseOnExec) /* 8 */
+#endif
+#ifndef exp_getpidproc
+#define exp_getpidproc \
+	(expStubsPtr->exp_getpidproc) /* 9 */
+#endif
+#ifndef ExpCreateSpawnChannel
+#define ExpCreateSpawnChannel \
+	(expStubsPtr->expCreateSpawnChannel) /* 10 */
 #endif
 
 #endif /* defined(USE_EXP_STUBS) && !defined(USE_EXP_STUB_PROCS) */

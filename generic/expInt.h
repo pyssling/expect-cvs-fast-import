@@ -11,7 +11,7 @@
  *
  * Modified in October, 2001 by David Gravereaux for windows.
  *
- * RCS: @(#) $Id: expInt.h,v 1.1.2.3 2001/10/28 08:56:51 davygrvy Exp $
+ * RCS: @(#) $Id: expInt.h,v 1.1.2.4 2001/10/29 06:40:29 davygrvy Exp $
  */
 
 #ifndef _EXPINT
@@ -288,7 +288,6 @@ extern int exp_disconnected;		/* proc. disc'd from controlling tty */
 
 
 /* protos not yet moved to the Stubs table */
-TCL_EXTERN(int)		exp_getpidproc _ANSI_ARGS_((void));
 TCL_EXTERN(char *)	exp_get_var _ANSI_ARGS_((Tcl_Interp *,char *));
 TCL_EXTERN(int)		exp_one_arg_braced _ANSI_ARGS_((Tcl_Obj *));
 TCL_EXTERN(int)		exp_eval_with_one_arg _ANSI_ARGS_((ClientData,

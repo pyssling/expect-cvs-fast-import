@@ -3,7 +3,7 @@
  *
  *	This file contains the initializers for the Expect stub vectors.
  *
- * RCS: @(#) $Id: expStubInit.c,v 1.1.2.1 2001/10/28 11:12:23 davygrvy Exp $
+ * RCS: @(#) $Id: expStubInit.c,v 1.1.2.2 2001/10/29 06:40:29 davygrvy Exp $
  */
 
 #include "expInt.h"
@@ -25,6 +25,14 @@ ExpIntStubs expIntStubs = {
 ExpIntPlatStubs expIntPlatStubs = {
     TCL_STUB_MAGIC,
     NULL,
+#ifdef __WIN32__
+    ExpWinApplicationType, /* 0 */
+    ExpWinCreateProcess, /* 1 */
+    ExpWinSyslog, /* 2 */
+    ExpSyslogGetSysMsg, /* 3 */
+    Exp_WaitPid, /* 4 */
+    Exp_KillProcess, /* 5 */
+#endif /* __WIN32__ */
 };
 
 ExpPlatStubs expPlatStubs = {
@@ -50,6 +58,8 @@ ExpStubs expStubs = {
     exp_interpret_rcfiles, /* 6 */
     exp_cook, /* 7 */
     expCloseOnExec, /* 8 */
+    exp_getpidproc, /* 9 */
+    ExpCreateSpawnChannel, /* 10 */
 };
 
 /* !END!: Do not edit above this line. */

@@ -5,14 +5,14 @@
 #	This file is used to generate the expDecls.h, expPlatDecls.h,
 #	expIntDecls.h, and expStub.c files.
 #
-# RCS: @(#) $Id: exp.decls,v 1.1.2.1 2001/10/28 09:00:51 davygrvy Exp $
+# RCS: @(#) $Id: exp.decls,v 1.1.2.2 2001/10/29 06:40:29 davygrvy Exp $
 
 library exp
 
 # Define the tcl interface with several sub interfaces:
 #     expPlat	 - platform specific public
 #     expInt	 - generic private
-#     expPlatInt - platform specific private
+#     expIntPlat - platform specific private
 
 interface exp
 hooks {expPlat expInt expIntPlat}
@@ -48,8 +48,18 @@ declare 7 generic {
 declare 8 generic {
 	void expCloseOnExec (int fd)
 }
+declare 9 generic {
+	int exp_getpidproc (void)
+}
+declare 10 generic {
+	Tcl_Channel ExpCreateSpawnChannel (Tcl_Interp *interp, Tcl_Channel chan)
+}
 
 interface expPlat
+
+interface expInt
+
+interface expIntPlat
 
 #====================================================================================
 # UNIX specific publics.
@@ -57,6 +67,27 @@ interface expPlat
 
 #====================================================================================
 # WIN32 specific publics.
+declare 0 win {
+	DWORD ExpWinApplicationType (const char *originalName, char *fullPath)
+}
+declare 1 win {
+	DWORD ExpWinCreateProcess (int argc, char **argv, HANDLE inputHandle,
+	    HANDLE outputHandle, HANDLE errorHandle, int allocConsole,
+	    int hideConsole, int debug, int newProcessGroup, Tcl_Pid *pidPtr,
+	    PDWORD globalPidPtr)
+}
+declare 2 win {
+	void ExpWinSyslog (DWORD errId, ...)
+}
+declare 3 win {
+	TCHAR* ExpSyslogGetSysMsg (DWORD errId)
+}
+declare 4 win {
+	Tcl_Pid	Exp_WaitPid (Tcl_Pid pid, int *statPtr, int options)
+}
+declare 5 win {
+	void Exp_KillProcess (Tcl_Pid pid)
+}
 
 
 #====================================================================================
@@ -65,6 +96,3 @@ interface expPlat
 ### You nutts!!  can't do Mac... sorry..
 
 
-interface expInt
-
-interface expIntPlat
