@@ -1,4 +1,4 @@
-// RCS: @(#) $Id: expect.rc,v 1.1.2.2 2001/10/11 02:41:47 davygrvy Exp $
+// RCS: @(#) $Id: spawndrv.rc,v 1.1.2.1 2001/10/12 00:43:44 davygrvy Exp $
 
 #include <winver.h>
 
@@ -40,4 +40,4 @@ END
 
 // Include the Message Table that lists the error codes and textual replies.
 // This is output from the message compiler and found in the temp build directory.
-#include "spawndrv.rc"
+#include "spawndrvmc.rc"
