@@ -1,19 +1,77 @@
+2001-10-30  davygrvy
+	* win/dllEntryPoint.c:
+		(new) not neccessarily needed, but being explict is a good thing.
+
+2001-10-29  davygrvy
+	* win/expect.dsp:
+		folder change
+
+	* generic/exp.h:
+		needed an <eol> at the end of the file for the resource
+		compiler.
+
+	* win/makefile.vc32:
+		added the 'genstubs' target
+
+	* generic/exp.decls:
+	* generic/exp.h:
+	* generic/expDecls.h:
+	* generic/expInt.h:
+	* generic/expIntDecls.h:
+	* generic/expIntPlatDecls.h:
+	* generic/expStubInit.c:
+	* win/expWinPort.h:
+		expStubInit.c now hooked in.  Nothing inside exp.decl except some test
+		code to buzz the lines.
+
+	* generic/exp_printify.h (removed):
+		not needed.
+
+	* win/slavedrv.dsp:
+		fixed the release build to actually do a release build.
+
+	* generic/expPlatIntDecls.h:
+		Whoops.  should be IntPlat, not PlatInt.
+
+	* generic/expIntPlatDecls.h:
+	* generic/expPlatIntDecls.h:
+		improper naming convention.  Should be PlatInt not IntPlat
+
+	* generic/exp_printify.c:
+		This should be part of exp_clib.c, but not yet.
+
+	* generic/exp_strf.c:
+		was moved to compat/
+
+	* generic/exp.decls:
+	* generic/expDecls.h:
+	* generic/expInt.h:
+	* generic/expIntPlatDecls.h:
+	* generic/expStubInit.c:
+		Stubs play.
+
+	* win/expect.rc:
+	* win/spawndrv.rc:
+		set use the newer exp.h
+
+	* mkconfig.mif:
+		had to put the !error directive back in place.
+
 2001-10-28  davygrvy
-	* generic/exp.h (new):
-	* generic/expDecls.h (new):
-	* generic/expInt.h (new):
-	* generic/expIntDecls.h (new):
-	* generic/expPort.h:
-	* generic/exp_command.h (removed):
-	* generic/exp_event.h (removed):
+	* generic/exp.h:
+	* generic/expDecls.h:
+	* generic/expInt.h:
+	* generic/expIntDecls.h:
+	* generic/exp_command.h:
+	* generic/exp_event.h:
 		reworking the header files for a more core style and structure.
 
 	* generic/exp.decls:
 		(new) Stubs table
 
 	* expect.dsw:
-	* win/genStubs.dsp (new):
-		IDE file for rebuilding the Stubs table.
+	* win/genStubs.dsp:
+		(new) IDE file for rebuilding the Stubs table.
 
 	* win/expWinLog.c:
 		removed the check to when not to call DebugBreak().  Always
@@ -27,6 +85,11 @@
 
 	* generic/exp_main_sub.c:
 		no more custom shells
+
+	* generic/expDecls.h:
+	* generic/expPlatDecls.h:
+	* generic/expStubInit.c:
+		Stubs has begun
 
 	* win/buildfiles.dsp:
 	* win/expect.dsp:
