@@ -44,13 +44,6 @@ would appreciate credit if this program or parts of it are used.
 #include "exp_command.h"
 #include "exp_log.h"
 
-#if OBSOLETE
-#include "tclRegexp.h"
-
-extern char *TclGetRegError();
-extern void TclRegError();
-#endif /* OBSOLETE */
-
 typedef struct ThreadSpecificData {
     Tcl_Obj *cmdObjReturn;
     Tcl_Obj *cmdObjInterpreter;
@@ -164,14 +157,14 @@ static void free_action();
 static struct action *new_action();
 static int inter_eval();
 
-/* in_keymap() accepts user keystrokes and returns one of MATCH,
+/* intMatch() accepts user keystrokes and returns one of MATCH,
 CANMATCH, or CANTMATCH.  These describe whether the keystrokes match a
 key sequence, and could or can't if more characters arrive.  The
 function assigns a matching keymap if there is a match or can-match.
 A matching keymap is assigned on can-match so we know whether to echo
 or not.
 
-in_keymap is optimized (if you can call it that) towards a small
+intMatch is optimized (if you can call it that) towards a small
 number of key mappings, but still works well for large maps, since no
 function calls are made, and we stop as soon as there is a single-char
 mismatch, and go on to the next one.  A hash table or compiled DFA
@@ -193,18 +186,21 @@ we're ready).  The other is to return can-match.
 */
 
 static int
-in_keymap(esPtr,keymap,km_match,match_length,skip)
+intMatch(esPtr,keymap,km_match,matchLen,skip,info)
     ExpState *esPtr;
     struct keymap *keymap;	/* linked list of keymaps */
     struct keymap **km_match;	/* keymap that matches or can match */
-    int *match_length;		/* # of chars that matched */
+    int *matchLen;		/* # of bytes that matched */
     int *skip;			/* # of chars to skip */
+    Tcl_RegExpInfo *info;
 {
     char *string;
-    int offset;
     struct keymap *km;
     char *ks;		/* string from a keymap */
-    char *start_search;	/* where in the string to start searching */
+
+    char *start_search;	/* where in string to start searching */
+    int offset;		/* # of chars from string to start searching */
+
     char *string_end;
     int stringBytes, bytesThisChar;
     int rm_nulls;		/* skip nulls if true */
@@ -231,8 +227,6 @@ in_keymap(esPtr,keymap,km_match,match_length,skip)
      * can easily index into either the UTF or the Unicode representations.
      */
 
-/* skip over nulls - Pascal Meheut, pascal@cnam.cnam.fr 18-May-1993 */
-/*    for (start_search = string;*start_search;start_search++) {*/
     for (start_search = string, offset = 0;
 	 start_search < string_end;
 	 start_search += bytesThisChar, offset++) {
@@ -249,7 +243,7 @@ in_keymap(esPtr,keymap,km_match,match_length,skip)
 	    if (km->null) {
 		if (ch == 0) {
 		    *skip = start_search-string;
-		    *match_length = 1;	/* s - start_search == 1 */
+		    *matchLen = 1;	/* s - start_search == 1 */
 		    *km_match = km;
 		    return(EXP_MATCH);
 	        }
@@ -264,7 +258,7 @@ in_keymap(esPtr,keymap,km_match,match_length,skip)
 		    /* if we hit the end of this map, must've matched! */
 		    if (*ks == 0) {
 			*skip = start_search-string;
-			*match_length = s-start_search;
+			*matchLen = s-start_search;
 			*km_match = km;
 			return(EXP_MATCH);
 		    }
@@ -280,8 +274,6 @@ in_keymap(esPtr,keymap,km_match,match_length,skip)
 			break;
 		    }
 
-		    /* if this is a problem for you, use exp_parity command */
-/*			if ((*s & 0x7f) == *ks) continue;*/
 		    slen = Tcl_UtfToUniChar(s, &sch);
 		    kslen = Tcl_UtfToUniChar(ks, &ksch);
 		    
@@ -307,17 +299,17 @@ in_keymap(esPtr,keymap,km_match,match_length,skip)
 		if (result > 0) {
 		    *km_match = km;
 		    *skip = start_search-string;
+		    Tcl_RegExpGetInfo(re, info);
+		    *matchLen = Tcl_UtfAtIndex(start_search,info->matches[0].end) - start_search;
 		    return EXP_MATCH;
 		} else if (result == 0) {
-		    Tcl_RegExpInfo info;
-		    Tcl_RegExpGetInfo(re, &info);
+		    Tcl_RegExpGetInfo(re, info);
 
 		    /*
 		     * Check to see if there was a partial match starting
 		     * at the current character.
 		     */
-		    
-		    if (info.extendStart == 0) {
+		    if (info->extendStart == 0) {
 			if (!*km_match) *km_match = km;
 		    }
 		}		    
@@ -326,27 +318,16 @@ in_keymap(esPtr,keymap,km_match,match_length,skip)
     }
 
     if (*km_match) {
-	/* report a can-match */
+	/* report CANMATCH for -re and -ex */
 
-	char *p;
-
-	*skip = (start_search-string)-1;
 	/*
-	 * there may be nulls in the string in which case
-	 * the pattern matchers can report CANMATCH when
-	 * the null is hit.  So find the null and compute
-	 * the length of the possible match.
-	 *
-	 * Later, after we squeeze out the nulls, we will
-	 * retry the match, but for now, go along with
-	 * calling it a CANMATCH
+	 * since canmatch is only detected after we've advanced too far,
+	 * adjust start_search back to make other computations simpler
 	 */
-	p = start_search;
-	while (*p) {
-	    p++;
-	}
-	*match_length = (p - start_search) + 1;
-	/*printf(" match_length = %d\n",*match_length);*/
+	start_search--;
+
+	*skip = start_search - string;
+	*matchLen = string_end - start_search;
 	return(EXP_CANMATCH);
     }
     
@@ -354,11 +335,52 @@ in_keymap(esPtr,keymap,km_match,match_length,skip)
     return(EXP_CANTMATCH);
 }
 
+/* put regexp result in variables */
+static void
+intRegExpMatchProcess(interp,esPtr,km,info)
+     Tcl_Interp *interp;
+     ExpState *esPtr;
+     struct keymap *km;	/* ptr for above while parsing */
+     Tcl_RegExpInfo *info;
+{
+    char name[20], value[20];
+    int i;
+
+    for (i=0;i<=info->nsubs;i++) {
+	int start, end;
+	Tcl_Obj *val;
+
+	start = info->matches[i].start;
+	if (start == -1) continue;
+	end = info->matches[i].end;
+
+	if (km->indices) {
+	    /* start index */
+	    sprintf(name,"%d,start",i);
+	    sprintf(value,"%d",start);
+	    out(name,value);
+		    
+	    /* end index */
+	    sprintf(name,"%d,end",i);
+	    sprintf(value,"%d",end-1);
+	    out(name,value);
+	}
+
+	/* string itself */
+	sprintf(name,"%d,string",i);
+	val = Tcl_GetRange(esPtr->buffer, start, end);
+	expDiagLog("expect_background: set %s(%s) \"",INTER_OUT,name);
+	expDiagLogU(expPrintifyObj(val));
+	expDiagLogU("\"\r\n");
+	Tcl_SetVar2Ex(interp,INTER_OUT,name,val,0);
+    }
+}
+
 /*
  * echo chars
  */ 
 static void
-expEcho(esPtr,km,skipBytes,matchBytes)
+intEcho(esPtr,km,skipBytes,matchBytes)
     ExpState *esPtr;
     struct keymap *km;
     int skipBytes;
@@ -675,6 +697,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
     Tcl_HashTable *esPtrToInput = 0;	/* map from ExpState to "struct inputs" */
     ExpState **esPtrs;
     struct keymap *km;	/* ptr for above while parsing */
+    Tcl_RegExpInfo reInfo;
     ExpState *u = 0;
     ExpState *esPtr = 0;
     Tcl_Obj *chanName = 0;
@@ -1242,7 +1265,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 	struct action *action = 0;
 	time_t previous_time;
 	time_t current_time;
-	int match_length;	/* # of chars matched */
+	int matchLen;	/* # of chars matched */
 	int skip;		/* # of chars not involved in match */
 	int print;		/* # of chars to print */
 	int oldprinted;		/* old version of u->printed */
@@ -1359,49 +1382,12 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 	km = 0;
 
 	if (attempt_match) {
-	    rc = in_keymap(u,inp->keymap,&km,&match_length,&skip);
+	    rc = intMatch(u,inp->keymap,&km,&matchLen,&skip,&reInfo);
+	    if ((rc == EXP_MATCH) && km && km->re) {
+		intRegExpMatchProcess(interp,u,km,&reInfo);
+	    }
 	} else {
 	    attempt_match = TRUE;
-	}
-
-	/* put regexp result in variables */
-	if (km && km->re) {
-	    char name[20], value[20];
-	    Tcl_RegExpInfo info;
-	    Tcl_RegExp re;
-
-	    re = Tcl_GetRegExpFromObj(interp, km->keys,
-		    TCL_REG_ADVANCED|TCL_REG_BOSONLY);
-	    Tcl_RegExpGetInfo(re, &info);
-
-	    for (i=0;i<=info.nsubs;i++) {
-		int start, end;
-		Tcl_Obj *val;
-
-		start = info.matches[i].start;
-		if (start == -1) continue;
-		end = info.matches[i].end;
-
-		if (km->indices) {
-		    /* start index */
-		    sprintf(name,"%d,start",i);
-		    sprintf(value,"%d",start);
-		    out(name,value);
-		    
-		    /* end index */
-		    sprintf(name,"%d,end",i);
-		    sprintf(value,"%d",end-1);
-		    out(name,value);
-		}
-
-				/* string itself */
-		sprintf(name,"%d,string",i);
-		val = Tcl_GetRange(u->buffer, start, end);
-		expDiagLog("expect_background: set %s(%s) \"",INTER_OUT,name);
-		expDiagLogU(expPrintifyObj(val));
-		expDiagLogU("\"\r\n");
-		Tcl_SetVar2Ex(interp,INTER_OUT,name,val,0);
-	    }
 	}
 
 	/*
@@ -1409,10 +1395,10 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 	 * i.e., chars that cannot possibly be part of a match.
 	 */
 	if (km && km->writethru) {
-	    print = skip + match_length;
+	    print = skip + matchLen;
 	} else print = skip;
 
-	expEcho(u,km,skip,match_length);
+	intEcho(u,km,skip,matchLen);
 	oldprinted = u->printed;
 
 	/*
@@ -1481,7 +1467,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 	if (rc == EXP_MATCH) {
 	    action = &km->action;
 
-	    skip += match_length;
+	    skip += matchLen;
 	    size -= skip;
 	    if (size) {
 		string = Tcl_GetString(u->buffer);
@@ -1558,7 +1544,7 @@ got_action:
 		struct action *action = 0;
 		time_t previous_time;
 		time_t current_time;
-		int match_length, skip;
+		int matchLen, skip;
 		int change;	/* if action requires cooked mode */
 		int attempt_match = TRUE;
 		struct input *soonest_input;
@@ -1666,45 +1652,12 @@ got_action:
 		km = 0;
 
 		if (attempt_match) {
-			rc = in_keymap(u,inp->keymap,&km,&match_length,&skip);
+		    rc = intMatch(u,inp->keymap,&km,&matchLen,&skip,&reInfo);
+		    if ((rc == EXP_MATCH) && km && km->re) {
+			intRegExpMatchProcess(interp,u,km,&reInfo);
+		    }
 		} else {
-			attempt_match = TRUE;
-		}
-
-		/* put regexp result in variables */
-		if (km && km->re) {
-			char name[20], value[20];
-			regexp *re = km->re;
-			char match_char;/* place to hold char temporarily */
-					/* uprooted by a NULL */
-
-			for (i=0;i<NSUBEXP;i++) {
-				int offset;
-
-				if (re->startp[i] == 0) continue;
-
-				if (km->indices) {
-				  /* start index */
-				  sprintf(name,"%d,start",i);
-				  offset = re->startp[i]-u->buffer;
-				  sprintf(value,"%d",offset);
-				  out(name,value);
-
-				  /* end index */
-				  sprintf(name,"%d,end",i);
-				  sprintf(value,"%d",re->endp[i]-u->buffer-1);
-				  out(name,value);
-				}
-
-				/* string itself */
-				sprintf(name,"%d,string",i);
-				/* temporarily null-terminate in */
-				/* middle */
-				match_char = *re->endp[i];
-				*re->endp[i] = 0;
-				out(name,re->startp[i]);
-				*re->endp[i] = match_char;
-			}
+		    attempt_match = TRUE;
 		}
 
 		/* dispose of chars that should be skipped */
@@ -1713,10 +1666,10 @@ got_action:
 		/* print is with chars involved in match */
 
 		if (km && km->writethru) {
-			print = skip + match_length;
+			print = skip + matchLen;
 		} else print = skip;
 
-		expEcho(u,km,skip,match);
+		intEcho(u,km,skip,match);
 		oldprinted = u->printed;
 
 		/* If expect has left characters in buffer, it has */
@@ -1775,7 +1728,7 @@ got_action:
 		if (rc =n= EXP_MATCH) {
 		    action = &km->action;
 
-		    skip += match_length;
+		    skip += matchLen;
 		    size -= skip;
 		    if (size) {
 			memcpy(u->buffer, u->buffer + skip, size);
@@ -1936,45 +1889,12 @@ got_action:
 		km = 0;
 
 		if (attempt_match) {
-			rc = in_keymap(u,inp->keymap,&km,&match_length,&skip);
+		    rc = intMatch(u,inp->keymap,&km,&matchLen,&skip,&reInfo);
+		    if ((rc == EXP_MATCH) && km && km->re) {
+			intRegExpMatchProcess(interp,u,km,&reInfo);
+		    }
 		} else {
-			attempt_match = TRUE;
-		}
-
-		/* put regexp result in variables */
-		if (km && km->re) {
-			char name[20], value[20];
-			regexp *re = km->re;
-			char match_char;/* place to hold char temporarily */
-					/* uprooted by a NULL */
-
-			for (i=0;i<NSUBEXP;i++) {
-				int offset;
-
-				if (re->startp[i] == 0) continue;
-
-				if (km->indices) {
-				  /* start index */
-				  sprintf(name,"%d,start",i);
-				  offset = re->startp[i]-u->buffer;
-				  sprintf(value,"%d",offset);
-				  out(name,value);
-
-				  /* end index */
-				  sprintf(name,"%d,end",i);
-				  sprintf(value,"%d",re->endp[i]-u->buffer-1);
-				  out(name,value);
-				}
-
-				/* string itself */
-				sprintf(name,"%d,string",i);
-				/* temporarily null-terminate in */
-				/* middle */
-				match_char = *re->endp[i];
-				*re->endp[i] = 0;
-				out(name,re->startp[i]);
-				*re->endp[i] = match_char;
-			}
+		    attempt_match = TRUE;
 		}
 
 		/* dispose of chars that should be skipped */
@@ -1983,10 +1903,10 @@ got_action:
 		/* print is with chars involved in match */
 
 		if (km && km->writethru) {
-			print = skip + match_length;
+			print = skip + matchLen;
 		} else print = skip;
 
-		expEcho(u,km,skip,match);
+		intEcho(u,km,skip,match);
 		oldprinted = u->printed;
 
 		/* If expect has left characters in buffer, it has */
@@ -2050,7 +1970,7 @@ got_action:
 		if (rc == EXP_MATCH) {
 		    action = &km->action;
 
-		    skip += match_length;
+		    skip += matchLen;
 		    size -= skip;
 		    if (size) {
 			memcpy(u->buffer, u->buffer + skip, size);

@@ -750,8 +750,8 @@ struct eval_out {
     struct ecase *e;		/* ecase that matched */
     ExpState *esPtr;		/* ExpState that matched */
     Tcl_Obj *buffer;		/* buffer that matched */
-    int match;			/* # of chars in buffer that matched */
-			        /* or # of chars in buffer at EOF */
+    int match;			/* # of bytes in buffer that matched */
+			        /* or # of bytes in buffer at EOF */
 };
 
 
@@ -871,7 +871,7 @@ char *suffix;
 	    return(EXP_TCLERROR);
 	}
     } else if (e->use == PAT_GLOB) {
-	int match; /* # of chars that matched */
+	int match; /* # of bytes that matched */
 
 	expDiagLog("\"");
 	expDiagLogU(expPrintify(Tcl_GetString(e->pat)));
@@ -1615,7 +1615,7 @@ expNullStrip(obj,offsetBytes)
 	    dest += Tcl_UniCharToUtf(uc,dest);
 	}
     }
-    Tcl_SetObjLength(obj,dest - src2);
+    Tcl_SetObjLength(obj,offsetBytes + (dest - src2));
 }
 
 /* returns # of bytes read or (non-positive) error of form EXP_XXX */
@@ -1673,10 +1673,6 @@ int save_flags;
 	}
     }
 #endif
-
-    if (cc > 0) {
-	cc = expSizeGet(esPtr); /* generate true byte count */
-    }
     return cc;	
 }
 

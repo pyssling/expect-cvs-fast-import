@@ -3,6 +3,8 @@ support are in ChangeLog. - Don
 
 Date	Version	Description
 -------	-------	------------------------------------------------------
+		Removed rm_null behavior from interact's regexp matching.
+
 		match_max command controls by bytes, not chars.
 
 		In order to do threads, changed exp_is_debugging to a function.

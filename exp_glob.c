@@ -18,7 +18,7 @@ would appreciate credit if this program or parts of it are used.
 /* The following functions implement expect's glob-style string matching */
 /* Exp_StringMatch allow's implements the unanchored front (or conversely */
 /* the '^') feature.  Exp_StringMatch2 does the rest of the work. */
-int	/* returns # of chars that matched */
+int	/* returns # of BYTES that matched */
 Exp_StringCaseMatch(string, pattern, nocase, offset)		/* INTL */
 char *string;
 char *pattern;
@@ -26,7 +26,7 @@ int nocase;
 int *offset;	/* offset in bytes from beginning of string where pattern matches */
 {
 	char *s;
-	int sm;	/* count of chars matched or -1 */
+	int sm;	/* count of bytes matched or -1 */
 	int caret = FALSE;
 	int star = FALSE;
 
@@ -80,7 +80,8 @@ int Exp_StringCaseMatch2(string,pattern, nocase)	/* INTL */
     int nocase;
 {
     Tcl_UniChar ch1, ch2;
-    int match = 0;	/* # of chars matched */
+    int match = 0;	/* # of bytes matched */
+    char *oldString;
 
     char *pstart = pattern;
 
@@ -105,40 +106,29 @@ int Exp_StringCaseMatch2(string,pattern, nocase)	/* INTL */
 	 */
 	
 	if (*pattern == '*') {
-#if 1
-	    int head_len;
 	    char *tail;
-#endif
+
 	    pattern += 1;
 	    if (*pattern == 0) {
 		return(strlen(string)+match); /* DEL */
 	    }
-#if 1
-	    /* find longest match - switched to this on 12/31/93 */
-	    head_len = strlen(string);	/* length before tail */
-	    tail = string + head_len;
-	    while (head_len >= 0) {
+
+	    /* find LONGEST match */
+	    tail = string + strlen(string);
+	    while (1) {
 		int rc;
 
 		if (-1 != (rc = Exp_StringCaseMatch2(tail, pattern, nocase))) {
-		    return rc + match + head_len;	/* DEL */
+		    return match + (tail - string) + rc;
+		    /* match = # of bytes we've skipped before this */
+		    /* (...) = # of bytes we've skipped due to "*" */
+		    /* rc    = # of bytes we've matched after "*" */
 		}
-		tail--;
-		head_len--;
-	    }
-#else
-	    /* find shortest match */
-	    while (*string != 0) {
-		int rc;					/* DEL */
 
-		if (-1 != (rc = Exp_StringCaseMatch2(string, pattern, nocase))) {
-		    return rc+match;		/* DEL */
-		}
-		string += 1;
-		match++;				/* DEL */
+		/* if we've backed up to beginning of string, give up */
+		if (tail == string) break;
+		tail = Tcl_UtfPrev(tail,string);
 	    }
-	    if (*pattern == '$') return 0;	/* handle *$ */
-#endif
 	    return -1;					/* DEL */
 	}
     
@@ -155,8 +145,9 @@ int Exp_StringCaseMatch2(string,pattern, nocase)	/* INTL */
 
 	if (*pattern == '?') {
 	    pattern++;
+	    oldString = string;
 	    string = Tcl_UtfNext(string);
-	    match++;
+	    match += (string - oldString); /* incr by # of bytes in char */
 	    continue;
 	}
 
@@ -226,6 +217,7 @@ int Exp_StringCaseMatch2(string,pattern, nocase)	/* INTL */
 	 * characters of each string match.
 	 */
 	
+	oldString = string;
 	string  += Tcl_UtfToUniChar(string, &ch1);
 	pattern += Tcl_UtfToUniChar(pattern, &ch2);
 	if (nocase) {
@@ -235,6 +227,6 @@ int Exp_StringCaseMatch2(string,pattern, nocase)	/* INTL */
 	} else if (ch1 != ch2) {
 	    return -1;
 	}
-	match++;
+	match += (string - oldString);  /* incr by # of bytes in char */
     }
 }

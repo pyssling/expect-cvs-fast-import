@@ -490,7 +490,7 @@ expCreateChannel(interp,fdin,fdout,pid)
     esPtr->registered = 1;
     Tcl_SetChannelOption(interp,esPtr->channel,"-buffering","none");
     Tcl_SetChannelOption(interp,esPtr->channel,"-blocking","0");
-    Tcl_SetChannelOption(interp,esPtr->channel,"-translation","binary");
+    Tcl_SetChannelOption(interp,esPtr->channel,"-translation","lf");
 
     esPtr->pid = pid;
     esPtr->msize = 0;

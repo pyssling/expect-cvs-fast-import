@@ -189,6 +189,22 @@ int any;
 }
 
 ExpState *
+expStateCheck(interp,esPtr,open,adjust,msg)
+    Tcl_Interp *interp;
+    ExpState *esPtr;
+    int open;
+    int adjust;
+    char *msg;
+{
+    if (open && !esPtr->open) {
+	exp_error(interp,"%s: spawn id %s not open",msg,esPtr->name);
+	return(0);
+    }
+    if (adjust) expAdjust(esPtr);
+    return esPtr;
+}
+
+ExpState *
 expStateFromChannelName(interp,name,open,adjust,any,msg)
     Tcl_Interp *interp;
     char *name;
@@ -198,6 +214,7 @@ expStateFromChannelName(interp,name,open,adjust,any,msg)
 {
     ExpState *esPtr;
     Tcl_Channel channel;
+    char *chanName;
 
     if (any) {
 	if (0 == strcmp(name,EXP_SPAWN_ID_ANY_LIT)) {
@@ -208,31 +225,16 @@ expStateFromChannelName(interp,name,open,adjust,any,msg)
 
     channel = Tcl_GetChannel(interp,name,(int *)0);
     if (!channel) return(0);
+
+    chanName = Tcl_GetChannelName(channel);
+    if (0 != strncmp(chanName,"exp",3)) {
+	exp_error(interp,"%s: %s is not an expect channel - use spawn -open to convert",msg,chanName);
+	return(0);
+    }
+
     esPtr = Tcl_GetChannelInstanceData(channel);
 
-    if ((!open) || esPtr->open) {   /* if open == 1, then check if actually
-				       open */
-	if (adjust) expAdjust(esPtr);
-	return esPtr;
-    }
-    exp_error(interp,"%s: invalid spawn id (%d)",msg,esPtr->name);
-    return(0);
-}
-
-ExpState *
-expStateCheck(interp,esPtr,open,adjust,msg)
-    Tcl_Interp *interp;
-    ExpState *esPtr;
-    int open;
-    int adjust;
-    char *msg;
-{
-    if ((!open) || esPtr->open) {
-	if (adjust) expAdjust(esPtr);
-	return esPtr;
-    }
-    exp_error(interp,"%s: invalid spawn id (%s)",msg,esPtr->name);
-    return(0);
+    return expStateCheck(interp,esPtr,open,adjust,msg);
 }
 
 /* Tcl needs commands in writable space */
