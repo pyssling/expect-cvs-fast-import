@@ -43,7 +43,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /c
-# ADD CPP /nologo /G5 /MD /W3 /GX /O2 /I "d:\tcl_workspace\tcl_head\generic" /I "..\generic" /I "$(IntDir)" /D "NDEBUG" /D "WIN32" /D "_CONSOLE" /D "BUILD_exp" /D "USE_TCL_STUBS" /D "TCL_THREADS" /D "BUILD_spawndriver" /D "STATIC_BUILD" /YX"exp.h" /FD /c
+# ADD CPP /nologo /G5 /MD /W3 /GX /O2 /I "d:\tcl_workspace\tcl_head\generic" /I "..\generic" /I "$(IntDir)" /D "NDEBUG" /D "WIN32" /D "_CONSOLE" /D "USE_TCL_STUBS" /D "TCL_THREADS" /D "BUILD_spawndriver" /D "STATIC_BUILD" /YX"exp.h" /FD /c
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
 # ADD RSC /l 0x409 /i "d:\tcl_workspace\tcl_head\generic" /i "..\generic" /i "$(INTDIR)" /d "NDEBUG"
 BSC32=bscmake.exe
@@ -68,7 +68,7 @@ LINK32=link.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /GZ /c
-# ADD CPP /nologo /G5 /MDd /W3 /Gm /GX- /ZI /Od /I "d:\tcl_workspace\tcl_head\generic" /I "..\generic" /I "$(IntDir)" /D "_DEBUG" /D "WIN32" /D "_CONSOLE" /D "BUILD_exp" /D "USE_TCL_STUBS" /D "TCL_THREADS" /D "BUILD_spawndriver" /D "STATIC_BUILD" /YX"exp.h" /FD /GZ /c
+# ADD CPP /nologo /G5 /MDd /W3 /Gm /ZI /Od /I "d:\tcl_workspace\tcl_head\generic" /I "..\generic" /I "$(IntDir)" /D "_DEBUG" /D "WIN32" /D "_CONSOLE" /D "BUILD_exp" /D "USE_TCL_STUBS" /D "TCL_THREADS" /D "BUILD_spawndriver" /D "STATIC_BUILD" /YX"exp.h" /FD /GZ /c
 # ADD BASE RSC /l 0x409 d "_DEBUG"
 # ADD RSC /l 0x409 /i "d:\tcl_workspace\tcl_head\generic" /i "..\generic" /i "$(INTDIR)" /d "_DEBUG"
 BSC32=bscmake.exe
@@ -93,8 +93,8 @@ LINK32=link.exe
 # PROP Intermediate_Dir "DebugU"
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
-# ADD BASE CPP /nologo /G5 /MDd /W3 /Gm /GX- /ZI /Od /I "d:\tcl_workspace\tcl_head\generic" /I "..\generic" /I "$(IntDir)" /D "_DEBUG" /D "WIN32" /D "_UNICODE" /D "UNICODE" /D "_CONSOLE" /D "BUILD_exp" /D "USE_TCL_STUBS" /D "TCL_THREADS" /D "BUILD_spawndriver" /D "STATIC_BUILD" /YX"exp.h" /FD /GZ /c
-# ADD CPP /nologo /G5 /MDd /W3 /Gm /GX- /ZI /Od /I "d:\tcl_workspace\tcl_head\generic" /I "..\generic" /I "$(IntDir)" /D "_DEBUG" /D "WIN32" /D "_UNICODE" /D "UNICODE" /D "_CONSOLE" /D "BUILD_exp" /D "USE_TCL_STUBS" /D "TCL_THREADS" /D "BUILD_spawndriver" /D "STATIC_BUILD" /YX"exp.h" /FD /GZ /c
+# ADD BASE CPP /nologo /G5 /MDd /W3 /Gm /ZI /Od /I "d:\tcl_workspace\tcl_head\generic" /I "..\generic" /I "$(IntDir)" /D "_DEBUG" /D "WIN32" /D "_UNICODE" /D "UNICODE" /D "_CONSOLE" /D "BUILD_exp" /D "USE_TCL_STUBS" /D "TCL_THREADS" /D "BUILD_spawndriver" /D "STATIC_BUILD" /YX"exp.h" /FD /GZ /c
+# ADD CPP /nologo /G5 /MDd /W3 /Gm /ZI /Od /I "d:\tcl_workspace\tcl_head\generic" /I "..\generic" /I "$(IntDir)" /D "_DEBUG" /D "WIN32" /D "_UNICODE" /D "UNICODE" /D "_CONSOLE" /D "BUILD_exp" /D "USE_TCL_STUBS" /D "TCL_THREADS" /D "BUILD_spawndriver" /D "STATIC_BUILD" /YX"exp.h" /FD /GZ /c
 # ADD BASE RSC /l 0x409 /i "d:\tcl_workspace\tcl_head\generic" /i "..\generic" /i "$(INTDIR)" /d "_DEBUG"
 # ADD RSC /l 0x409 /i "d:\tcl_workspace\tcl_head\generic" /i "..\generic" /i "$(INTDIR)" /d "_DEBUG"
 BSC32=bscmake.exe
@@ -126,6 +126,10 @@ SOURCE=.\expWinDynloadTclStubs.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\expWinInit.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\expWinLog.c
 # End Source File
 # Begin Source File
@@ -137,8 +141,6 @@ SOURCE=.\expWinMailboxCli.cpp
 !ELSEIF  "$(CFG)" == "slavedrv - Win32 Debug"
 
 !ELSEIF  "$(CFG)" == "slavedrv - Win32 Debug Unicode"
-
-# PROP Exclude_From_Build 1
 
 !ENDIF 
 
@@ -248,7 +250,7 @@ BuildCmds= \
 !ELSEIF  "$(CFG)" == "slavedrv - Win32 Debug Unicode"
 
 # Begin Custom Build - Compiling message catalog...
-IntDir=.\slavedrv___Win32_Debug_Unicode
+IntDir=.\DebugU
 InputPath=.\spawndrvmc.mc
 
 BuildCmds= \
