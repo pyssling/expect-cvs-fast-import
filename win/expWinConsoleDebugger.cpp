@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinConsoleDebugger.cpp,v 1.1.2.6 2002/03/09 05:48:50 davygrvy Exp $
+ * RCS: @(#) $Id: expWinConsoleDebugger.cpp,v 1.1.2.7 2002/03/09 22:56:23 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -34,9 +34,9 @@
 #endif
 
 //  Constructor.
-ConsoleDebugger::ConsoleDebugger (int argc, char * const *argv, CMclQueue<Message> &_mQ)
-    : _argc(argc), _argv(argv), ProcessList(0L), CursorKnown(FALSE),
-    ShowExceptionBacktraces(FALSE), mQ(_mQ)
+ConsoleDebugger::ConsoleDebugger (int _argc, char * const *_argv, CMclQueue<Message> &_mQ)
+    : argc(_argc), argv(_argv), ProcessList(0L), CursorKnown(FALSE),
+    ShowExceptionBacktraces(FALSE), SymbolPath(0L), mQ(_mQ)
 {
     //  Until further notice, assume this.
     //
@@ -175,73 +175,60 @@ ConsoleDebugger::ConsoleDebugger (int argc, char * const *argv, CMclQueue<Messag
 
 ConsoleDebugger::~ConsoleDebugger()
 {
-    delete [] SymbolPath;
+    if (SymbolPath) delete [] SymbolPath;
 }
 
 unsigned
 ConsoleDebugger::ThreadHandlerProc(void)
 {
-    //ExpSlaveDebugArg *arg = (ExpSlaveDebugArg *) lparg;
     Process *proc;
-    DWORD result;
-    HANDLE process;
-    DWORD pid;
+    DWORD ok;
+    STARTUPINFO si;
+    PROCESS_INFORMATION pi;
+    char *cmdline;
 
-    //HConsole = arg->hConsole;
-    //HMaster = arg->hMaster;		/* Set the master program */
-    //UseSocket = arg->useSocket;
+    ZeroMemory(&pi, sizeof(PROCESS_INFORMATION));
+    ZeroMemory(&si, sizeof(STARTUPINFO));
+    si.cb = sizeof(STARTUPINFO);
+    si.wShowWindow = SW_SHOWDEFAULT;
 
-    /* Make sure the master does not ignore Ctrl-C */
+    cmdline = ArgMaker::BuildCommandLine(argc, argv);
+
+    // Make sure the master does not ignore Ctrl-C
     SetConsoleCtrlHandler(0L, FALSE);
 
-    result = ExpWinCreateProcess(
-	    _argc,
-	    _argv,
-	    0L,
-	    0L,
-	    0L,
-	    FALSE,
-	    FALSE,
-	    TRUE, /* debug */
-	    TRUE, /* newProcessGroup */
-	    &process,
-	    &pid);
+    ok = CreateProcess (
+	    0L,		// Module name (not needed).
+	    cmdline,	// Command line.
+	    0L,		// Process handle will not be inheritable.
+	    0L,		// Thread handle will not be inheritable.
+	    FALSE,	// No handle inheritance.
+	    DEBUG_PROCESS|CREATE_NEW_CONSOLE|CREATE_DEFAULT_ERROR_MODE,
+			// Creation flags.
+	    0L,		// Use parent's environment block.
+	    0L,		// Use parent's starting directory.
+	    &si,	// Pointer to STARTUPINFO structure.
+	    &pi);	// Pointer to PROCESS_INFORMATION structure.
 
-    if (result) {
+    delete [] cmdline;
+
+    if (!ok) {
 	//arg->lastError = GetLastError();
     }
 
-    /* Make sure we now ignore Ctrl-C */
-    SetConsoleCtrlHandler(0L, TRUE);
-    //SetEvent(arg->event);
+    WaitForInputIdle(pi.hProcess, 5000);
+    CloseHandle(pi.hThread);
 
-    if (result) {
-	return 0;
-    }
+    // Make sure we now ignore Ctrl-C
+    SetConsoleCtrlHandler(0L, TRUE);
 
     proc = ProcessNew();
-//    proc->hPid = arg->globalPid;
-//    if (arg->passThrough) {
-//	ExpProcess *proc;
-//
-//	proc = ExpProcessNew();
-//	proc->overlapped.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
-//	proc->hProcess = arg->process;
-//	ExpAddToWaitQueue(proc->hProcess);
-//    } else {
-	CloseHandle(process);
-	proc->hProcess = process;
-//	arg->process = proc->hProcess;
-	if (proc->hProcess == 0L) {
-	    //arg->lastError = GetLastError();
-	    return 0;
-	}
-//	ExpAddToWaitQueue(proc->hProcess);
-//	proc->overlapped.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
-	CommonDebugger();
-//    }
+    //CloseHandle(pi.hProcess);
+    proc->hProcess = pi.hProcess;
+    proc->pid = pi.dwProcessId;
 
-    return 0;			/* Never executes */
+    CommonDebugger();
+    return 0;
 }
 
 /*
@@ -396,7 +383,7 @@ ConsoleDebugger::CommonDebugger()
 	// Find the process that is responsible for this event.
 	//
 	for (proc = ProcessList; proc; proc = proc->nextPtr) {
-	    if (proc->hPid == debEvent.dwProcessId) {
+	    if (proc->pid == debEvent.dwProcessId) {
 		break;
 	    }
 	}
@@ -947,7 +934,7 @@ ConsoleDebugger::OnXCreateProcess(Process *proc, LPDEBUG_EVENT pDebEvent)
 			     FALSE, 0)) {
 	    fprintf(stderr, "Unable to duplicate handle\n");
 	}
-	proc->hPid = pDebEvent->dwProcessId;
+	proc->pid = pDebEvent->dwProcessId;
 
 //	ExpAddToWaitQueue(proc->hProcess);
     }

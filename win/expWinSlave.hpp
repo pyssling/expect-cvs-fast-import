@@ -23,12 +23,13 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinSlave.hpp,v 1.1.4.3 2002/03/09 22:56:23 davygrvy Exp $
+ * RCS: @(#) $Id: expWinSlave.hpp,v 1.1.4.4 2002/03/10 01:02:37 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 #ifndef _EXPWINSLAVE_HPP
 #define _EXPWINSLAVE_HPP
 
+#if 0
 typedef struct ExpSlaveDebugArg {
     HANDLE hMaster;		/* Output handle */
     HANDLE hConsole;		/* Console handle to use */
@@ -49,6 +50,7 @@ typedef struct ExpSlaveDebugArg {
     HANDLE slaveStdout;		/* stdout for slave program */
     HANDLE slaveStderr;		/* stderr for slave program */
 } ExpSlaveDebugArg;
+#endif
 
 typedef struct _EXP_KEY {
     WORD wVirtualKeyCode;
@@ -121,37 +123,40 @@ extern TCL_CPP void ExpDynloadTclStubs (void);
 
 class Message
 {
-    char *lala;
+public:
+    enum Type {TYPE_NORMAL, TYPE_ERROR, TYPE_INSTREAM};
+    Type mode;
+    BYTE *bytes;
+    DWORD length;
 };
 
-class ExpSpawnClientTransport
+class SpawnClientTransport
 {
 public:
-    virtual void ExpWriteMaster() = 0;
-    virtual void ExpReadMaster() = 0;
+    virtual void Write(Message &) = 0;
 };
 
-class ExpSpawnMailboxClient : public ExpSpawnClientTransport
+class SpawnMailboxClient : public SpawnClientTransport
 {
 public:
-    ExpSpawnMailboxClient(const char *name, CMclQueue<Message> &_mQ);
-    virtual void ExpWriteMaster();
-    virtual void ExpReadMaster();
+    SpawnMailboxClient(const char *name, CMclQueue<Message> &_mQ);
+    virtual void Write(Message &);
 private:
     CMclMailbox *MasterToExpect;
     CMclMailbox *MasterFromExpect;
     CMclQueue<Message> &mQ;
 };
 
-class ExpSpawnSocketCli : public ExpSpawnClientTransport
+class SpawnPipeClient : public SpawnClientTransport
 {
 public:
-    ExpSpawnSocketCli(const char *name, CMclQueue<Message> &_mQ);
-    virtual void ExpWriteMaster();
-    virtual void ExpReadMaster();
+    SpawnPipeClient(const char *name, CMclQueue<Message> &_mQ);
+    virtual void Write(Message &);
 private:
     CMclQueue<Message> &mQ;
-    SOCKET sock;
+    HANDLE hStdOut;
+    HANDLE hStdErr;
+    HANDLE hStdIn;
 };
 
 

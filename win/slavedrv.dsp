@@ -148,10 +148,6 @@ SOURCE=.\expWinLog.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\expWinProcess.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\expWinSlaveDbg.c
 # PROP Exclude_From_Build 1
 # End Source File
@@ -174,7 +170,15 @@ SOURCE=.\expWinSlaveTrapDbg.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\expWinSpawnMailboxCli.cpp
+SOURCE=.\expWinSpawnPipeClient.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\expWinUtils.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\expWinUtils.hpp
 # End Source File
 # Begin Source File
 

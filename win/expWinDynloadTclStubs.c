@@ -22,17 +22,18 @@
  *	    http://expect.nist.gov/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinDynloadTclStubs.c,v 1.1.4.2 2002/02/10 06:25:50 davygrvy Exp $
+ * RCS: @(#) $Id: expWinDynloadTclStubs.c,v 1.1.4.3 2002/03/09 05:48:51 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
 #include "expWinInt.h"
 
+HMODULE hTclMod;
+
 void
 ExpDynloadTclStubs (void)
 {
     TCHAR TclDLLPath[MAX_PATH+1];
-    HMODULE hTclMod;
     typedef Tcl_Interp *(*LPFN_createInterpProc) ();
     LPFN_createInterpProc createInterpProc;
     Tcl_Interp *interp;

@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinSlaveMain.cpp,v 1.1.4.5 2002/03/09 22:56:23 davygrvy Exp $
+ * RCS: @(#) $Id: expWinSlaveMain.cpp,v 1.1.4.6 2002/03/10 01:02:37 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -47,23 +47,25 @@
 
 
 // local protos
-static ExpSpawnClientTransport *ExpWinSpawnOpenClientTransport(const char *name,
+static SpawnClientTransport *SpawnOpenClientTransport(const char *name,
 	CMclQueue<Message> &mQ);
 static ExpSlaveTrap *ExpWinSlaveOpenTrap(const char *meth, int argc,
 	char * const argv[], CMclQueue<Message> &mQ);
-static int ExpWinMasterDoEvents(ExpSpawnClientTransport *transport,
+static int ExpWinMasterDoEvents(SpawnClientTransport *transport,
 	ExpSlaveTrap *masterCtrl, CMclQueue<Message> &mQ);
 static void SetArgv(int *argcPtr, char ***argvPtr);
 
+extern "C" HMODULE hTclMod;
 
 int
 main (void)
 {
     int argc;			    // Number of command-line arguments.
     char **argv;		    // Values of command-line arguments.
-    ExpSpawnClientTransport *tclient;// class pointer of transport client.
+    SpawnClientTransport *tclient;  // class pointer of transport client.
     ExpSlaveTrap *slaveCtrl;	    // trap method class pointer.
     CMclQueue<Message> messageQ;    // Our message Queue we hand off to everyone.
+    int code;
 
     //  We use a few APIs from Tcl, dynamically load it now.
     //
@@ -85,18 +87,20 @@ main (void)
     //  Open the client side of our IPC transport that connects us back
     //  to Expect.
     //
-    tclient = ExpWinSpawnOpenClientTransport(argv[1], messageQ);
-    if (tclient == 0L) EXP_LOG1(MSG_IO_TRANSPRTARGSBAD, argv[1]);
+    tclient = SpawnOpenClientTransport(argv[1], messageQ);
 
     //  Create the process to be intercepted within the trap method requested
     //  on the commandline.
     //
     slaveCtrl = ExpWinSlaveOpenTrap(argv[2], argc-3, &argv[3], messageQ);
-    if (slaveCtrl == 0L) EXP_LOG1(MSG_IO_TRAPARGSBAD, argv[2]);
 
     //  Process messages.
     //
-    return ExpWinMasterDoEvents(tclient, slaveCtrl, messageQ);
+    code = ExpWinMasterDoEvents(tclient, slaveCtrl, messageQ);
+
+    Tcl_Finalize();
+    FreeLibrary(hTclMod);
+    return code;
 }
 
 /*
@@ -107,26 +111,30 @@ main (void)
  *	the name asked of it.
  *
  *  Returns:
- *	a polymorphed ExpSpawnClientTransport pointer or NULL for an error.
+ *	a polymorphed SpawnClientTransport pointer or die.
  *
  *----------------------------------------------------------------------
  */
 
-ExpSpawnClientTransport *
-ExpWinSpawnOpenClientTransport(const char *name, CMclQueue<Message> &mQ)
+SpawnClientTransport *
+SpawnOpenClientTransport(const char *name, CMclQueue<Message> &mQ)
 {
     // If the first 2 chars are 'm' and 'b', then it's a mailbox.
     //
-    if (name[0] == 'm' && name[1] == 'b') {
+/*    if (name[0] == 'm' && name[1] == 'b') {
 	return new ExpSpawnMailboxClient(name, mQ);
-    }
+    }*/
     /* 'sk' is a socket transport.  This is a no-op for now.
-    else if (name[0] == 's' && name[1] == 'k') {
-	return new ExpSpawnSocketCli(name);
-    } */
+    else*/
+    if (name[0] == 'p' && name[1] == 'i') {
+	return new SpawnPipeClient(name, mQ);
+    }
     // TODO: we can add more transports here when the time is right
     //
-    else return 0L;
+    else EXP_LOG1(MSG_IO_TRANSPRTARGSBAD, name);
+
+    // not reached.
+    return 0L;
 }
 
 /*
@@ -136,7 +144,7 @@ ExpWinSpawnOpenClientTransport(const char *name, CMclQueue<Message> &mQ)
  *	The factory method for creating the trap class instance.
  *
  *  Returns:
- *	a polymorphed ExpSpawnTrap pointer or NULL for an error.
+ *	a polymorphed ExpSpawnTrap pointer or die.
  *
  *----------------------------------------------------------------------
  */
@@ -153,7 +161,10 @@ ExpWinSlaveOpenTrap(const char *meth, int argc, char * const argv[],
     else if (!strcmp(meth, "pipe")) {
 	return new ExpSlaveTrapPipe(argc, argv);
     }*/
-    else return 0L;
+    else EXP_LOG1(MSG_IO_TRAPARGSBAD, meth);
+
+    // not reached.
+    return 0L;
 }
 
 /*
@@ -170,7 +181,7 @@ ExpWinSlaveOpenTrap(const char *meth, int argc, char * const argv[],
  */
 
 int
-ExpWinMasterDoEvents(ExpSpawnClientTransport *transport,
+ExpWinMasterDoEvents(SpawnClientTransport *transport,
     ExpSlaveTrap *masterCtrl, CMclQueue<Message> &mQ)
 {
     CMclWaitableCollection stuff;
@@ -207,7 +218,7 @@ ExpWinMasterDoEvents(ExpSpawnClientTransport *transport,
 static void
 SetArgv(
     int *argcPtr,	// Filled with number of argument strings.
-    char ***argvPtr)	// Filled with argument strings in UTF (malloc'd).
+    char ***argvPtr)	// Filled with argument strings in UTF (alloc'd with new).
 {
     char *p, *arg, *argSpace;
     char **argv;
@@ -221,7 +232,7 @@ SetArgv(
 //    if (IsDebuggerPresent()) {
 #   ifdef _MSC_VER
 	//  There will be a unicode loss here.  I don't feel it's a bad
-	//  trade-off when running in a debugger.
+	//  trade-off when running from a debugger.
 	//  cp1251 != utf-8, though.
 	//
 //	Tcl_DStringAppend(&cmdLine, MsvcDbg_GetCommandLine(), -1);

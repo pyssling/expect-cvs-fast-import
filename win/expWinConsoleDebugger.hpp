@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinConsoleDebugger.hpp,v 1.1.2.7 2002/03/09 03:10:31 davygrvy Exp $
+ * RCS: @(#) $Id: expWinConsoleDebugger.hpp,v 1.1.2.8 2002/03/09 22:56:23 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -32,6 +32,7 @@
 // Although we pull in the internal Expect headers, no references are made
 // to it from here.
 #include "expWinInt.h"
+#include "expWinUtils.hpp"
 #include <imagehlp.h>
 
 #ifdef _M_IX86
@@ -48,7 +49,7 @@
 
 //  This is our debugger.  We run it in a thread. 
 //
-class ConsoleDebugger : public CMclThreadHandler
+class ConsoleDebugger : public CMclThreadHandler, ArgMaker
 {
 public:
     ConsoleDebugger(int argc, char * const *argv, CMclQueue<Message> &_mQ);
@@ -151,7 +152,7 @@ private:
 	BOOL	    isConsoleApp;	// Is this a console app?
 	BOOL	    isShell;		// Is this some sort of console shell?
 	HANDLE	    hProcess;		// handle to subprocess.
-	DWORD	    hPid;		// Global process id.
+	DWORD	    pid;		// Global process id.
 	DWORD	    threadCount;	// Number of threads in process.
 	DWORD	    pSubprocessMemory;	// Pointer to allocated memory in subprocess.
 	DWORD	    pSubprocessBuffer;	// Pointer to buffer memory in subprocess.
@@ -232,8 +233,8 @@ private:
     BOOL	CursorKnown;    // Do we know where the slave's cursor is?
     char	*SymbolPath;    // Storage for setting OS kernel symbols path.
     BOOL	ShowExceptionBacktraces;// print exception info from debuggee?
-    int		_argc;		// Debugee process commandline count
-    char * const * _argv;	// Debugee process commandline args
+    int		argc;		// Debugee process commandline count
+    char * const * argv;	// Debugee process commandline args
 
     // Thread-safe message queue used for communication back to Expect.
     CMclQueue<Message> &mQ;
