@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinSlaveMain.cpp,v 1.1.4.22 2002/06/23 09:35:43 davygrvy Exp $
+ * RCS: @(#) $Id: expWinSlaveMain.cpp,v 1.1.4.23 2002/06/25 08:40:50 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -192,7 +192,8 @@ DoEvents(ClientTransport *transport, SlaveTrap *slave,
 	    break;
 
 	case Message::TYPE_SLAVEDONE:
-	    delete slave, transport;
+	    delete slave;
+	    delete transport;
 	    return 0;
 	}
     }

@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinSlaveTrap.hpp,v 1.1.2.2 2002/03/12 18:15:37 davygrvy Exp $
+ * RCS: @(#) $Id: expWinSlaveTrap.hpp,v 1.1.2.3 2002/06/22 14:02:03 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -31,6 +31,7 @@
 
 class SlaveTrap {
 public:
+    virtual ~SlaveTrap() {};
     virtual void Write(Message *) = 0;
 };
 
@@ -38,7 +39,7 @@ public:
 class SlaveTrapDbg : public SlaveTrap {
 public:
     SlaveTrapDbg(int argc, char * const argv[], CMclQueue<Message *> &_mQ);
-    ~SlaveTrapDbg();
+    virtual ~SlaveTrapDbg();
     virtual void Write(Message *);
 
 private:

@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinClientTransportConio.cpp,v 1.1.2.1 2002/06/23 09:20:40 davygrvy Exp $
+ * RCS: @(#) $Id: expWinClientTransportConio.cpp,v 1.1.2.2 2002/06/25 08:40:50 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -37,19 +37,15 @@ class ReadCon : public CMclThreadHandler
 #   define RECORD_SIZE 15
 
 public:
-    ReadCon(CMclQueue<Message *> &_mQ, CMclEvent &_Stop)
-	: mQ(_mQ), Stop(_Stop)
+    ReadCon(CMclQueue<Message *> &_mQ, CMclEvent &_Stop, HANDLE _ConIn)
+	: mQ(_mQ), Stop(_Stop), ConIn(_ConIn)
     {
-	ConIn = CreateFile("CONIN$", GENERIC_READ|GENERIC_WRITE,
-		FILE_SHARE_READ|FILE_SHARE_WRITE, 0L, OPEN_EXISTING, 0,
-		0L);
 	// Turn on mouse and window events, too.
         SetConsoleMode(ConIn, ENABLE_MOUSE_INPUT);
     }
 
     ~ReadCon()
     {
-	CloseHandle(ConIn);
     }
 
 private:
@@ -127,7 +123,11 @@ ClientConio::ClientConio(const char *name, CMclQueue<Message *> &_mQ)
     : mQ(_mQ), Stop()
 {
     COORD Size = {80, 500};
-    reader = new ReadCon(_mQ, Stop);
+
+    ConIn = CreateFile("CONIN$", GENERIC_READ|GENERIC_WRITE,
+	    FILE_SHARE_READ|FILE_SHARE_WRITE, 0L, OPEN_EXISTING, 0, 0L);
+
+    reader = new ReadCon(_mQ, Stop, ConIn);
     readThread = new CMclThread(reader);
 
     oldBuffer = CreateFile("CONOUT$", GENERIC_READ|GENERIC_WRITE,
@@ -141,12 +141,26 @@ ClientConio::ClientConio(const char *name, CMclQueue<Message *> &_mQ)
 
 ClientConio::~ClientConio()
 {
+    DWORD dwRead;
+    INPUT_RECORD record;
+
     Stop.Set();
     readThread->Wait(INFINITE);
     delete reader, readThread;
 
-    CloseHandle(ConOut);
+    SetConsoleTextAttribute(ConOut, FOREGROUND_BLUE | FOREGROUND_INTENSITY);
+    WriteConsole(ConOut, "\nPress any key to exit...\n", 26, &dwRead, 0L);
+    FlushConsoleInputBuffer(ConIn);
+
+again:
+    ReadConsoleInput(ConIn, &record, 1, &dwRead);
+    if (record.EventType != KEY_EVENT) {
+	goto again;
+    }
+
     SetConsoleActiveScreenBuffer(oldBuffer);
+    CloseHandle(ConOut);
+    CloseHandle(ConIn);
 }
 
 void
