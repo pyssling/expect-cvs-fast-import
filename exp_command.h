@@ -169,6 +169,10 @@ typedef struct ExpState {
 				 * file channels. */
 } ExpState;
 
+#define EXP_SPAWN_ID_BAD	((ExpState *)0)
+
+#define EXP_TIME_INFINITY	-1
+
 extern Tcl_ChannelType expChannelType;
 
 #define EXP_TEMPORARY	1	/* expect */

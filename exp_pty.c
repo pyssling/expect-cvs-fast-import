@@ -35,14 +35,18 @@ would appreciate credit if this program or parts of it are used.
 #include <setjmp.h>
 #include <sys/file.h>
 #include "tcl.h"
+#include "exp_int.h"
 #include "expect_comm.h"
 #include "exp_rename.h"
 #include "exp_pty.h"
 
 #include <errno.h>
 
+#if 0
 void expDiagLog();
 void expDiagLogU();
+void expDiagLogPtrSet();
+#endif
 
 #ifndef TRUE
 #define TRUE 1
@@ -184,7 +188,7 @@ char *num;	/* string representation of number */
 	/* with it.  This allows us to rigorously test the */
 	/* pty is usable. */
 	if (exp_pty_lock(bank,num) == 0) {
-		expDiagLog("pty master (%s) is locked...skipping\r\n",master_name);
+		expDiagLogPtrStr("pty master (%s) is locked...skipping\r\n",master_name);
 		return(-1);
 	}
 	/* verify no one else is using slave by attempting */
@@ -201,7 +205,7 @@ char *num;	/* string representation of number */
 
 #ifdef HAVE_PTYTRAP
 	if (access(slave_name, R_OK|W_OK) != 0) {
-		expDiagLog("could not open slave for pty master (%s)...skipping\r\n",
+		expDiagLogPtrStr("could not open slave for pty master (%s)...skipping\r\n",
 			master_name);
 		(void) close(master);
 		return -1;
@@ -216,7 +220,7 @@ char *num;	/* string representation of number */
 	cc = i_read(master,&c,1,10);
 	(void) close(master);
 	if (!(cc == 0 || cc == -1)) {
-		expDiagLog("%s slave open, skipping\r\n",slave_name);
+		expDiagLogPtrStr("%s slave open, skipping\r\n",slave_name);
 		locked = FALSE;	/* leave lock file around so Expect's avoid */
 				/* retrying this pty for near future */
 		return -1;
@@ -233,12 +237,12 @@ char *num;	/* string representation of number */
 	cc = i_read(slave,&c,1,10);
 	(void) close(slave);
 	if (!(cc == 0 || cc == -1)) {
-		expDiagLog("%s master open, skipping\r\n",master_name);
+		expDiagLogPtrStr("%s master open, skipping\r\n",master_name);
 		return -1;
 	}
 
 	/* seems ok, let's use it */
-	expDiagLog("using master pty %s\n",master_name);
+	expDiagLogPtrStr("using master pty %s\n",master_name);
 	return(open(master_name,RDWR));
 #endif
 }
@@ -278,3 +282,58 @@ char *num;	/* string representation of number */
 	return locked;
 }
 
+/* 
+ * expDiagLog needs a different definition, depending on whether its
+ * called inside of Expect or the clib.  Allow it to be set using this
+ * function.  It's done here because this file (and pty_XXX.c) are the 
+ * ones that call expDiagLog from the two different environments.
+ */
+
+void		(*expDiagLogPtrVal) _ANSI_ARGS_((char *));
+
+void
+expDiagLogPtrSet(arg)
+     void (*arg)(char *);
+{
+  expDiagLogPtrVal = arg;
+}
+
+void
+expDiagLogPtr(str)
+     char *str;
+{
+  (*expDiagLogPtrVal)(str);
+}
+
+
+
+void
+expDiagLogPtrX(fmt,num)
+     char *fmt;
+     int num;
+{
+  static char buf[1000];
+  sprintf(buf,fmt,num);
+  (*expDiagLogPtrVal)(buf);
+}
+
+
+void
+expDiagLogPtrStr(fmt,str1)
+     char *fmt;
+     char *str1;
+{
+  static char buf[1000];
+  sprintf(buf,fmt,str1);
+  (*expDiagLogPtrVal)(buf);
+}
+
+void
+expDiagLogPtrStrStr(fmt,str1,str2)
+     char *fmt;
+     char *str1, *str2;
+{
+  static char buf[1000];
+  sprintf(buf,fmt,str1,str2);
+  (*expDiagLogPtrVal)(buf);
+}

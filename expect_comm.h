@@ -10,11 +10,6 @@ would appreciate credit if this program or parts of it are used.
 #ifndef _EXPECT_COMM_H
 #define _EXPECT_COMM_H
 
-#include <tcl.h>
-
-#include <stdio.h>
-#include <setjmp.h>
-
 /* common return codes for Expect functions */
 /* The library actually only uses TIMEOUT and EOF */
 #define EXP_ABEOF	-1	/* abnormal eof in Expect */
@@ -56,20 +51,15 @@ would appreciate credit if this program or parts of it are used.
 					/* inter_return into */
 					/* TCL_RETURN*/
 
-#define EXP_TIME_INFINITY	-1
-#define EXP_SPAWN_ID_BAD	((ExpState *)0)
-
-EXTERN int exp_is_debugging;
-EXTERN int exp_loguser;
-EXTERN int exp_disconnected;		/* proc. disc'd from controlling tty */
-
-EXTERN void (*exp_close_in_child)();	/* procedure to close files in child */
-EXTERN void exp_close_tcl_files();	/* deflt proc: close all Tcl's files */
-
-EXTERN void exp_slave_control _ANSI_ARGS_((int,int));
+/*
+ * Everything below here should eventually be moved into expect.h
+ * and Expect-thread-safe variables.
+ */
 
 EXTERN char *exp_pty_error;		/* place to pass a string generated */
 					/* deep in the innards of the pty */
 					/* code but needed by anyone */
+EXTERN int exp_disconnected;		/* proc. disc'd from controlling tty */
+
 
 #endif /* _EXPECT_COMM_H */

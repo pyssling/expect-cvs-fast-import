@@ -156,7 +156,7 @@ Tcl_Obj *objPtr;
     int i, start;
     char name[20];
 
-    Tcl_GetRegExpInfo(re, &info); 
+    Tcl_RegExpGetInfo(re, &info); 
     for (i=0;i<=info.nsubs;i++) {
 	start = info.matches[i].start;
 	/* end = info.matches[i].end-1;*/

@@ -65,8 +65,8 @@ static void
 usage(interp)
 Tcl_Interp *interp;
 {
-	expErrorLog("usage: expect [-div] [-c cmds] [[-f] cmdfile] [args]\r\n");
-	Tcl_Exit(1);
+  expErrorLog("usage: expect [-div] [-c cmds] [[-f] cmdfile] [args]\r\n");
+  Tcl_Exit(1);
 }
 
 /* this clumsiness because pty routines don't know Tcl definitions */
@@ -76,14 +76,14 @@ void
 exp_pty_exit_for_tcl(clientData)
 ClientData clientData;
 {
-	exp_pty_exit();
+  exp_pty_exit();
 }
 
 static
 void
 exp_init_pty_exit()
 {
-	Tcl_CreateExitHandler(exp_pty_exit_for_tcl,(ClientData)0);
+  Tcl_CreateExitHandler(exp_pty_exit_for_tcl,(ClientData)0);
 }
 
 /* This can be called twice or even recursively - it's safe. */
@@ -503,6 +503,7 @@ Tcl_Interp *interp;
 	expChannelInit();
 	expDiagInit();
 	expLogInit();
+	expDiagLogPtrSet(expDiagLogU);
 
 	Tcl_CreateExitHandler(exp_exit_handlers,(ClientData)interp);
 

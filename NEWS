@@ -56,6 +56,15 @@ efficiently.  For the whole story, read the re_syntax man page.
 The interact command's regexp matching no longer skips nulls.  (I'd be
 surprised if anyone misses this.  At least I hope ....)
 
+Expect's C library now reports failures in spawn's underlying exec
+directly (by returning -1) rather than the way it used to (as data in
+the pty).  This makes user code more robust.  However, it requires you
+to simplify your code, alas.  See the chesslib.c example.
+
+Linking with Expect's C library no longer requires the Tcl library
+(unless, of course, you make Tcl calls yourself).  Tcl is still
+required to build the library in the first place, however.
+
 ** CHANGES IN BEHAVIOR (SHOULD NOT CAUSE INCOMPATIBILITIES)
 
 The match_max command now controls by bytes, not chars.  This won't
@@ -100,9 +109,8 @@ full advantage was taken to do something different :-)
 
 Several esoteric bugs were fixed.
 
-Little work was done on the Expect library (the one that is, uh,
-scripted using C and C++).  The library continues to use Henry
-Spencer's original regexp engine.
+Although Expect itself uses Henry Spencer's new regexp engine,
+Expect's C library still uses his original regexp engine.
 
 No testing has been done of the poll and non-event subsystems.  (These
 are used on systems which don't support select on ptys or ttys.  Some

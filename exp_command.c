@@ -1200,10 +1200,6 @@ when trapping, see below in child half of fork */
 
 	/* expDiagLog("child: now unsynchronized from parent\r\n"); */
 
-	/* So much for close-on-exec.  Tcl doesn't mark its files that way */
-	/* everything has to be closed explicitly. */
-	if (exp_close_in_child) (*exp_close_in_child)();
-
         (void) execvp(argv[0],argv);
 
 	/* Alas, by now we've closed fd's to stderr, logfile and diagfile.
@@ -3106,6 +3102,4 @@ Tcl_Interp *interp;
 #ifdef HAVE_PTYTRAP
     Tcl_InitHashTable(&slaveNames,TCL_STRING_KEYS);
 #endif /* HAVE_PTYTRAP */
-
-    exp_close_in_child = exp_close_tcl_files;
 }

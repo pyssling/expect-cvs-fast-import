@@ -89,7 +89,7 @@ extern char *TclGetRegError();
 #include "exp_pty.h"
 
 void expDiagLog();
-void expDiagLogU();
+void expDiagLogPtr();
 
 #include <errno.h>
 /*extern char *sys_errlist[];*/
@@ -310,7 +310,7 @@ char *s;	/* stty args */
 /* As long as BSD stty insists on stdout == stderr, we can no longer write */
 /* diagnostics to parent stderr, since stderr has is now child's */
 /* Maybe someday they will fix stty? */
-/*			expDiagLog("exp_getptyslave: (default) stty %s\n",DFLT_STTY);*/
+/*			expDiagLogPtrStr("exp_getptyslave: (default) stty %s\n",DFLT_STTY);*/
 			pty_stty(DFLT_STTY,slave_name);
 		}
 #endif
@@ -318,7 +318,7 @@ char *s;	/* stty args */
 		/* lastly, give user chance to override any terminal parms */
 		if (s) {
 			/* give user a chance to override any terminal parms */
-/*			expDiagLog("exp_getptyslave: (user-requested) stty %s\n",s);*/
+/*			expDiagLogPtrStr("exp_getptyslave: (user-requested) stty %s\n",s);*/
 			pty_stty(s,slave_name);
 		}
 	}
@@ -625,18 +625,18 @@ char *stty_args;
 #if defined(HAVE_PTMX_BSD)
 	if (ioctl (slave, I_LOOK, buf) != 0)
 		if (ioctl (slave, I_PUSH, "ldterm")) {
-			expDiagLog("ioctl(%s,I_PUSH,\"ldterm\") = %s\n",slave,Tcl_ErrnoMsg(errno));
+			expDiagLogPtrStrStr("ioctl(%s,I_PUSH,\"ldterm\") = %s\n",slave,Tcl_ErrnoMsg(errno));
 	}
 #else
 #if defined(HAVE_PTMX)
 	if (ioctl(slave, I_PUSH, "ptem")) {
-		expDiagLog("ioctl(%s,I_PUSH,\"ptem\") = %s\n",slave,Tcl_ErrnoMsg(errno));
+		expDiagLogPtrStrStr("ioctl(%s,I_PUSH,\"ptem\") = %s\n",slave,Tcl_ErrnoMsg(errno));
 	}
 	if (ioctl(slave, I_PUSH, "ldterm")) {
-		expDiagLog("ioctl(%s,I_PUSH,\"ldterm\") = %s\n",slave,Tcl_ErrnoMsg(errno));
+		expDiagLogPtrStrStr("ioctl(%s,I_PUSH,\"ldterm\") = %s\n",slave,Tcl_ErrnoMsg(errno));
 	}
 	if (ioctl(slave, I_PUSH, "ttcompat")) {
-		expDiagLog("ioctl(%s,I_PUSH,\"ttcompat\") = %s\n",slave,Tcl_ErrnoMsg(errno));
+		expDiagLogPtrStrStr("ioctl(%s,I_PUSH,\"ttcompat\") = %s\n",slave,Tcl_ErrnoMsg(errno));
 	}
 #endif
 #endif
@@ -712,39 +712,39 @@ int fd;
 		(SELECT_MASK_TYPE *)&excep,
 		&t);
 	if (rc != 1) {
-		expDiagLog("spawned process never started, errno = %d\n",errno);
+		expDiagLogPtrStr("spawned process never started: %s\r\n",Tcl_ErrnoMsg(errno));
 		return(-1);
 	}
 	if (ioctl(fd,TIOCREQCHECK,&ioctl_info) < 0) {
-		expDiagLog("ioctl(TIOCREQCHECK) failed, errno = %d\n",errno);
+		expDiagLogPtrStr("ioctl(TIOCREQCHECK) failed: %s\r\n",Tcl_ErrnoMsg(errno));
 		return(-1);
 	}
 
 	found = ioctl_info.request;
 
-	expDiagLog("trapped pty op = %x",found);
+	expDiagLogPtrX("trapped pty op = %x",found);
 	if (found == TIOCOPEN) {
-		expDiagLogU(" TIOCOPEN");
+		expDiagLogPtr(" TIOCOPEN");
 	} else if (found == TIOCCLOSE) {
-		expDiagLogU(" TIOCCLOSE");
+		expDiagLogPtr(" TIOCCLOSE");
 	}
 
 #ifdef TIOCSCTTY
 	if (found == TIOCSCTTY) {
-		expDiagLogU(" TIOCSCTTY");
+		expDiagLogPtr(" TIOCSCTTY");
 	}
 #endif
 
 	if (found & IOC_IN) {
-		expDiagLogU(" IOC_IN (set)");
+		expDiagLogPtr(" IOC_IN (set)");
 	} else if (found & IOC_OUT) {
-		expDiagLogU(" IOC_OUT (get)");
+		expDiagLogPtr(" IOC_OUT (get)");
 	}
 
-	expDiagLogU("\n");
+	expDiagLogPtr("\n");
 
 	if (ioctl(fd, TIOCREQSET, &ioctl_info) < 0) {
-		expDiagLog("ioctl(TIOCREQSET) failed, errno = %d\n",errno);
+		expDiagLogPtrStr("ioctl(TIOCREQSET) failed: %s\r\n",Tcl_ErrnoMsg(errno));
 		return(-1);
 	}
 	return(found);
