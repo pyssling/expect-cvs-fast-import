@@ -169,11 +169,10 @@ ExpCloseProc(instanceData, interp)
 
     Tcl_DeleteFileHandler(esPtr->fdin);
 
-    /*
-     * Actually file descriptor should have been closed earlier.
-     * But just in case, force it.
-     */
-    expSysClose(esPtr);
+    Tcl_DecrRefCount(esPtr->buffer);
+
+    /* Actually file descriptor should have been closed earlier. */
+    /* So do nothing here */
 
     /*
      * Conceivably, the process may not yet have been waited for.  If this
@@ -280,6 +279,26 @@ inherited any via spawn -open, Tcl can hang if we don't close the
 connections first.
 */
 
+int
+expSizeGet(esPtr)
+    ExpState *esPtr;
+{
+    int len;
+    Tcl_GetStringFromObj(esPtr->buffer,&len);
+    return len;
+}
+
+int
+expSizeZero(esPtr)
+    ExpState *esPtr;
+{
+    int len;
+    Tcl_GetStringFromObj(esPtr->buffer,&len);
+    return (len == 0);
+}
+
+
+
 void
 exp_close_all(interp)
 Tcl_Interp *interp;
@@ -344,31 +363,16 @@ exp_background_channelhandlers_run_all()
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
     int m;
-    ExpState *f;
+    ExpState *esPtr;
 
     /* kick off any that already have input waiting */
     for (esPtr = tsdPtr->firstExpPtr;esPtr;esPtr = esPtr->nextPtr) {
 	/* is bg_interp the best way to check if armed? */
-	if (esPtr->bg_interp && (esPtr->size > 0)) {
+	if (esPtr->bg_interp && !expSizeZero(esPtr)) {
 	    exp_background_channelhandler((ClientData)esPtr);
 	}
     }
 }
-
-#if NOTUSED
-int
-expIsExpChannelName(string)
-    char *string;
-{
-    int rc;
-    int fd;
-
-    /* force assignment to something in order to get a useful return value */
-    rc = scanf(string,"exp%d",&fd);
-
-    return rc;
-}
-#endif
 
 ExpState *
 expCreateChannel(fdin,fdout,pid)
@@ -404,13 +408,18 @@ expCreateChannel(fdin,fdout,pid)
     esPtr->channel = Tcl_CreateChannel(channelTypePtr, esPtr->name,
 	    (ClientData) esPtr, mask);
     Tcl_RegisterChannel(interp,esPtr->channel);
+    esPtr->registered = 1;
 
     esPtr->pid = pid;
     esPtr->msize = 0;
 
-    /* should change this to just make a buffer! */
-    esPtr->buffer = 0;
-    
+    /* initialize a dummy buffer */
+    esPtr->buffer = Tcl_NewStringObj("",0);
+    Tcl_IncrRefCount(esPtr->buffer);
+    esPtr->umsize = exp_default_match_max;
+    /* this will reallocate object with an appropriate sized buffer */
+    expAdjust(esPtr);
+
     esPtr->printed = 0;
     esPtr->echoed = 0;
     esPtr->rm_nulls = exp_default_rm_nulls;
@@ -423,9 +432,7 @@ expCreateChannel(fdin,fdout,pid)
 #ifdef HAVE_PTYTRAP
     esPtr->slave_name = 0;
 #endif /* HAVE_PTYTRAP */
-    esPtr->umsize = exp_default_match_max;
-    esPtr->user_closed = FALSE;
-    esPtr->sys_closed = FALSE;
+    esPtr->open = TRUE;
     esPtr->user_waited = FALSE;
     esPtr->sys_waited = FALSE;
     esPtr->bg_interp = 0;

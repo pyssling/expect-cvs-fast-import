@@ -39,8 +39,8 @@ static void
 exp_console_manipulation_failed(s)
 char *s;
 {
-	exp_errorlog("expect: spawn: cannot %s console, check permissions of /dev/console\n",s);
-	exit(-1);
+    expErrorLog("expect: spawn: cannot %s console, check permissions of /dev/console\n",s);
+    exit(-1);
 }
 
 void

@@ -7,17 +7,7 @@ dollars.  Therefore it is public domain.  However, the author and NIST
 would appreciate credit if this program or parts of it are used.
 */
 
-EXTERN ExpState *       expGetCurrentState _ANSI_ARGS_((Tcl_Interp *,int,int));
-EXTERN ExpState *       expGetStateFromChannelName _ANSI_ARGS_((Tcl_Interp *,char *,int,int,char *));
-
 #define EXP_CHANNELNAMELEN (16 + TCL_INTEGER_SPACE)
-
-#ifdef OBSOLETE 
-EXTERN struct exp_f *exp_fs;
-EXTERN struct exp_f *	exp_fd2f _ANSI_ARGS_((Tcl_Interp *,int,int,int,char *));
-EXTERN struct exp_f *	exp_update_master
-				_ANSI_ARGS_((Tcl_Interp *,int *,int,int));
-#endif
 
 EXTERN char *		exp_get_var _ANSI_ARGS_((Tcl_Interp *,char *));
 
@@ -155,12 +145,11 @@ typedef struct ExpState {
     char name[EXP_CHANNELNAMELEN+1]; /* expect and interact set variables
 				   to channel name, so for efficiency
 				   cache it here */
-    int fdin;			/* File handle */
-    int fdout;			/* In some special cases (such as stdin), fd
-				   (above) is only for input and fd_output is
-				   only for output. */
-    Tcl_Channel channel_orig;   /* If opened by someone else, i.e. Tcl's open */
-    int fd_slave;		/* slave fd if "spawn -pty" used */
+    int fdin;		/* input fd */
+    int fdout;		/* output fd - usually the same as fdin, although
+			   may be different if channel opened by tcl::open */
+    Tcl_Channel channel_orig;   /* If opened by someone else, i.e. tcl::open */
+    int fd_slave;	/* slave fd if "spawn -pty" used */
 
     /* this may go away if we find it is not needed */
     /* it might be needed by inherited channels */
@@ -171,28 +160,22 @@ typedef struct ExpState {
     int pid;		/* pid or EXP_NOPID if no pid */
     Tcl_Obj *buffer;	/* input buffer */
 
-    /* hmm - thought we deleted this, Scott */
-    /* Tcl_Obj *lower;	/* input buffer in lowercase */
-
-    /* no longer necessary?
-    /* int size;	/* current size of data */
-
-    int msize;	        /* maximum number of characters to hold in the */
-			/* buffer*/
-    int umsize;	        /* user view of size of buffer (in characters) */
-    int rm_nulls;	/* if nulls should be stripped before pat matching */
-    int user_closed;    /* if user has issued "close" command or close has */
-    		        /* occurred implicitly */
-    int sys_closed;	/* if close() has been called */
-    int user_waited;    /* if user has issued "wait" command */
-    int sys_waited;	/* if wait() (or variant) has been called */
-    WAIT_STATUS_TYPE wait;	/* raw status from wait() */
-    int parity;	        /* strip parity if false */
+    int msize;	        /* # of bytes that buffer can hold (max) */
+    int umsize;	        /* # of bytes (min) that is guaranteed to match */
+			/* this comes from match_max command */
     int printed;	/* # of bytes written to stdout (if logging on) */
                         /* but not actually returned via a match yet */
     int echoed;	        /* additional # of bytes (beyond "printed" above) */
                         /* echoed back but not actually returned via a match */
                         /* yet.  This supports interact -echo */
+
+    int rm_nulls;	/* if nulls should be stripped before pat matching */
+    int open;		/* if fdin/fdout open */
+    int user_waited;    /* if user has issued "wait" command */
+    int sys_waited;	/* if wait() (or variant) has been called */
+    int registered;	/* if channel registered */
+    WAIT_STATUS_TYPE wait;	/* raw status from wait() */
+    int parity;	        /* if parity should be preserved */
     int key;	        /* unique id that identifies what command instance */
                         /* last touched this buffer */
     int force_read;	/* force read to occur (even if buffer already has */
@@ -232,7 +215,7 @@ extern Tcl_ChannelType expChannelType;
 #define EXP_DIRECT	1
 #define EXP_INDIRECT	2
 
-EXTERN void		exp_adjust _ANSI_ARGS_((ExpState *));
+EXTERN void		expAdjust _ANSI_ARGS_((ExpState *));
 EXTERN void		exp_buffer_shuffle _ANSI_ARGS_((Tcl_Interp *,ExpState *,int,char *,char *));
 EXTERN int		exp_close _ANSI_ARGS_((Tcl_Interp *,int));
 EXTERN void		exp_close_all _ANSI_ARGS_((Tcl_Interp *));
@@ -341,17 +324,19 @@ EXTERN void		exp_init_trap_cmds _ANSI_ARGS_((Tcl_Interp *));
 EXTERN void		exp_init_interact_cmds _ANSI_ARGS_((Tcl_Interp *));
 EXTERN void		exp_init_tty_cmds();
 
+EXTERN ExpState *       expStateCurrent _ANSI_ARGS_((Tcl_Interp *,int,int,int));
+EXTERN ExpState *       expStateFromChannelName _ANSI_ARGS_((Tcl_Interp *,char *,int,int,int,char *));
+
 EXTERN ExpState *	expCreateChannel _ANSI_ARGS_((int,int,int));
 EXTERN ExpState *	expWaitOnAny _ANSI_ARGS_((Tcl_Interp *));
-EXTERN int		expIsStateAny _ANSI_ARGS_((ExpState *));
-EXTERN int		expIsStateStdinOut _ANSI_ARGS_((ExpState *));
-EXTERN int		expIsStateDevtty _ANSI_ARGS_((ExpState *));
-EXTERN ExpState *	expGetChannel _ANSI_ARGS_((Tcl_Interp *,char *));
-EXTERN void		expSysClose _ANSI_ARGS_((ExpState *));
-EXTERN void		expInitExpectVars _ANSI_ARGS_((void));
-EXTERN int		expIsExpChannelName _ANSI_ARGS_((char *));
-EXTERN int		expIsStdinout _ANSI_ARGS((ExpState *));
-EXTERN ExpState *	expStdinout _ANSI_ARGS((void));
-EXTERN ExpState *	expDevtty _ANSI_ARGS((void));
+EXTERN int		expStateAnyIs _ANSI_ARGS_((ExpState *));
+EXTERN int		expStateStdinOutIs _ANSI_ARGS_((ExpState *));
+EXTERN int		expStateDevttyIs _ANSI_ARGS_((ExpState *));
+EXTERN void		expExpectVarsInit _ANSI_ARGS_((void));
+EXTERN int		expStdinoutIs _ANSI_ARGS_((ExpState *));
+EXTERN ExpState *	expStdinoutGet _ANSI_ARGS_((void));
+EXTERN ExpState *	expDevttyGet _ANSI_ARGS_((void));
 
-
+/* generic functions that really should be provided by Tcl */
+EXTERN int		expSizeGet _ANSI_ARGS_((ExpState *));
+EXTERN int		expSizeZero _ANSI_ARGS_((ExpState *));

@@ -143,7 +143,7 @@ would appreciate credit if this program or parts of it are used.
 
 /* yet more TCL return codes */
 /* Tcl does not safely provide a way to define the values of these, so */
-/* use ridiculously numbers for safety */
+/* use ridiculously different numbers for safety */
 #define EXP_CONTINUE		-101	/* continue expect command */
 					/* and restart timer */
 #define EXP_CONTINUE_TIMER	-102	/* continue expect command */

@@ -87,12 +87,11 @@ int code;
 	int rc;
 	int i;
 	Tcl_Interp *sig_interp;
-/*	extern Tcl_Interp *exp_interp;*/
 
-	exp_debuglog("sighandler: handling signal(%d)\r\n",got_sig);
+	expDiagLog("sighandler: handling signal(%d)\r\n",got_sig);
 
 	if (got_sig <= 0 || got_sig >= NSIG) {
-		errorlog("caught impossible signal %d\r\n",got_sig);
+		expErrorLog("caught impossible signal %d\r\n",got_sig);
 		abort();
 	}
 
@@ -107,7 +106,7 @@ int code;
 	/* Don't we need to temporarily block bottomhalf? */
 	if (current_sig == SIGCHLD) {
 		sigchld_count--;
-		exp_debuglog("sigchld_count-- == %d\n",sigchld_count);
+		expDiagLog("sigchld_count-- == %d\n",sigchld_count);
 	}
 
 	if (!trap->action) {
@@ -115,7 +114,7 @@ int code;
 		/* signaler predefined, since we are calling explicitly */
 		/* from another part of the program, and it is just simpler */
 		if (current_sig == 0) return code;
-		errorlog("caught unexpected signal: %s (%d)\r\n",
+		expErrorLog("caught unexpected signal: %s (%d)\r\n",
 			signal_to_string(current_sig),current_sig);
 		abort();
 	}
@@ -198,7 +197,6 @@ int sig;
 	 */
 	if (sig == SIGCHLD) {
 		sigchld_count++;
-/*		exp_debuglog(stderr,"sigchld_count++ == %d\n",sigchld_count);*/
 	}
 #if 0
 	/* if we are doing an i_read, restart it */
@@ -372,7 +370,8 @@ Tcl_Obj *CONST objv[];
 
 	/* objv[1] is the list of signals - crack it open */
 	if (TCL_OK != Tcl_ListObjGetElements(interp,objv[1],&n,&list)) {
-		errorlog("%s\r\n",Tcl_GetStringResult(interp));
+		expErrorLogU(Tcl_GetStringResult(interp));
+		expErrorLogU("\r\n");
 		goto usage_error;
 	}
 
@@ -394,7 +393,7 @@ Tcl_Obj *CONST objv[];
 			break;
 		}
 
-		exp_debuglog("trap: setting up signal %d (\"%s\")\r\n",sig,s);
+		expDiagLog("trap: setting up signal %d (\"%s\")\r\n",sig,s);
 		if (traps[sig].action) ckfree(traps[sig].action);
 		if (streq(action,"SIG_DFL")) {
 			/* should've been free'd by now if nec. */
@@ -438,7 +437,9 @@ int oldcode;
 	Tcl_Obj *ecp;	/* errorCode */
 	Tcl_Obj *irp;	/* interp->result */
 
-	exp_debuglog("async event handler: Tcl_Eval(%s)\r\n",trap->action);
+	expDiagLogU("async event handler: Tcl_Eval(");
+	expDiagLogU(trap->action);
+	expDiagLogU(")\r\n");
 
 	/* save to prevent user from redefining trap->code while trap */
 	/* is executing */
@@ -465,10 +466,12 @@ int oldcode;
 	 */
 
 	if (code_flag) {
-		exp_debuglog("return value = %d for trap %s, action %s\r\n",
-				newcode,signal_to_string(sig),trap->action);
+		expDiagLog("return value = %d for trap %s, action ",newcode,signal_to_string(sig));
+		expDiagLogU(trap->action);
+		expDiagLogU("\r\n");
 		if (0 != strcmp(Tcl_GetStringResult(interp),"")) {
-			errorlog("%s\r\n",interp->result);
+			expErrorLogU(interp->result);
+			expErrorLogU("\r\n");
 
 			/*
 			 * Check errorinfo and see if it contains -nostack.

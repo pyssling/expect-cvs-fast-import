@@ -296,7 +296,7 @@ int key;
 	    return(EXP_EOF);
 #else
 	    if (ioctl(esPtr->fdin,TIOCREQCHECK,&ioctl_info) < 0) {
-		exp_debuglog("ioctl error on TIOCREQCHECK: %s", Tcl_PosixError(interp));
+		expDiagLog("ioctl error on TIOCREQCHECK: %s", Tcl_PosixError(interp));
 		if (timer_created) Tcl_DeleteTimerHandler(timetoken);
 		return(EXP_TCLERROR);
 	    }
@@ -305,7 +305,7 @@ int key;
 		return(EXP_EOF);
 	    }
 	    if (ioctl(esPtr->fdin, TIOCREQSET, &ioctl_info) < 0) {
-		exp_debuglog("ioctl error on TIOCREQSET after ioctl or open on slave: %s", Tcl_ErrnoMsg(errno));
+		expDiagLog("ioctl error on TIOCREQSET after ioctl or open on slave: %s", Tcl_ErrnoMsg(errno));
 	    }
 	    /* presumably, we trapped an open here */
 	    continue;
@@ -334,7 +334,7 @@ int ready_mask;
     return(EXP_EOF);
 #else
     if (ioctl(esPtr->fdin,TIOCREQCHECK,&ioctl_info) < 0) {
-	exp_debuglog("ioctl error on TIOCREQCHECK: %s",
+	expDiagLog("ioctl error on TIOCREQCHECK: %s",
 		Tcl_PosixError(interp));
 	return(EXP_TCLERROR);
     }
@@ -342,7 +342,7 @@ int ready_mask;
 	return(EXP_EOF);
     }
     if (ioctl(esPtr->fdin, TIOCREQSET, &ioctl_info) < 0) {
-	exp_debuglog("ioctl error on TIOCREQSET after ioctl or open on slave: %s", Tcl_ErrnoMsg(errno));
+	expDiagLog("ioctl error on TIOCREQSET after ioctl or open on slave: %s", Tcl_ErrnoMsg(errno));
     }
     /* presumably, we trapped an open here */
     /* call it an error for lack of anything more descriptive */

@@ -192,7 +192,7 @@ static Tk_ArgvInfo argTable[] = {
 /* for Expect */
     {"-command", TK_ARGV_GENFUNC, (char *) optcmd_eval, (char *)0,
 	"Command(s) to execute immediately"},
-    {"-diag", TK_ARGV_CONSTANT, (char *) 1, (char *) &exp_is_debugging,
+    {"-diag", TK_ARGV_CONSTANT, (char *) optcmd_diagToStderr, (char *)0,
 	"Enable diagnostics"},
     {"-norc", TK_ARGV_CONSTANT, (char *) 0, (char *) &my_rc,
 	"Don't read ~/.expect.rc"},
@@ -382,7 +382,7 @@ Tk_Init2(interp)
 }
 
 /*ARGSUSED*/
-int
+static int
 optcmd_eval(dst,interp,key,argc,argv)
 char *dst;
 Tcl_Interp *interp;
@@ -406,9 +406,15 @@ char **argv;
 	return argc;
 }
 
+static void
+optcmd_diagToStderr()
+{
+    expDiagToStderr(TRUE);
+}
+
 #ifdef TCL_DEBUGGER
 /*ARGSUSED*/
-int
+static int
 optcmd_debug(dst,interp,key,argc,argv)
 char *dst;
 Tcl_Interp *interp;

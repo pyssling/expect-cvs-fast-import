@@ -91,7 +91,15 @@ void (*exp_child_exec_prelude)() = 0;
 jmp_buf exp_readenv;		/* for interruptable read() */
 int exp_reading = FALSE;	/* whether we can longjmp or not */
 
-void debuglog();
+int exp_is_debugging = TRUE;
+FILE *exp_debugfile = 0;
+
+FILE *exp_logfile = 0;
+int exp_logfile_all = FALSE;	/* if TRUE, write log of all interactions */
+int exp_loguser = TRUE;		/* if TRUE, user sees interactions on stdout */
+
+
+void exp_debuglog();
 int getptymaster();
 int getptyslave();
 int Exp_StringMatch();
@@ -206,7 +214,7 @@ char *argv[];	/* some compiler complains about **argv? */
 
 	if (!file || !argv) sysreturn(EINVAL);
 	if (!argv[0] || strcmp(file,argv[0])) {
-		debuglog("expect: warning: file (%s) != argv[0] (%s)\n",
+		exp_debuglog("expect: warning: file (%s) != argv[0] (%s)\n",
 			file,
 			argv[0]?argv[0]:"");
 	}
@@ -276,7 +284,7 @@ when trapping, see below in child half of fork */
 		 * user to send to it
 		 */ 
 
-		debuglog("parent: waiting for sync byte\r\n");
+		exp_debuglog("parent: waiting for sync byte\r\n");
 		cc = read(sync_fds[0],&sync_byte,1);
 		if (cc == -1) {
 			fprintf(stderr,"parent sync byte read: %s\r\n",Tcl_ErrnoMsg(errno));
@@ -290,14 +298,14 @@ when trapping, see below in child half of fork */
 		 * tell slave to go on now now that we have initialized pty
 		 */
 
-		debuglog("parent: telling child to go ahead\r\n");
+		exp_debuglog("parent: telling child to go ahead\r\n");
 		cc = write(sync2_fds[1]," ",1);
 		if (cc == -1) {
-			errorlog("parent sync byte write: %s\r\n",Tcl_ErrnoMsg(errno));
+			exp_errorlog("parent sync byte write: %s\r\n",Tcl_ErrnoMsg(errno));
 			exit(-1);
 		}
 
-		debuglog("parent: now unsynchronized from child\r\n");
+		exp_debuglog("parent: now unsynchronized from child\r\n");
 
 		close(sync_fds[0]);
 		close(sync2_fds[1]);
@@ -490,7 +498,7 @@ when trapping, see below in child half of fork */
 	/* tell parent that we are done setting up pty */
 	/* The actual char sent back is irrelevant. */
 
-	/* debuglog("child: telling parent that pty is initialized\r\n");*/
+	/* exp_debuglog("child: telling parent that pty is initialized\r\n");*/
 	cc = write(sync_fds[1]," ",1);
 	if (cc == -1) {
 		restore_error_fd
@@ -500,18 +508,18 @@ when trapping, see below in child half of fork */
 	close(sync_fds[1]);
 
 	/* wait for master to let us go on */
-	/* debuglog("child: waiting for go ahead from parent\r\n"); */
+	/* exp_debuglog("child: waiting for go ahead from parent\r\n"); */
 
 /*	close(master);	/* force master-side close so we can read */
 	cc = read(sync2_fds[0],&sync_byte,1);
 	if (cc == -1) {
 		restore_error_fd
-		errorlog("child: sync byte read: %s\r\n",Tcl_ErrnoMsg(errno));
+		exp_errorlog("child: sync byte read: %s\r\n",Tcl_ErrnoMsg(errno));
 		exit(-1);
 	}
 	close(sync2_fds[0]);
 
-	/* debuglog("child: now unsynchronized from parent\r\n"); */
+	/* exp_debuglog("child: now unsynchronized from parent\r\n"); */
 
 	/* (possibly multiple) masters are closed automatically due to */
 	/* earlier fcntl(,,CLOSE_ON_EXEC); */
@@ -821,7 +829,7 @@ struct exp_case *ecases;
 			int first_half, second_half;
 
 			if (exp_full_buffer) {
-				debuglog("expect: full buffer\r\n");
+				exp_debuglog("expect: full buffer\r\n");
 				exp_match = exp_buffer;
 				exp_match_end = exp_buffer + buf_length;
 				exp_buffer_end = exp_match_end;
@@ -847,7 +855,7 @@ struct exp_case *ecases;
 		 * check for timeout
 		 */
 		if ((exp_timeout >= 0) && ((remtime < 0) || polled)) {
-			debuglog("expect: timeout\r\n");
+			exp_debuglog("expect: timeout\r\n");
 			exp_match_end = exp_buffer;
 			return_normally(EXP_TIMEOUT);
 		}
@@ -866,19 +874,19 @@ struct exp_case *ecases;
 				remtime);
 
 		if (cc == 0) {
-			debuglog("expect: eof\r\n");
+			exp_debuglog("expect: eof\r\n");
 			return_normally(EXP_EOF);	/* normal EOF */
 		} else if (cc == -1) {			/* abnormal EOF */
 			/* ptys produce EIO upon EOF - sigh */
 			if (i_read_errno == EIO) {
 				/* convert to EOF indication */
-				debuglog("expect: eof\r\n");
+				exp_debuglog("expect: eof\r\n");
 				return_normally(EXP_EOF);
 			}
-			debuglog("expect: error (errno = %d)\r\n",i_read_errno);
+			exp_debuglog("expect: error (errno = %d)\r\n",i_read_errno);
 			return_errno(i_read_errno);
 		} else if (cc == -2) {
-			debuglog("expect: timeout\r\n");
+			exp_debuglog("expect: timeout\r\n");
 			exp_match_end = exp_buffer;
 			return_normally(EXP_TIMEOUT);
 		}
@@ -887,17 +895,17 @@ struct exp_case *ecases;
 		buf_length += cc;
 		exp_buffer_end += buf_length;
 
-		if (logfile_all || (loguser && logfile)) {
-			fwrite(exp_buffer + old_length,1,cc,logfile);
+		if (exp_logfile_all || (exp_loguser && exp_logfile)) {
+			fwrite(exp_buffer + old_length,1,cc,exp_logfile);
 		}
-		if (loguser) fwrite(exp_buffer + old_length,1,cc,stdout);
-		if (debugfile) fwrite(exp_buffer + old_length,1,cc,debugfile);
+		if (exp_loguser) fwrite(exp_buffer + old_length,1,cc,stdout);
+		if (exp_debugfile) fwrite(exp_buffer + old_length,1,cc,exp_debugfile);
 
 		/* if we wrote to any logs, flush them */
-		if (debugfile) fflush(debugfile);
-		if (loguser) {
+		if (exp_debugfile) fflush(exp_debugfile);
+		if (exp_loguser) {
 			fflush(stdout);
-			if (logfile) fflush(logfile);
+			if (exp_logfile) fflush(exp_logfile);
 		}
 
 		/* remove nulls from input, so we can use C-style strings */
@@ -913,12 +921,12 @@ struct exp_case *ecases;
                 exp_match_end = exp_buffer;
 
 	after_read:
-		debuglog("expect: does {%s} match ",exp_printify(exp_buffer));
+		exp_debuglog("expect: does {%s} match ",exp_printify(exp_buffer));
 		/* pattern supplied */
 		for (ec=ecases;ec->type != exp_end;ec++) {
 			int matched = -1;
 
-			debuglog("{%s}? ",exp_printify(ec->pattern));
+			exp_debuglog("{%s}? ",exp_printify(ec->pattern));
 			if (ec->type == exp_glob) {
 				int offset;
 				matched = Exp_StringMatch(exp_buffer,ec->pattern,&offset);
@@ -955,10 +963,10 @@ struct exp_case *ecases;
 			}
 
 			if (matched != -1) {
-				debuglog("yes\nexp_buffer is {%s}\n",
+				exp_debuglog("yes\nexp_buffer is {%s}\n",
 						exp_printify(exp_buffer));
 				return_normally(ec->value);
-			} else debuglog("no\n");
+			} else exp_debuglog("no\n");
 		}
 
 		/*
@@ -1195,4 +1203,42 @@ exp_disconnect()
 #endif /* SYSV3 */
 #endif /* POSIX */
 	return(0);
+}
+
+/* send to log if open and debugging enabled */
+/* send to stderr if debugging enabled */
+/* use this function for recording unusual things in the log */
+/*VARARGS*/
+void
+exp_debuglog TCL_VARARGS_DEF(char *,arg1)
+{
+    char *fmt;
+    va_list args;
+
+    fmt = TCL_VARARGS_START(char *,arg1,args);
+    if (exp_debugfile) vfprintf(exp_debugfile,fmt,args);
+    if (exp_is_debugging) {
+	vfprintf(stderr,fmt,args);
+	if (exp_logfile) vfprintf(exp_logfile,fmt,args);
+    }
+
+    va_end(args);
+}
+
+
+/* send to log if open */
+/* send to stderr */
+/* use this function for error conditions */
+/*VARARGS*/
+void
+exp_errorlog TCL_VARARGS_DEF(char *,arg1)
+{
+    char *fmt;
+    va_list args;
+    
+    fmt = TCL_VARARGS_START(char *,arg1,args);
+    vfprintf(stderr,fmt,args);
+    if (exp_debugfile) vfprintf(exp_debugfile,fmt,args);
+    if (exp_logfile) vfprintf(exp_logfile,fmt,args);
+    va_end(args);
 }

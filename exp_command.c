@@ -84,6 +84,7 @@ would appreciate credit if this program or parts of it are used.
 #include "exp_log.h"
 #include "exp_event.h"
 #include "exp_pty.h"
+#include "expTcl.h"
 #ifdef TCL_DEBUGGER
 #include "tcldbg.h"
 #endif
@@ -102,7 +103,7 @@ int getptyslave();
 
 int exp_forked = FALSE;		/* whether we are child process */
 
-/* the following are just reserved addresses, to be used as ClientData */
+/* the following are use to create reserved addresses, to be used as ClientData */
 /* args to be used to tell commands how they were called. */
 /* The actual values won't be used, only the addresses, but I give them */
 /* values out of my irrational fear the compiler might collapse them all. */
@@ -128,12 +129,6 @@ int expect_key = 0;
  */
 int exp_configure_count = 0;
 
-/* this message is required because fopen sometimes fails to set errno */
-/* Apparently, it "does the user a favor" and doesn't even call open */
-/* if the file name is bizarre enough.  This means we can't handle fopen */
-/* with the obvious trivial logic. */
-static char *open_failed = "could not open - odd file name?";
-
 #ifdef HAVE_PTYTRAP
 /* slaveNames provides a mapping from the pty slave names to our */
 /* spawn id entry.  This is needed only on HPs for stty, sigh. */
@@ -150,10 +145,13 @@ typedef struct ThreadSpecificData {
     ExpState *stderr;
     ExpState *devtty;
     ExpState *any; /* for any_spawn_id */
+
+    Tcl_Channel *diagChannel;
+    Tcl_DString diagDString;
+    int diagEnabled;
 } ThreadSpecificData;
 
 static Tcl_ThreadDataKey dataKey;
-ExpState any_placeholder;
 
 #ifdef FULLTRAPS
 static void
@@ -187,37 +185,46 @@ exp_error TCL_VARARGS_DEF(Tcl_Interp *,arg1)
 	va_end(args);
 }
 
-/* returns current master (via out-parameter) */
-/* returns f or 0.  If 0, may be immediately followed by return TCL_ERROR. */
+/* returns current ExpState or 0.  If 0, may be immediately followed by return TCL_ERROR. */
 struct ExpState *
-expGetCurrentState(interp,opened,adjust)
+expStateCurrent(interp,opened,adjust,any)
 Tcl_Interp *interp;
 int opened;
 int adjust;
+int any;
 {
     char *name = exp_get_var(interp,SPAWN_ID_VARNAME);
     if (!name) return 0;
 
-    return expGetStateFromChannelName(interp,name,opened,adjust,SPAWN_ID_VARNAME);
+    return expStateFromChannelName(interp,name,opened,adjust,any,SPAWN_ID_VARNAME);
 }
 
 ExpState *
-expGetStateFromChannelName(interp,name,opened,adjust,msg)
+expStateFromChannelName(interp,name,open,adjust,any,msg)
     Tcl_Interp *interp,
     char *name;
     int opened;
     int adjust;
     char *msg;
 {
-    ExpState *esPtr = Tcl_GetChannelInstanceData(chan);
+    ExpState *esPtr;
+    Tcl_Channel channel;
 
-    Tcl_Channel channel = Tcl_GetChannel(interp,name,(int *)0);
+    if (any) {
+	if (0 == strcmp(name,EXP_SPAWN_ID_ANY_LIT)) {
+	    ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
+	    return tsdPtr->any;
+	}
+    }
+
+    channel = Tcl_GetChannel(interp,name,(int *)0);
+    esPtr = Tcl_GetChannelInstanceData(channel);
     if (!channel) return(0);
 
-    /* following is a little tricky, do not be tempted do the */
-    /* 'usual' boolean simplification */
-    if ((!opened) || !esPtr->user_closed) {
-	if (adjust) exp_adjust(esPtr);
+    /* following is a little tricky */
+    if ((!open) || esPtr->open) {   /* if open == 1, then check if actually
+				       open */
+	if (adjust) expAdjust(esPtr);
 	return esPtr;
     }
     exp_error(interp,"%s: invalid spawn id (%d)",msg,esPtr->name);
@@ -225,14 +232,14 @@ expGetStateFromChannelName(interp,name,opened,adjust,msg)
 }
 
 ExpState *
-expCheckState(interp,esPtr,opened,adjust,msg)
+expStateCheck(interp,esPtr,opened,adjust,msg)
     /* following is a little tricky, do not be tempted do the */
     /* 'usual' boolean simplification */
     if ((!opened) || !esPtr->user_closed) {
-	if (adjust) exp_adjust(esPtr);
+	if (adjust) expAdjust(esPtr);
 	return esPtr;
     }
-    exp_error(interp,"%s: invalid spawn id (%d)",msg,esPtr->name);
+    exp_error(interp,"%s: invalid spawn id (%s)",msg,esPtr->name);
     return(0);
 }
 
@@ -288,37 +295,51 @@ exp_trap_off(name)
 char *name;
 {
 #ifdef HAVE_PTYTRAP
-    int master;
     ExpState *esPtr;
     int enable = 0;
 
     Tcl_HashEntry *entry = Tcl_FindHashEntry(&slaveNames,name);
     if (!entry) {
-	debuglog("exp_trap_off: no entry found for %s\n",name);
+	expDiagLog("exp_trap_off: no entry found for %s\n",name);
 	return -1;
     }
 
     esPtr = (ExpState *)Tcl_GetHashValue(entry);
     
-    exp_slave_control(master->fdin,0);
+    exp_slave_control(esPtr->fdin,0);
 
-    return master->fdin;
+    return esPtr->fdin;
 #else
     return name[0];	/* pacify lint, use arg and return something */
 #endif
 }
 
-/*ARGSUSED*/
-void
-expSysClose(esPtr)
+int
+exp_close(interp,esPtr);
+Tcl_Interp *interp;
 ExpState *esPtr;
 {
-    /* Ignore close errors.  Some systems are really odd and */
-    /* return errors for no evident reason.  Anyway, receiving */
-    /* an error upon pty-close doesn't mean anything anyway as */
-    /* far as I know. */
+    if (0 == expStateCheck(interp,esPtr,1,0,"close")) return TCL_ERROR;
+    esPtr->open = FALSE;
+
+    /*
+     * Ignore close errors from ptys.  Ptys on some systems return errors for
+     * no evident reason.  Anyway, receiving an error upon pty-close doesn't
+     * mean anything anyway as far as I know.  
+     */
+
     close(esPtr->fdin);
-    esPtr->sys_closed = TRUE;
+    if (esPtr->fd_slave != EXP_NOFD) close(esPtr->fd_slave);
+    if (esPtr->fdin != esPtr->fdout) close(esPtr->fdout);
+
+    if (esPtr->channel_orig && !esPtr->leaveopen) {
+	/*
+	 * Ignore close errors from Tcl channels.  They indicate things
+	 * like broken pipelines, etc, which don't affect our
+	 * subsequent handling.
+	 */
+	Tcl_VarEval(interp,"close ",file_id,(char *)0);
+    }
 
 #ifdef HAVE_PTYTRAP
     if (esPtr->slave_name) {
@@ -331,71 +352,34 @@ ExpState *esPtr;
 	esPtr->slave_name = 0;
     }
 #endif
-}
-
-/* given a Tcl file identifier, close it */
-static void
-close_tcl_file(interp,file_id)
-Tcl_Interp *interp;
-char *file_id;
-{
-    Tcl_VarEval(interp,"close ",file_id,(char *)0);
-}			
-
-
-int
-exp_close(interp,esPtr);
-Tcl_Interp *interp;
-ExpState *esPtr;
-{
-    if (0 == expCheckState(interp,esPtr,1,0,"close")) return TCL_ERROR;
-
-    esPtr->user_closed = TRUE;
-
-    if (esPtr->fd_slave != EXP_NOFD) close(esPtr->fd_slave);
-    expSysClose(esPtr);
-
-    if (esPtr->channel_orig) {
-	if (esPtr->fdin == esPtr->fdout) close(esPtr->fdout);
-
-	if (!esPtr->leaveopen) {
-	    /*
-	     * Ignore errors from close; they report things like
-	     * broken pipeline, etc, which don't affect our
-	     * subsequent handling.
-	     */
-
-	    close_tcl_file(interp,esPtr->channel_orig);
-
-	    ckfree(esPtr->channel_orig);
-	    esPtr->channel_orig = 0;
-	}
-    }
 
     exp_state_prep_for_invalidation(interp,esPtr);
 
     if (esPtr->user_waited) {
-	Tcl_UnregisterChannel(interp,channel);
+	if (esPtr->registered) {
+	    Tcl_UnregisterChannel(interp,channel);
+	    esPtr->registered = 0;
+	}
     }
 
     return(TCL_OK);
 }
 
-expIsStdinout(esPtr)
+expStdinoutIs(esPtr)
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
 
     return (tsdPtr->stdinout == esPtr);
 }
 
-expStdinout()
+expStdinoutGet()
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
 
     return tsdPtr->stdinout;
 }
 
-expDevtty()
+expDevttyGet()
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
 
@@ -427,6 +411,8 @@ Tcl_Interp *interp;
 void
 exp_init_spawn_ids()
 {
+    static ExpState any_placeholder;  /* can be shared process-wide */
+    
     /* note whether 0,1,2 are connected to a terminal so that if we */
     /* disconnect, we can shut these down.  We would really like to */
     /* test if 0,1,2 are our controlling tty, but I don't know any */
@@ -437,9 +423,6 @@ exp_init_spawn_ids()
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey)
 
     tsdPtr->stdinout = expCreateChannel(0,1,isatty(0)?exp_getpid:EXP_NOPID);
-    /* really should be in interpreter() but silly to do on every call */
-    exp_adjust(tsdPtr->stdinout);
-
     /* hmm, now here's an example of a output-only descriptor!! */
     tsdPtr->stderr = expCreateChannel(2,2,isatty(2)?exp_getpid:EXP_NOPID);
 
@@ -452,24 +435,10 @@ exp_init_spawn_ids()
     tsdPtr->any = &any_placeholder;
 }
 
-/* version of Tcl_GetChannel that handles any_spawn_id */
-ExpState *
-expGetChannel(interp,name)
-    Tcl_Interp *interp;
-    char *name;
-{
-    ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
-
-    if (0 == strcmp(name,EXP_SPAWN_ID_ANY_LIT)) {
-	return tsdPtr->any;
-    }
-    return(Tcl_GetChannel(interp,name,(char *)0));
-}
-
 /* report whether this ExpState represents special spawn_id_any */
 /* we need a separate function because spawn_id_any is thread-specific */
 /* and can't be seen outside this file */
-expIsStateAny(esPtr)
+expStateAnyIs(esPtr)
     ExpState *esPtr;
 {
     Tcl_ChannelType *channelTypePtr;
@@ -478,7 +447,7 @@ expIsStateAny(esPtr)
     return (esPtr == tsdPtr->any);
 }
 
-expIsStateStdinout(esPtr)
+expStdinoutIs(esPtr)
     ExpState *esPtr;
 {
     Tcl_ChannelType *channelTypePtr;
@@ -487,7 +456,7 @@ expIsStateStdinout(esPtr)
     return (esPtr == tsdPtr->stdinout);
 }
 
-expIsStateDevtty(esPtr)
+expDevttyIs(esPtr)
     ExpState *esPtr;
 {
     Tcl_ChannelType *channelTypePtr;
@@ -693,7 +662,8 @@ char **argv;
 			}
 
 			if (TCL_OK != Tcl_SplitList(interp,argv[1],&n,&list)) {
-				errorlog("%s\r\n",interp->result);
+				expErrorLogU(interp->result);
+				expErrorLogU("\r\n",interp->result);
 				exp_error(interp,"usage: -trap {siglist} ...");
 				return TCL_ERROR;
 			}
@@ -742,11 +712,10 @@ when trapping, see below in child half of fork */
 
 	if (!openarg) {
 		if (echo) {
-			exp_log(0,"%s ",argv0);
-			for (a = argv;*a;a++) {
-				exp_log(0,"%s ",*a);
-			}
-			exp_nflog("\r\n",0);
+		    expStdoutLogU(argv0,0);
+		    expStdoutLogU(" ",0);
+		    for (a = argv;*a;a++) {
+			expStdoutLogU(*a,0);
 		}
 
 		if (0 > (master = getptymaster())) {
@@ -785,7 +754,10 @@ when trapping, see below in child half of fork */
 		int mode;
 		int rfd, wfd;
 
-		if (echo) exp_log(0,"%s [open ...]\r\n",argv0);
+		if (echo) {
+		    expStdoutLogU(argv0,0);
+		    expStdoutLogU(" [open ...]\r\n",0);
+		}
 		if (!(chan = Tcl_GetChannel(interp,openarg,&mode))) {
 			return TCL_ERROR;
 		}
@@ -833,7 +805,7 @@ when trapping, see below in child half of fork */
 	    Tcl_Channel channel;
 	    ExpState *esPtr;
 
-	    channel = Exp_CreateChannel(master,write_master,EXP_NOPID);
+	    channel = expCreateChannel(master,write_master,EXP_NOPID);
 	    esPtr = Tcl_GetChannelInstanceData(channel);
 	    
 	    if (openarg) {
@@ -847,9 +819,8 @@ when trapping, see below in child half of fork */
 		esPtr->sys_waited = TRUE;
 		exp_wait_zero(&esPtr->wait);
 
-		/* tell user id of new process */
-		sprintf(buf,"%d",master);
-		Tcl_SetVar(interp,SPAWN_ID_VARNAME,buf,0);
+		/* tell user of new spawn id */
+		Tcl_SetVar(interp,SPAWN_ID_VARNAME,esPtr->name,0);
 
 		if (!openarg) {
 			char value[20];
@@ -871,7 +842,7 @@ when trapping, see below in child half of fork */
 			Tcl_SetVar2(interp,SPAWN_OUT,"slave,fd",value,0);
 		}
 		sprintf(interp->result,"%d",EXP_NOPID);
-		debuglog("spawn: returns {%s}\r\n",interp->result);
+		expDiagLog("spawn: returns {%s}\r\n",interp->result);
 
 		return TCL_OK;
 	}
@@ -913,7 +884,7 @@ when trapping, see below in child half of fork */
 		close(sync2_fds[0]);
 		close(status_pipe[1]);
 
-		channel = Exp_CreateChannel(master,master,pid);
+		channel = expCreateChannel(master,master,pid);
 		esPtr = Tcl_GetChannelInstanceData(channel);
 
 		if (exp_pty_slave_name) set_slave_name(esPtr,exp_pty_slave_name);
@@ -927,12 +898,14 @@ when trapping, see below in child half of fork */
 		 * user to send to it
 		 */ 
 
-		debuglog("parent: waiting for sync byte\r\n");
+		expDiagLog("parent: waiting for sync byte\r\n");
 		while (((rc = read(sync_fds[0],&sync_byte,1)) < 0) && (errno == EINTR)) {
 			/* empty */;
 		}
 		if (rc == -1) {
-			errorlog("parent: sync byte read: %s\r\n",Tcl_ErrnoMsg(errno));
+			expErrorLogU("parent: sync byte read: ");
+			expErrorLogU(Tcl_ErrnoMsg(errno));
+			expErrorLogU("\r\n");
 			exit(-1);
 		}
 
@@ -943,14 +916,14 @@ when trapping, see below in child half of fork */
 		 * tell slave to go on now now that we have initialized pty
 		 */
 
-		debuglog("parent: telling child to go ahead\r\n");
+		expDiagLog("parent: telling child to go ahead\r\n");
 		wc = write(sync2_fds[1]," ",1);
 		if (wc == -1) {
-			errorlog("parent: sync byte write: %s\r\n",Tcl_ErrnoMsg(errno));
+			expErrorLog("parent: sync byte write: %s\r\n",Tcl_ErrnoMsg(errno));
 			exit(-1);
 		}
 
-		debuglog("parent: now unsynchronized from child\r\n");
+		expDiagLog("parent: now unsynchronized from child\r\n");
 		close(sync_fds[0]);
 		close(sync2_fds[1]);
 
@@ -980,12 +953,11 @@ when trapping, see below in child half of fork */
 		close(status_pipe[0]);
 
 
-		/* tell user id of new process */
-		sprintf(buf,"%d",master);
-		Tcl_SetVar(interp,SPAWN_ID_VARNAME,buf,0);
+		/* tell user of new spawn id */
+		Tcl_SetVar(interp,SPAWN_ID_VARNAME,esPtr->name,0);
 
 		sprintf(interp->result,"%d",pid);
-		debuglog("spawn: returns {%s}\r\n",interp->result);
+		expDiagLog("spawn: returns {%s}\r\n",interp->result);
 
 		Tcl_DStringFree(&dstring);
 		return(TCL_OK);
@@ -1068,16 +1040,16 @@ parent_error:
 		restore_error_fd
 
 		if (exp_pty_error) {
-			errorlog("open(slave pty): %s\r\n",exp_pty_error);
+			expErrorLog("open(slave pty): %s\r\n",exp_pty_error);
 		} else {
-			errorlog("open(slave pty): %s\r\n",Tcl_ErrnoMsg(errno));
+			expErrorLog("open(slave pty): %s\r\n",Tcl_ErrnoMsg(errno));
 		}
 		exit(-1);
 	}
 	/* sanity check */
 	if (slave != 0) {
 		restore_error_fd
-		errorlog("getptyslave: slave = %d but expected 0\n",slave);
+		expErrorLog("getptyslave: slave = %d but expected 0\n",slave);
 		exit(-1);
 	}
 
@@ -1097,7 +1069,7 @@ parent_error:
 	if (ioctl(0,TIOCSCTTY,(char *)0) < 0) {
 #endif
 		restore_error_fd
-		errorlog("failed to get controlling terminal using TIOCSCTTY");
+		expErrorLog("failed to get controlling terminal using TIOCSCTTY");
 		exit(-1);
 	}
 #endif
@@ -1108,7 +1080,7 @@ parent_error:
  	(void) close(0);
  	if (open("/dev/tty", O_RDWR) < 0) {
 		restore_error_fd
- 		errorlog("open(/dev/tty): %s\r\n",Tcl_ErrnoMsg(errno));
+ 		expErrorLog("open(/dev/tty): %s\r\n",Tcl_ErrnoMsg(errno));
  		exit(-1);
  	}
  	(void) close(1);
@@ -1128,7 +1100,7 @@ parent_error:
 	 */
 	if ((pid = fork()) == -1) {
 		restore_error_fd
-		errorlog("second fork: %s\r\n",Tcl_ErrnoMsg(errno));
+		expErrorLog("second fork: %s\r\n",Tcl_ErrnoMsg(errno));
 		exit(-1);
 	}
 
@@ -1177,33 +1149,31 @@ parent_error:
 		signal(i,ignore[i]?SIG_IGN:SIG_DFL);
 	}
 
-#if 0
-	/* avoid fflush of cmdfile since this screws up the parents seek ptr */
-	/* There is no portable way to fclose a shared read-stream!!!! */
-	if (exp_cmdfile && (exp_cmdfile != stdin))
-		(void) close(fileno(exp_cmdfile));
-	if (logfile) (void) fclose(logfile);
-	if (debugfile) (void) fclose(debugfile);
-#endif
+	/*
+	 * avoid fflush of cmdfile, logfile, & diagfile since this screws up
+	 * the parents seek ptr.  There is no portable way to fclose a shared
+	 * read-stream!!!!
+	 */
+
 	/* (possibly multiple) masters are closed automatically due to */
 	/* earlier fcntl(,,CLOSE_ON_EXEC); */
 
 	/* tell parent that we are done setting up pty */
 	/* The actual char sent back is irrelevant. */
 
-	/* debuglog("child: telling parent that pty is initialized\r\n");*/
+	/* expDiagLog("child: telling parent that pty is initialized\r\n");*/
 	wc = write(sync_fds[1]," ",1);
 	if (wc == -1) {
 		restore_error_fd
-		errorlog("child: sync byte write: %s\r\n",Tcl_ErrnoMsg(errno));
+		expErrorLog("child: sync byte write: %s\r\n",Tcl_ErrnoMsg(errno));
 		exit(-1);
 	}
 	close(sync_fds[1]);
 
 	/* wait for master to let us go on */
-	/* debuglog("child: waiting for go ahead from parent\r\n"); */
+	/* expDiagLog("child: waiting for go ahead from parent\r\n"); */
 
-/*	close(master);	/* force master-side close so we can read */
+	/* close(master);	/* force master-side close so we can read */
 
 	while (((rc = read(sync2_fds[0],&sync_byte,1)) < 0) && (errno == EINTR)) {
 		/* empty */;
@@ -1211,27 +1181,25 @@ parent_error:
 
 	if (rc == -1) {
 		restore_error_fd
-		errorlog("child: sync byte read: %s\r\n",Tcl_ErrnoMsg(errno));
+		expErrorLog("child: sync byte read: %s\r\n",Tcl_ErrnoMsg(errno));
 		exit(-1);
 	}
 	close(sync2_fds[0]);
 
-	/* debuglog("child: now unsynchronized from parent\r\n"); */
+	/* expDiagLog("child: now unsynchronized from parent\r\n"); */
 
 	/* So much for close-on-exec.  Tcl doesn't mark its files that way */
 	/* everything has to be closed explicitly. */
 	if (exp_close_in_child) (*exp_close_in_child)();
 
         (void) execvp(argv[0],argv);
-#if 0
-	/* Unfortunately, by now we've closed fd's to stderr, logfile and
-		debugfile.
-	   The only reasonable thing to do is to send back the error as
-	   part of the program output.  This will be picked up in an
-	   expect or interact command.
-	*/
-	errorlog("%s: %s\r\n",argv[0],Tcl_ErrnoMsg(errno));
-#endif
+
+	/* Alas, by now we've closed fd's to stderr, logfile and diagfile.
+	 * The only reasonable thing to do is to send back the error as part of
+	 * the program output.  This will be picked up in an expect or interact
+	 * command.
+	 */
+
 	/* if exec failed, communicate the reason back to the parent */
 	write(status_pipe[1], &errno, sizeof errno);
 	exit(-1);
@@ -1260,9 +1228,9 @@ char **argv;
     }
 
     if (chanName) {
-	if (!(esPtr = expGetStateFromChannelName(interp,chanName,1,0,"exp_pid"))) return TCL_ERROR;
+	if (!(esPtr = expStateFromChannelName(interp,chanName,0,0,0,"exp_pid"))) return TCL_ERROR;
     } else {
-	if (!(esPtr = expGetCurrentState(interp,0,0))) return TCL_ERROR;
+	if (!(esPtr = expStateCurrent(interp,0,0,0))) return TCL_ERROR;
     }
     
     sprintf(interp->result,"%d",esPtr->pid);
@@ -1280,7 +1248,7 @@ Tcl_Interp *interp;
 int argc;
 char **argv;
 {
-	debuglog("getpid is deprecated, use pid\r\n");
+	expDiagLog("getpid is deprecated, use pid\r\n");
 	sprintf(interp->result,"%d",getpid());
 	return(TCL_OK);
 }
@@ -1311,28 +1279,28 @@ ExpState *esPtr;
 char *buffer;
 int rembytes;
 {
-	int cc;
-	while (rembytes) {
-		if (-1 == (cc = Tcl_WriteChars(esPtr->channel,buffer,rembytes))) return(-1);
-		if (0 == cc) {
-			/* This shouldn't happen but I'm told that it does */
-			/* nonetheless (at least on SunOS 4.1.3).  Since */
-			/* this is not a documented return value, the most */
-			/* reasonable thing is to complain here and retry */
-			/* in the hopes that is some transient condition. */
-			sleep(1);
-			exp_debuglog("write() failed to write anything but returned - sleeping and retrying...\n");
-		}
-
-		buffer += cc;
-		rembytes -= cc;
+    int cc;
+    while (rembytes) {
+	if (-1 == (cc = Tcl_WriteChars(esPtr->channel,buffer,rembytes))) return(-1);
+	if (0 == cc) {
+	    /* This shouldn't happen but I'm told that it does */
+	    /* nonetheless (at least on SunOS 4.1.3).  Since */
+	    /* this is not a documented return value, the most */
+	    /* reasonable thing is to complain here and retry */
+	    /* in the hopes that is some transient condition. */
+	    sleep(1);
+	    expDiagLog("write() failed to write anything but returned - sleeping and retrying...\n");
 	}
-	return(0);
+
+	buffer += cc;
+	rembytes -= cc;
+    }
+    return(0);
 }
 
 struct slow_arg {
-	int size;
-	double time;
+    int size;
+    double time;
 };
 
 /* returns 0 for success, -1 for failure */
@@ -1477,7 +1445,7 @@ struct human_arg *arg;
     int in_word = TRUE;
     Tcl_UniChar ch;
 
-    debuglog("human_write: avg_arr=%f/%f  1/shape=%f  min=%f  max=%f\r\n",
+    expDiagLog("human_write: avg_arr=%f/%f  1/shape=%f  min=%f  max=%f\r\n",
 	    arg->alpha,arg->alpha_eow,arg->c,arg->min,arg->max);
 
     for (sp = buffer;*sp;sp += size) {
@@ -1722,7 +1690,8 @@ struct exp_i *i;
 		p = Tcl_GetVar(interp,i->variable,TCL_GLOBAL_ONLY);
 		if (!p) {
 			p = "";
-			exp_debuglog("warning: indirect variable %s undefined",i->variable);
+			/* *really* big variable names could blow up expDiagLog! */
+			expDiagLog("warning: indirect variable %s undefined",i->variable);
 		}
 
 		if (i->value) {
@@ -1770,12 +1739,8 @@ Tcl_Interp *interp;
 int argc;
 char **argv;
 {
-	char *string;
-	int len;
-
 	argv++;
 	argc--;
-
 	if (argc) {
 		if (streq(*argv,"--")) {
 			argc--; argv++;
@@ -1787,13 +1752,7 @@ char **argv;
 		return TCL_ERROR;
 	}
 
-	string = *argv;
-
-	len = strlen(string);
-
-	if (debugfile) fwrite(string,1,len,debugfile);
-	if (logfile) fwrite(string,1,len,logfile);
-
+	expLogDiagU(*argv);
 	return(TCL_OK);
 }
 
@@ -1826,7 +1785,7 @@ Tcl_Obj *CONST objv[];
     int len = -1;		/* length of string to send */
     int zeros;		/* count of how many ascii zeros to send */
 
-    char *i_masters = 0;
+    char *chanName = 0;
     struct exp_state_list *state_list;
     struct exp_i *i;
     int j;
@@ -1859,7 +1818,7 @@ Tcl_Obj *CONST objv[];
 		    exp_error(interp,"usage: -i spawn_id");
 		    return TCL_ERROR;
 		}
-		i_masters = Tcl_GetString(objv[j]);
+		chanName = Tcl_GetString(objv[j]);
 		break;
 
 	    case SEND_LAST:
@@ -1916,17 +1875,17 @@ Tcl_Obj *CONST objv[];
     if (clientData == &sendCD_user) esPtr = tsdPtr->stdinout;
     else if (clientData == &sendCD_error) esPtr = tsdPtr->stderr;
     else if (clientData == &sendCD_tty) esPtr = tsdPtr->devtty;
-    else if (!i_masters) {
+    else if (!chanName) {
 	/* we want to check if it is open */
 	/* but since stdin could be closed, we have to first */
 	/* get the fd and then convert it from 0 to 1 if necessary */
-	if (!(esPtr = expGetCurrentState(interp,0,0))) return(TCL_ERROR);
+	if (!(esPtr = expStateCurrent(interp,0,0,0))) return(TCL_ERROR);
     }
 
     if (esPtr) {
 	i = exp_new_i_simple(esPtr,EXP_TEMPORARY);
     } else {
-	i = exp_new_i_complex(interp,i_masters,FALSE,(Tcl_VarTraceProc *)0);
+	i = exp_new_i_complex(interp,chanName,FALSE,(Tcl_VarTraceProc *)0);
     }
 
 #define send_to_stderr	(clientData == &sendCD_error)
@@ -1936,25 +1895,24 @@ Tcl_Obj *CONST objv[];
 
     if (send_to_proc) {
 	want_cooked = FALSE;
-	debuglog("send: sending \"%s\" to {",dprintify(string));
+	expDiagLogU("send: sending \"");
+	expDiagLogU(expPrintify(string));
+	expDiagLogU("\" to {");
 	/* if closing brace doesn't appear, that's because an error */
 	/* was encountered before we could send it */
     } else {
-	if (debugfile)
-	    Tcl_WriteChars(debugfile, string, len);
-	if ((send_to_user && logfile_all) || logfile)
-	    Tcl_WriteChars(logfile, string, len);
+	expLogDiagU(string);
     }
 
     for (state_list=i->state_list;state_list;state_list=state_list->next) {
 	esPtr = state_list->esPtr;
 
 	if (send_to_proc) {
-	    debuglog(" %s ",esPtr->name);
+	    expDiagLog(" %s ",esPtr->name);
 	}
 
 	/* check validity of each - i.e., are they open */
-	if (0 == expCheckState(interp,esPtr,1,0,"send")) {
+	if (0 == expStateCheck(interp,esPtr,1,0,"send")) {
 	    rc = TCL_ERROR;
 	    goto finish;
 	}
@@ -1992,7 +1950,7 @@ Tcl_Obj *CONST objv[];
 	    goto finish;
 	}
     }
-    if (send_to_proc) debuglog("}\r\n");
+    if (send_to_proc) expDiagLogU("}\r\n");
 
     rc = TCL_OK;
  finish:
@@ -2003,198 +1961,100 @@ Tcl_Obj *CONST objv[];
 /*ARGSUSED*/
 static int
 Exp_LogFileCmd(clientData, interp, argc, argv)
-ClientData clientData;
-Tcl_Interp *interp;
-int argc;
-char **argv;
+    ClientData clientData;
+    Tcl_Interp *interp;
+    int argc;
+    char **argv;
 {
-	static Tcl_DString dstring;
-	static int first_time = TRUE;
-	static int current_append;	/* true if currently appending */
-	static char *openarg = 0;	/* Tcl file identifier from -open */
-	static int leaveopen = FALSE;	/* true if -leaveopen was used */
+    static char resultbuf[1000];
+    char *chanName = 0;
+    int leaveOpen = FALSE;
+    int logAll = FALSE;
+    int append = TRUE;
+    char *filename = 0;
 
-	int old_logfile_all = logfile_all;
-	FILE *old_logfile = logfile;
-	char *old_openarg = openarg;
-	int old_leaveopen = leaveopen;
-
-	int aflag = FALSE;
-	int append = TRUE;
-	char *filename = 0;
-	char *type;
-	FILE *writefilePtr;
-	int usage_error_occurred = FALSE;
-
-	openarg = 0;
-	leaveopen = FALSE;
-
-	if (first_time) {
-		Tcl_DStringInit(&dstring);
-		first_time = FALSE;
-	}
-
-
-#define usage_error	if (0) ; else {\
-				 usage_error_occurred = TRUE;\
-				 goto error;\
-			}
-
-	/* when this function returns, we guarantee that if logfile_all */
-	/* is TRUE, then logfile is non-zero */
-
-	argv++;
-	argc--;
-	for (;argc>0;argc--,argv++) {
-		if (streq(*argv,"-open")) {
-			if (!argv[1]) usage_error;
-			openarg = ckalloc(strlen(argv[1])+1);
-			strcpy(openarg,argv[1]);
-			argc--; argv++;
-		} else if (streq(*argv,"-leaveopen")) {
-			if (!argv[1]) usage_error;
-			openarg = ckalloc(strlen(argv[1])+1);
-			strcpy(openarg,argv[1]);
-			leaveopen = TRUE;
-			argc--; argv++;
-		} else if (streq(*argv,"-a")) {
-			aflag = TRUE;
-		} else if (streq(*argv,"-info")) {
-			if (logfile) {
-				if (logfile_all) strcat(interp->result,"-a ");
-				if (!current_append) strcat(interp->result,"-noappend ");
-				strcat(interp->result,Tcl_DStringValue(&dstring));
-			}
-			return TCL_OK;
-		} else if (streq(*argv,"-noappend")) {
-			append = FALSE;
-		} else break;
-	}
-
-	if (argc == 1) {
-		filename = argv[0];
-	} else if (argc > 1) {
-		/* too many arguments */
-		usage_error
-	} 
-
-	if (openarg && filename) {
-		usage_error
-	}
-	if (aflag && !(openarg || filename)) {
-		usage_error
-	}
-	if (current_append && (openarg || filename)) {
-		exp_error(interp,"cannot start logging without first stopping logging");
-		return TCL_ERROR;
-	}
-
-	logfile = 0;
-	logfile_all = aflag;
-
-	current_append = append;
-
-	type = (append?"a":"w");
-
-	if (filename) {
-		filename = Tcl_TildeSubst(interp,filename,&dstring);
-		if (filename == NULL) {
-			goto error;
+    argv++;
+    argc--;
+    for (;argc>0;argc--,argv++) {
+	if (streq(*argv,"-open")) {
+	    if (!argv[1]) goto usage_error;
+	    chanName = argv[1];
+	    argc--; argv++;
+	} else if (streq(*argv,"-leaveopen")) {
+	    if (!argv[1]) goto usage_error;
+	    chanName = argv[1];
+	    leaveOpen = TRUE;
+	    argc--; argv++;
+	} else if (streq(*argv,"-a")) {
+	    logAll = TRUE;
+	} else if (streq(*argv,"-info")) {
+	    resultbuf[0] = '\0';
+	    if (expLogChannelGet()) {
+		if (expLogAllGet()) strcat(resultbuf,"-a ");
+		if (!expLogAppendGet()) strcat(resultbuf,"-noappend ");
+		if (expLogFilename()) {
+		    strcat(resultbuf,expLogFilenameGet());
 		} else {
-			/* Tcl_TildeSubst doesn't store into dstring */
-			/* if no ~, so force string into dstring */
-			/* this is only needed so that next time around */
-			/* we can get dstring for -info if necessary */
-			if (Tcl_DStringValue(&dstring)[0] == '\0') {
-				Tcl_DStringAppend(&dstring,filename,-1);
-			}
+		    if (expLogLeaveOpen()) {
+			strcat(resultbuf,"-leaveopen ");
+		    }
+		    strcat(resultbuf,Tcl_GetChannelName(expLogChannelGet()));
 		}
+		Tcl_SetResult(interp,resultbuf,TCL_STATIC);
+	    }
+	    return TCL_OK;
+	} else if (streq(*argv,"-noappend")) {
+	    append = FALSE;
+	} else break;
+    }
+    
+    if (argc == 1) {
+	filename = argv[0];
+    } else if (argc > 1) {
+	/* too many arguments */
+	goto usage_error;
+    } 
+    
+    if (chanName && filename) {
+	goto usage_error;
+    }
 
-		errno = 0;
-		if (NULL == (logfile = fopen(filename,type))) {
-			char *msg;
-
-			if (errno == 0) {
-				msg = open_failed;
-			} else {
-				msg = Tcl_PosixError(interp);
-			}
-			exp_error(interp,"%s: %s",filename,msg);
-			Tcl_DStringFree(&dstring);
-			goto error;
-		}
-	} else if (openarg) {
-		int cc;
-		int fd;
-		Tcl_Channel chan;
-		int mode;
-
-		Tcl_DStringTrunc(&dstring,0);
-
-		if (!(chan = Tcl_GetChannel(interp,openarg,&mode))) {
-			return TCL_ERROR;
-		}
-		if (!(mode & TCL_WRITABLE)) {
-			exp_error(interp,"channel is not writable");
-		}
-		if (TCL_ERROR == Tcl_GetChannelHandle(chan, TCL_WRITABLE, (ClientData) &fd)) {
-			goto error;
-		}
-		fd = dup(fd);
-		if (!(logfile = fdopen(fd,type))) {
-			exp_error(interp,"fdopen: %s",Tcl_PosixError(interp));
-			close(fd);
-			goto error;
-		}
-
-		if (leaveopen) {
-			Tcl_DStringAppend(&dstring,"-leaveopen ",-1);
-		} else {
-			Tcl_DStringAppend(&dstring,"-open ",-1);
-		}
-		Tcl_DStringAppend(&dstring,openarg,-1);
-
-		/*
-		 * It would be convenient now to tell Tcl to close its
-		 * file descriptor.  Alas, if involved in a pipeline, Tcl
-		 * will be unable to complete a wait on the process.
-		 * So simply remember that we meant to close it.  We will
-		 * do so later in our own close routine.
-		 */
+    /* check if user merely wants to change logAll (-a) */
+    if (expLogChannelGet() && (chanName || filename)) {
+	if (filename && (0 == strcmp(filename,expLogFilenameGet()))) {
+	    expLogAllSet(logAll);
+	    return TCL_OK;
+	} else if (chanName && (0 == strcmp(filename,Tcl_GetChannelName(expLogChannelGet())))) {
+	    expLogAllSet(logAll);
+	    return TCL_OK;
+	} else {
+	    exp_error(interp,"cannot start logging without first stopping logging");
+	    return TCL_ERROR;
 	}
-	if (logfile) {
-		setbuf(logfile,(char *)0);
-		exp_close_on_exec(fileno(logfile));
+    }
+
+    if (filename) {
+	if (TCL_ERROR == expLogChannelOpen(interp,filename,append)) {
+	    return TCL_ERROR;
 	}
-
-	if (old_logfile) {
-		fclose(old_logfile);
+    } else if (chanName) {
+	if (TCL_ERROR == expLogChannelSet(interp,openarg)) {
+	    return TCL_ERROR;
 	}
-
-	if (old_openarg) {
-		if (!old_leaveopen) {
-			close_tcl_file(interp,old_openarg);
-		}
-		ckfree((char *)old_openarg);
+    } else {
+	expLogCloseChannel();
+	if (logAll) {
+	    exp_error(interp,"cannot use -a without a file or channel");
+	    return TCL_ERROR;
 	}
+    }
+    expLogAllSet(logAll);
 
-	return TCL_OK;
+    return TCL_OK;
 
- error:
-	if (old_logfile) {
-		logfile = old_logfile;
-		logfile_all = old_logfile_all;
-	}
-
-	if (openarg) ckfree(openarg);
-	openarg = old_openarg;
-	leaveopen = old_leaveopen;
-
-	if (usage_error_occurred) {
-		exp_error(interp,"usage: log_file [-info] [-noappend] [[-a] file] [-[leave]open [open ...]]");
-	}
-
-	return TCL_ERROR;
+ usage_error:
+    exp_error(interp,"usage: log_file [-info] [-noappend] [[-a] file] [-[leave]open [open ...]]");
+    return TCL_ERROR;
 }
 
 /*ARGSUSED*/
@@ -2205,20 +2065,19 @@ Tcl_Interp *interp;
 int argc;
 char **argv;
 {
-	int old_loguser = loguser;
+    int old_loguser = expLogUserGet();
 
-	if (argc == 0 || (argc == 2 && streq(argv[1],"-info"))) {
-		/* do nothing */
-	} else if (argc == 2) {
-		if (0 == atoi(argv[1])) loguser = FALSE;
-		else loguser = TRUE;
-	} else {
-		exp_error(interp,"usage: [-info|1|0]");
-	}
+    if (argc == 0 || (argc == 2 && streq(argv[1],"-info"))) {
+	/* do nothing */
+    } else if (argc == 2) {
+	expLogUserSet(atoi(argv[1]);
+    } else {
+	exp_error(interp,"usage: [-info|1|0]");
+    }
 
-	sprintf(interp->result,"%d",old_loguser);
+    sprintf(interp->result,"%d",old_loguser);
 
-	return(TCL_OK);
+    return(TCL_OK);
 }
 
 #ifdef TCL_DEBUGGER
@@ -2230,47 +2089,48 @@ Tcl_Interp *interp;
 int argc;
 char **argv;
 {
-	int now = FALSE;	/* soon if FALSE, now if TRUE */
-	int exp_tcl_debugger_was_available = exp_tcl_debugger_available;
+    int now = FALSE;	/* soon if FALSE, now if TRUE */
+    int exp_tcl_debugger_was_available = exp_tcl_debugger_available;
 
-	if (argc > 3) goto usage;
+    if (argc > 3) goto usage;
 
-	if (argc == 1) {
-		sprintf(interp->result,"%d",exp_tcl_debugger_available);
-		return TCL_OK;
+    if (argc == 1) {
+	sprintf(interp->result,"%d",exp_tcl_debugger_available);
+	return TCL_OK;
+    }
+
+    argv++;
+
+    while (*argv) {
+	if (streq(*argv,"-now")) {
+	    now = TRUE;
+	    argv++;
 	}
+	else break;
+    }
 
-	argv++;
-
-	while (*argv) {
-		if (streq(*argv,"-now")) {
-			now = TRUE;
-			argv++;
-		}
-		else break;
-	}
-
-	if (!*argv) {
-		if (now) {
-			Dbg_On(interp,1);
-			exp_tcl_debugger_available = 1;
-		} else {
-			goto usage;
-		}
-	} else if (streq(*argv,"0")) {
-		Dbg_Off(interp);
-		exp_tcl_debugger_available = 0;
+    if (!*argv) {
+	if (now) {
+	    Dbg_On(interp,1);
+	    exp_tcl_debugger_available = 1;
 	} else {
-		Dbg_On(interp,now);
-		exp_tcl_debugger_available = 1;
+	    goto usage;
 	}
-	sprintf(interp->result,"%d",exp_tcl_debugger_was_available);
-	return(TCL_OK);
+    } else if (streq(*argv,"0")) {
+	Dbg_Off(interp);
+	exp_tcl_debugger_available = 0;
+    } else {
+	Dbg_On(interp,now);
+	exp_tcl_debugger_available = 1;
+    }
+    sprintf(interp->result,"%d",exp_tcl_debugger_was_available);
+    return(TCL_OK);
  usage:
-	exp_error(interp,"usage: [[-now] 1|0]");
-	return TCL_ERROR;
+    exp_error(interp,"usage: [[-now] 1|0]");
+    return TCL_ERROR;
 }
 #endif
+
 
 /*ARGSUSED*/
 static int
@@ -2280,78 +2140,47 @@ Tcl_Interp *interp;
 int argc;
 char **argv;
 {
-	static Tcl_DString dstring;
-	static int first_time = TRUE;
-	int fopened = FALSE;
+    int newChannel = FALSE;
+    Tcl_Channel oldChannel;
+    static char resultbuf[1000];
 
-	if (first_time) {
-		Tcl_DStringInit(&dstring);
-		first_time = FALSE;
+    if ((argc > 1) && streq(Tcl_GetString(argv[1]),"-info")) {
+	resultbuf[0] = '\0';
+	oldChannel = expDiagChannel();
+	if (oldChannel) {
+	    sprintf(resultbuf,"-f %s ",expDiagFilename());
 	}
+	strcat(resultbuf,expDiagToStderrGet()?"1":"0");
+	Tcl_SetResult(interp,resultbuf,TCL_STATIC);
+	return TCL_OK;
+    }
 
-	if (argc > 1 && streq(argv[1],"-info")) {
-		if (debugfile) {
-			sprintf(interp->result,"-f %s ",
-				Tcl_DStringValue(&dstring));
-		}
-		strcat(interp->result,((exp_is_debugging==0)?"0":"1"));
-		return TCL_OK;
+    argv++;
+    argc--;
+
+    while (argc) {
+	if (!streq(*argv,"-f")) break;
+	argc--;argv++;
+	if (argc < 1) goto usage;
+	expDiagChannelClose();
+	if (TCL_OK != expDiagChannelOpen(interp,argv[0])) {
+	    return TCL_ERROR;
 	}
+	newChannel = TRUE;
+	argc--;argv++;
+    }
 
-	argv++;
-	argc--;
-	while (argc) {
-		if (!streq(*argv,"-f")) break;
-		argc--;argv++;
-		if (argc < 1) goto usage;
-		if (debugfile) fclose(debugfile);
-		argv[0] = Tcl_TildeSubst(interp, argv[0],&dstring);
-		if (argv[0] == NULL) goto error;
-		else {
-			/* Tcl_TildeSubst doesn't store into dstring */
-			/* if no ~, so force string into dstring */
-			/* this is only needed so that next time around */
-			/* we can get dstring for -info if necessary */
-			if (Tcl_DStringValue(&dstring)[0] == '\0') {
-				Tcl_DStringAppend(&dstring,argv[0],-1);
-			}
-		}
-
-		errno = 0;
-		if (NULL == (debugfile = fopen(*argv,"a"))) {
-			char *msg;
-
-			if (errno == 0) {
-				msg = open_failed;
-			} else {
-				msg = Tcl_PosixError(interp);
-			}
-
-			exp_error(interp,"%s: %s",*argv,msg);
-			goto error;
-		}
-		setbuf(debugfile,(char *)0);
-		exp_close_on_exec(fileno(debugfile));
-		fopened = TRUE;
-		argc--;argv++;
-	}
-
-	if (argc != 1) goto usage;
-
-	/* if no -f given, close file */
-	if (fopened == FALSE && debugfile) {
-		fclose(debugfile);
-		debugfile = 0;
-		Tcl_DStringFree(&dstring);
-	}
-
-	exp_is_debugging = atoi(*argv);
-	return(TCL_OK);
+    if (argc != 1) goto usage;
+    
+    /* if no -f given, close file */
+    if (!newChannel) {
+	expDiagChannelClose();
+    }
+    expDiagToStderrSet(atoi(*argv));
+    return(TCL_OK);
  usage:
-	exp_error(interp,"usage: [-f file] expr");
- error:
-	Tcl_DStringFree(&dstring);
-	return TCL_ERROR;
+    exp_error(interp,"usage: [-f file] 0|1");
+    return TCL_ERROR;
 }
 
 char *exp_onexit_action = 0;
@@ -2415,26 +2244,25 @@ Tcl_Obj *CONST objv[];	/* Argument objects. */
     Tcl_Obj *CONST *objv_orig = objv;
 
     objc--; objv++;
-#define STARARGV Tcl_GetStringFromObj(*argv,(int *)0)
 
-    for (;objc>0;objc--,argv++) {
-	if (streq("-i",STARARGV)) {
-	    objc--; argv++;
+    for (;objc>0;objc--,objv++) {
+	if (streq("-i",Tcl_GetString(*objv))) {
+	    objc--; objv++;
 	    if (objc == 0) {
 		exp_error(interp,"usage: -i spawn_id");
 		return(TCL_ERROR);
 	    }
-	    chanName = STARARGV;
-	} else if (streq(STARARGV,"-slave")) {
+	    chanName = Tcl_GetString(*objv);
+	} else if (streq(Tcl_GetString(*objv),"-slave")) {
 	    slave_flag = TRUE;
-	} else if (streq(STARARGV,"-onexec")) {
-	    objc--; argv++;
+	} else if (streq(Tcl_GetString(*objv),"-onexec")) {
+	    objc--; objv++;
 	    if (objc == 0) {
 		exp_error(interp,"usage: -onexec 0|1");
 		return(TCL_ERROR);
 	    }
 	    onexec_flag = TRUE;
-	    close_onexec = atoi(STARARGV);
+	    close_onexec = atoi(Tcl_GetString(*objv));
 	} else break;
     }
 
@@ -2449,13 +2277,13 @@ Tcl_Obj *CONST objv[];	/* Argument objects. */
 	if (0 == Tcl_GetCommandInfo(interp,"close",&info)) {
 	    info.clientData = 0;
 	}
-	return(Tcl_CloseObjCmd(info.clientData,interp,objc_orig,argv_orig));
+	return(Tcl_CloseObjCmd(info.clientData,interp,objc_orig,objv_orig));
     }
 
     if (chanName) {
-	if (!(esPtr = expGetStateFromChannelName(interp,chanName,1,0,"close"))) return TCL_ERROR;
+	if (!(esPtr = expStateFromChannelName(interp,chanName,1,0,0,"close"))) return TCL_ERROR;
     } else {
-	if (!(esPtr = expGetCurrentState(interp,1,0))) return TCL_ERROR;
+	if (!(esPtr = expStateCurrent(interp,1,0,0))) return TCL_ERROR;
     }
 
     if (slave_flag) {
@@ -2496,10 +2324,11 @@ char *argv[];
 {
 	int i;
 
-	/* come out on stderr, by using errorlog */
-	errorlog("%2d",level);
+	/* come out on stderr, by using expErrorLog */
+	expErrorLog("%2d",level);
 	for (i = 0;i<level;i++) exp_nferrorlog("  ",0/*ignored - satisfy lint*/);
-	errorlog("%s\r\n",command);
+	expErrorLogU(command);
+	expErrorLogU("\r\n");
 }
 
 /*ARGSUSED*/
@@ -2688,14 +2517,12 @@ char **argv;
     }
 
     if (!chanName) {
-	if (!(esPtr = expGetCurrentState(interp,0,0))) return TCL_ERROR;
+	if (!(esPtr = expStateCurrent(interp,0,0,1))) return TCL_ERROR;
     } else {
-	if (!(esPtr = expGetChannel(interp,chanName))) return TCL_ERROR;
+	if (!(esPtr = expStateFromChannelName(interp,0,0,1,"wait"))) return TCL_ERROR;
     }
 
-    if (!expIsStateAny(esPtr)) {
-	if (0 == expCheckState(interp,esPtr,0,0,"wait")) return TCL_ERROR;
-
+    if (!expStateAnyIs(esPtr)) {
 	/* check if waited on already */
 	/* things opened by "open" or set with -nowait */
 	/* are marked sys_waited already */
@@ -2815,14 +2642,15 @@ char **argv;
     esPtr->sys_waited = TRUE;
     esPtr->user_waited = TRUE;
 
-    /* if user has already called close, make sure fd really is closed */
-    /* and forget about this entry entirely */
-    if (esPtr->user_closed) {
-	if (!esPtr->sys_closed) {
-	    expSysClose(esPtr);
-	}
+    /* If user hasn't already called close, do so on their behalf */
+    /* If they have, this is just a no-op */
+    exp_close(interp,esPtr);
+
+    if (esPtr->registered) {
 	Tcl_UnregisterChannel(interp,esPtr->channel);
+	esPtr->registered = 0;
     }
+
     return ((result == -1)?TCL_ERROR:TCL_OK);
 }
 
@@ -2856,7 +2684,7 @@ char **argv;
 
 	/* both child and parent follow remainder of code */
 	sprintf(interp->result,"%d",rc);
-	debuglog("fork: returns {%s}\r\n",interp->result);
+	expDiagLog("fork: returns {%s}\r\n",interp->result);
 	return(TCL_OK);
 }
 
@@ -2912,7 +2740,7 @@ char **argv;
 	}
     if (isatty(2)) {
 	/* reopen stderr saves error checking in error/log routines. */
-	exp_close(interp,ExpDevtty());
+	exp_close(interp,ExpGetDevtty());
 	open("/dev/null",1);
 	tsdPtr->devtty = expCreateChannel(2,2,EXP_NOPID);
     }
@@ -2988,9 +2816,9 @@ char **argv;
 		}
 		oldfd = atoi(argv[0]);
 		argc--; argv++;
-		debuglog("overlay: mapping fd %d to %d\r\n",oldfd,newfd);
+		expDiagLog("overlay: mapping fd %d to %d\r\n",oldfd,newfd);
 		if (oldfd != newfd) (void) dup2(oldfd,newfd);
-		else debuglog("warning: overlay: old fd == new fd (%d)\r\n",oldfd);
+		else expDiagLog("warning: overlay: old fd == new fd (%d)\r\n",oldfd);
 	}
 	if (argc == 0) {
 		exp_error(interp,"need program name");
@@ -3095,9 +2923,9 @@ char **argv;
     }
 
     if (!chanName) {
-	if (!(esPtr = expGetCurrentState(interp,0,0))) return TCL_ERROR;
+	if (!(esPtr = expStateCurrent(interp,1,0,0))) return TCL_ERROR;
     } else {
-	if (!(esPtr = expGetStateFromChannelName(interp,chanName,0,0,"exp_open")))
+	if (!(esPtr = expStateFromChannelName(interp,chanName,1,0,0,"exp_open")))
 return TCL_ERROR;
     }
 
@@ -3217,11 +3045,11 @@ void
 exp_init_most_cmds(interp)
 Tcl_Interp *interp;
 {
-	exp_create_commands(interp,cmd_data);
+    exp_create_commands(interp,cmd_data);
 
 #ifdef HAVE_PTYTRAP
-	Tcl_InitHashTable(&slaveNames,TCL_STRING_KEYS);
+    Tcl_InitHashTable(&slaveNames,TCL_STRING_KEYS);
 #endif /* HAVE_PTYTRAP */
 
-	exp_close_in_child = exp_close_tcl_files;
+    exp_close_in_child = exp_close_tcl_files;
 }

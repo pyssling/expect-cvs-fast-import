@@ -1,3 +1,4 @@
+#if 0 /* WHOLE FILE */
 /* exp_printify - printable versions of random ASCII strings
 
 Written by: Don Libes, NIST, 2/6/90
@@ -56,3 +57,4 @@ char *s;
 	*d = '\0';
 	return(dest);
 }
+#endif /* WHOLE FILE */

@@ -2,28 +2,46 @@
 
 #include "exp_printify.h"
 
-/* special version of log for non-null-terminated strings which */
-/* never need printf-style formatting. */
-#define logn(buf,length)  { \
-			  if (logfile) fwrite(buf,1,length,logfile); \
-			  if (debugfile) fwrite(buf,1,length,debugfile); \
-			  }
+extern void		expErrorLog _ANSI_ARGS_(TCL_VARARGS(char *,fmt));
+extern void		expErrorLogU _ANSI_ARGS_((char *buf, int force_stdout));
 
-#define dprintify(x)	((is_debugging || debugfile)?exp_printify(x):0)
-#define dprintifyobj(x)	((is_debugging || debugfile)?exp_printify(Tcl_GetString(x)):0)
-/* in circumstances where "debuglog(printify(...))" is written, call */
-/* dprintify instead.  This will avoid doing any formatting that would */
-/* occur before debuglog got control and decided not to do anything */
-/* because (is_debugging || debugfile) was false. */
+extern void		expStdoutLog _ANSI_ARGS_(TCL_VARARGS(int,force_stdout));
+extern void		expStdoutLogU _ANSI_ARGS_((char *buf, int force_stdout));
 
-extern void exp_errorlog _ANSI_ARGS_(TCL_VARARGS(char *,fmt));
-extern void exp_log _ANSI_ARGS_(TCL_VARARGS(int,force_stdout));
-extern void exp_debuglog _ANSI_ARGS_(TCL_VARARGS(char *,fmt));
-extern void exp_nflog _ANSI_ARGS_((char *buf, int force_stdout));
-extern void exp_nferrorlog _ANSI_ARGS_((char *buf, int force_stdout));
+EXTERN void		expDiagInit _ANSI_ARGS_((void));
+EXTERN int		expDiagChannelOpen _ANSI_ARGS_((Tcl_Interp *,char *));
+EXTERN Tcl_Channel	expDiagChannelGet _ANSI_ARGS_((void));
+EXTERN void		expDiagChannelClose _ANSI_ARGS_((void));
+EXTERN char *		expDiagFilename _ANSI_ARGS_((void));
+EXTERN int		expDiagToStderrGet _ANSI_ARGS_((void));
+EXTERN void		expDiagToStderrSet _ANSI_ARGS_((int));
+EXTERN void		expDiagWriteBytes _ANSI_ARGS_((char *));
+EXTERN void		expDiagWriteChars _ANSI_ARGS_((char *));
+EXTERN void		expDiagWriteObj _ANSI_ARGS_((Tcl_Object *));
+EXTERN void		expDiagLog _ANSI_ARGS_(TCL_VARARGS(char *,fmt));
+EXTERN void		expDiagLogU _ANSI_ARGS_((char *));
 
-extern FILE *debugfile;
-extern FILE *logfile;
-extern int logfile_all;
+EXTERN void		expPrintify _ANSI_ARGS_((char *));
+EXTERN void		expPrintifyObj _ANSI_ARGS_((Tcl_Obj *));
 
-extern int is_debugging;	/* useful to know for avoid debug calls */
+EXTERN void		expLogInit _ANSI_ARGS_((void));
+EXTERN int		expLogChannelOpen _ANSI_ARGS_((Tcl_Interp *,char *));
+EXTERN Tcl_Channel 	expLogChannelGet _ANSI_ARGS_((void));
+EXTERN void		expLogChannelSet _ANSI_ARGS_((Tcl_Channel));
+EXTERN void		expLogChannelClose _ANSI_ARGS_((void));
+EXTERN char *		expLogFilenameGet _ANSI_ARGS_((void));
+EXTERN void		expLogAppendSet _ANSI_ARGS_((int));
+EXTERN int		expLogAppendGet _ANSI_ARGS_((void));
+EXTERN void		expLogLeaveOpenSet _ANSI_ARGS_((int));
+EXTERN int		expLogLeaveOpenGet _ANSI_ARGS_((void));
+EXTERN void		expLogAllSet _ANSI_ARGS_((int));
+EXTERN int		expLogAllGet _ANSI_ARGS_((void));
+EXTERN void		expLogToStdoutSet _ANSI_ARGS_((int));
+EXTERN int		expLogToStdoutGet _ANSI_ARGS_((void));
+EXTERN void		expLogDiagU _ANSI_ARGS_((char *));
+EXTERN void		expWriteBytesAndLogIfTtyU _ANSI_ARGS_((ExpState *,char *,int));
+
+EXTERN int		expLogUserGet _ANSI_ARGS_((void));
+EXTERN void		expLogUserSet _ANSI_ARGS_((int));
+
+EXTERN void		expLogInteractionU _ANSI_ARGS_((ExpState *,char *));
