@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinConsoleDebugger.cpp,v 1.1.2.9 2002/03/12 07:09:36 davygrvy Exp $
+ * RCS: @(#) $Id: expWinConsoleDebugger.cpp,v 1.1.2.10 2002/03/12 18:14:59 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -1612,4 +1612,15 @@ ConsoleDebugger::LoadedModule(Process *proc, HANDLE hFile, LPVOID modname,
     proc->moduleTable.Add(baseAddr, modPtr);
 
     return known;
+}
+
+void
+ConsoleDebugger::WriteMaster(CHAR *buf, DWORD len)
+{
+    Message *msg;
+    msg = new Message;
+    msg->bytes = (BYTE *) _strdup(buf);
+    msg->length = len;
+    msg->type = Message::TYPE_NORMAL;
+    mQ.Put(msg);
 }

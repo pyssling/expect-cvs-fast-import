@@ -91,34 +91,6 @@ LINK32=link.exe
 SOURCE=.\expWinSlave.hpp
 # End Source File
 # End Group
-# Begin Group "genheaders"
-
-# PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=..\generic\exp.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\generic\expInt.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\generic\expIntDecls.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\generic\expIntPlatDecls.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\generic\expPlatDecls.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\expWinPort.h
-# End Source File
-# End Group
 # Begin Source File
 
 SOURCE=.\expWinConsoleDebugger.cpp

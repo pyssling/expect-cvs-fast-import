@@ -24,7 +24,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinConsoleDebuggerBreakPoints.cpp,v 1.1.2.7 2002/03/09 05:48:50 davygrvy Exp $
+ * RCS: @(#) $Id: expWinConsoleDebuggerBreakPoints.cpp,v 1.1.2.8 2002/03/12 07:09:36 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -55,7 +55,6 @@ ConsoleDebugger::CreateVtSequence(Process *proc, COORD newPos, DWORD n)
     COORD oldPos;
     CHAR buf[2048];
     DWORD count;
-//    BOOL b;
 
     if (n == 0) {
 	return;
@@ -76,7 +75,7 @@ ConsoleDebugger::CreateVtSequence(Process *proc, COORD newPos, DWORD n)
     newPos.Y += (SHORT) (n / ConsoleSize.X);
     CursorPosition = newPos;
 
-//    b = ExpWriteMaster(UseSocket, HMaster, buf, count, &proc->overlapped);
+    WriteMaster(buf, count);
 }
 
 /*
@@ -110,8 +109,8 @@ ConsoleDebugger::OnBeep(Process *proc, ThreadInfo *threadInfo,
 	threadInfo->args[1] = 0;
     } else if (direction == BREAK_OUT) {
 	if (*returnValue == 0) {
-	    buf[0] = 7; /* ASCII beep */
-//	    ExpWriteMaster(UseSocket, HMaster, buf, 1, &proc->overlapped);
+	    buf[0] = 7; // ASCII beep
+	    WriteMaster(buf, 1);
 	}
     }
 }
@@ -144,7 +143,6 @@ ConsoleDebugger::OnFillConsoleOutputCharacter(Process *proc,
     PVOID ptr;
     DWORD i;
     DWORD len;
-//    BOOL bRet;
     COORD coord;
     DWORD lines, preCols, postCols;
     BOOL eol, bol;		// Needs clearing to end, beginning of line
@@ -266,8 +264,7 @@ ConsoleDebugger::OnFillConsoleOutputCharacter(Process *proc,
 	bufpos += strlen(&buf[bufpos]);
 	CursorKnown = TRUE;
     }
-
-//    bRet = ExpWriteMaster(UseSocket, HMaster, buf, bufpos, &proc->overlapped);
+    WriteMaster(buf, bufpos);
 }
 
 /*
@@ -425,7 +422,6 @@ ConsoleDebugger::OnScrollConsoleScreenBuffer(Process *proc,
     ThreadInfo *threadInfo, Breakpoint *brkpt, PDWORD returnValue,
     DWORD direction)
 {
-//    BOOL b;
     CHAR buf[100];
     DWORD count = 0;
     SMALL_RECT scroll, clip, *pClip;
@@ -467,7 +463,7 @@ ConsoleDebugger::OnScrollConsoleScreenBuffer(Process *proc,
 	count = strlen(&buf[count]);
 	wsprintf(&buf[count], "\033[%d;%dr", 1, ConsoleSize.Y);
 	count += strlen(&buf[count]);
-//	b = ExpWriteMaster(UseSocket, HMaster, buf, count, &proc->overlapped);
+	WriteMaster(buf, count);
     } else {
 //	RefreshScreen(&proc->overlapped);
     }
@@ -565,7 +561,6 @@ ConsoleDebugger::OnSetConsoleCursorPosition(Process *proc,
     ThreadInfo *threadInfo, Breakpoint *brkpt, PDWORD returnValue,
     DWORD direction)
 {
-//    BOOL b;
     CHAR buf[50];
     DWORD count;
 
@@ -576,7 +571,7 @@ ConsoleDebugger::OnSetConsoleCursorPosition(Process *proc,
 
     wsprintfA(buf, "\033[%d;%dH", CursorPosition.Y+1, CursorPosition.X+1);
     count = strlen(buf);
-//    b = ExpWriteMaster(UseSocket, HMaster, buf, count, &proc->overlapped);
+    WriteMaster(buf, count);
 }
 
 /*
@@ -629,7 +624,6 @@ ConsoleDebugger::OnWriteConsoleA(Process *proc, ThreadInfo *threadInfo,
     PVOID ptr;
     DWORD n;
     PCHAR p;
-//    BOOL bRet;
 
     if (*returnValue == 0) {
 	return;
@@ -650,8 +644,7 @@ ConsoleDebugger::OnWriteConsoleA(Process *proc, ThreadInfo *threadInfo,
     ptr = (PVOID) threadInfo->args[1];
     ReadSubprocessMemory(proc, ptr, p, n * sizeof(CHAR));
 //    ResetEvent(proc->overlapped.hEvent);
-
-//    bRet = ExpWriteMaster(UseSocket, HMaster, p, n, &proc->overlapped);
+    WriteMaster(p, n);
 
     if (p != buf) {
 	delete [] p;
@@ -687,7 +680,6 @@ ConsoleDebugger::OnWriteConsoleW(Process *proc, ThreadInfo *threadInfo,
     PWCHAR p;
     PCHAR a;
     int asize;
-//    BOOL bRet;
     int w;
 
     if (*returnValue == 0) {
@@ -712,7 +704,7 @@ ConsoleDebugger::OnWriteConsoleW(Process *proc, ThreadInfo *threadInfo,
     // Convert to ASCII and write the intercepted data to the pipe.
     //
     w = WideCharToMultiByte(CP_ACP, 0, p, n, a, asize, 0L, 0L);
-//    bRet = ExpWriteMaster(UseSocket, HMaster, a, w, &proc->overlapped);
+    WriteMaster(a, w);
 
     if (p != buf) {
 	delete [] p, a;
@@ -748,7 +740,6 @@ ConsoleDebugger::OnWriteConsoleOutputA(Process *proc,
     DWORD n;
     CHAR *p, *end;
     int maxbuf;
-//    BOOL b;
     COORD bufferSize;
     COORD bufferCoord;
     COORD curr;
@@ -791,7 +782,7 @@ ConsoleDebugger::OnWriteConsoleOutputA(Process *proc,
 	    *p++ = pcb->Char.AsciiChar;
 	    if (p == end) {
 //		ResetEvent(proc->overlapped.hEvent);
-//		b = ExpWriteMaster(UseSocket, HMaster, buf, maxbuf, &proc->overlapped);
+		WriteMaster(buf, maxbuf);
 		p = buf;
 	    }
 	}
@@ -802,7 +793,7 @@ ConsoleDebugger::OnWriteConsoleOutputA(Process *proc,
 //	ResetEvent(proc->overlapped.hEvent);
 
 	maxbuf = p - buf;
-//	b = ExpWriteMaster(UseSocket, HMaster, buf, maxbuf, &proc->overlapped);
+	WriteMaster(buf, maxbuf);
 	buf[maxbuf] = 0;
     }
 
@@ -837,7 +828,6 @@ ConsoleDebugger::OnWriteConsoleOutputW(Process *proc,
     DWORD n;
     WCHAR *p, *end;
     int maxbuf;
-//    BOOL b;
     COORD bufferSize;
     COORD bufferCoord;
     COORD curr;
@@ -880,7 +870,7 @@ ConsoleDebugger::OnWriteConsoleOutputW(Process *proc,
 	    *p++ = (CHAR) (pcb->Char.UnicodeChar & 0xff);
 	    if (p == end) {
 //		ResetEvent(proc->overlapped.hEvent);
-//		b = ExpWriteMaster(UseSocket, HMaster, buf, maxbuf, &proc->overlapped);
+		WriteMaster((char *)buf, maxbuf);
 		p = buf;
 	    }
 	}
@@ -891,11 +881,8 @@ ConsoleDebugger::OnWriteConsoleOutputW(Process *proc,
 //	ResetEvent(proc->overlapped.hEvent);
 
 	maxbuf = p - buf;
-//	b = ExpWriteMaster(UseSocket, HMaster, buf, maxbuf, &proc->overlapped);
+	WriteMaster((char *)buf, maxbuf);
 	buf[maxbuf] = 0;
-#if 0
-	ExpSyslog("Writing %s", buf);
-#endif
     }
 
     delete [] charBuf;
@@ -927,7 +914,6 @@ ConsoleDebugger::OnWriteConsoleOutputCharacterA(Process *proc,
     PVOID ptr;
     DWORD n;
     PCHAR p;
-//    BOOL b;
 
     if (*returnValue == 0) {
 	return;
@@ -952,7 +938,7 @@ ConsoleDebugger::OnWriteConsoleOutputCharacterA(Process *proc,
     ReadSubprocessMemory(proc, ptr, p, n * sizeof(CHAR));
 //    ResetEvent(proc->overlapped.hEvent);
 
-//    b = ExpWriteMaster(UseSocket, HMaster, p, n, &proc->overlapped);
+    WriteMaster(p, n);
 
     if (p != buf) {
 	delete [] p;
@@ -989,7 +975,6 @@ ConsoleDebugger::OnWriteConsoleOutputCharacterW(Process *proc,
     PWCHAR p;
     PCHAR a;
     int asize;
-//    BOOL b;
     int w;
 
     if (*returnValue == 0) {
@@ -1021,7 +1006,7 @@ ConsoleDebugger::OnWriteConsoleOutputCharacterW(Process *proc,
 
     // Convert to ASCI and Write the intercepted data to the pipe.
     w = WideCharToMultiByte(CP_ACP, 0, p, n, a, asize, 0L, 0L);
-//    b = ExpWriteMaster(UseSocket, HMaster, a, w, &proc->overlapped);
+    WriteMaster(a, w);
 
     if (p != buf) {
 	delete [] p, a;

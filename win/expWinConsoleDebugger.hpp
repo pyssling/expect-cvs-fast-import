@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinConsoleDebugger.hpp,v 1.1.2.12 2002/03/12 07:59:14 davygrvy Exp $
+ * RCS: @(#) $Id: expWinConsoleDebugger.hpp,v 1.1.2.13 2002/03/12 18:14:59 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -219,6 +219,9 @@ private:
     int ReadSubprocessStringW	(Process *, PVOID, PWCHAR, int);
     void CreateVtSequence	(Process *, COORD, DWORD);
 
+    // send info back to the parent
+    void WriteMaster		(CHAR *, DWORD);
+
     // The arrays of functions where we set breakpoints
     //
     BreakInfo	    BreakArrayKernel32[20];
@@ -238,7 +241,7 @@ private:
     int		argc;		// Debugee process commandline count
     char * const * argv;	// Debugee process commandline args
 
-    // Thread-safe message queue used for communication back to Expect.
+    // Thread-safe message queue used for communication back to the parent.
     CMclQueue<Message *> &mQ;
 };
 

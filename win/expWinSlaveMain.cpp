@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinSlaveMain.cpp,v 1.1.4.13 2002/03/12 22:36:44 davygrvy Exp $
+ * RCS: @(#) $Id: expWinSlaveMain.cpp,v 1.1.4.14 2002/03/12 23:12:59 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -64,7 +64,7 @@ main (void)
     cmdLine = OurGetCmdLine();
 
     //  Use our custom commandline parser to overcome bugs in the default
-    //  crt library.
+    //  crt library as well as allowing us to hook into a GetCommandLine().
     //
     SetArgv(cmdLine, &argc, &argv);
 
@@ -171,7 +171,7 @@ DoEvents(SpawnClientTransport *transport,
 	    break;
 
 	case Message::TYPE_INSTREAM:
-	    //  Send data into the slave.
+	    //  Send stuff to the slave.
 	    //
 	    slaveCtrl->Write(msg);
 	    break;
