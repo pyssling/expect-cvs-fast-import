@@ -361,7 +361,6 @@ ExpState *esPtr;
 
     if (esPtr->user_waited) {
 	if (esPtr->registered) {
-	    esPtr->registered = 0;
 	    Tcl_UnregisterChannel(interp,esPtr->channel);
 	    /* at this point esPtr may have been freed so don't touch it
                any longer */
@@ -1214,8 +1213,7 @@ parent_error:
         exp_close(interp,esPtr);
 	waitpid(esPtr->pid,&esPtr->wait,0);
 	if (esPtr->registered) {
-	  esPtr->registered = 0;
-	  Tcl_UnregisterChannel(interp,esPtr->channel);
+	    Tcl_UnregisterChannel(interp,esPtr->channel);
 	}
     }
     return TCL_ERROR;
@@ -2667,7 +2665,6 @@ char **argv;
     if (esPtr->open) exp_close(interp,esPtr);
 
     if (esPtr->registered) {
-	esPtr->registered = 0;
 	Tcl_UnregisterChannel(interp,esPtr->channel);
     }
 
@@ -2753,18 +2750,31 @@ char **argv;
     */
 	   
     if (isatty(0)) {
-	exp_close(interp,tsdPtr->stdinout);
+	ExpState *stdinout = tsdPtr->stdinout;
+	if (stdinout->valid) {
+	    exp_close(interp,stdinout);
+	    if (stdinout->registered) {
+		Tcl_UnregisterChannel(interp,stdinout->channel);
+	    }
+	}
 	open("/dev/null",0);
 	open("/dev/null",1);
-	tsdPtr->stdinout = expCreateChannel(interp,0,1,EXP_NOPID);
-	tsdPtr->stdinout->keepForever = 1;
+	/* tsdPtr->stdinout = expCreateChannel(interp,0,1,EXP_NOPID);*/
+	/* tsdPtr->stdinout->keepForever = 1;*/
 	}
     if (isatty(2)) {
+	ExpState *devtty = tsdPtr->devtty;
+	
 	/* reopen stderr saves error checking in error/log routines. */
-	exp_close(interp,expDevttyGet());
+	if (devtty->valid) {
+	    exp_close(interp,devtty);
+	    if (devtty->registered) {
+		Tcl_UnregisterChannel(interp,devtty->channel);
+	    }
+	}
 	open("/dev/null",1);
-	tsdPtr->devtty = expCreateChannel(interp,2,2,EXP_NOPID);
-	tsdPtr->devtty->keepForever = 1;
+	/* tsdPtr->devtty = expCreateChannel(interp,2,2,EXP_NOPID);*/
+	/* tsdPtr->devtty->keepForever = 1;*/
     }
 
     Tcl_UnsetVar(interp,"tty_spawn_id",TCL_GLOBAL_ONLY);

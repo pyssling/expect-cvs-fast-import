@@ -199,6 +199,8 @@ ExpCloseProc(instanceData, interp)
     ExpState **nextPtrPtr;
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
 
+    esPtr->registered = FALSE;
+
 #if 0
     /*
       Really should check that we created one first.  Since we're sharing fds
@@ -487,7 +489,7 @@ expCreateChannel(interp,fdin,fdout,pid)
     esPtr->channel = Tcl_CreateChannel(channelTypePtr, esPtr->name,
 	    (ClientData) esPtr, mask);
     Tcl_RegisterChannel(interp,esPtr->channel);
-    esPtr->registered = 1;
+    esPtr->registered = TRUE;
     Tcl_SetChannelOption(interp,esPtr->channel,"-buffering","none");
     Tcl_SetChannelOption(interp,esPtr->channel,"-blocking","0");
     Tcl_SetChannelOption(interp,esPtr->channel,"-translation","lf");
