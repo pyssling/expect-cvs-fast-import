@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: exp.h,v 1.1.4.5 2002/02/10 12:04:21 davygrvy Exp $
+ * RCS: @(#) $Id: exp.h,v 1.1.4.6 2002/02/10 13:40:47 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -70,11 +70,10 @@
 #endif
 
 /*
- * The resource compiler defines this by default.  Skip the rest of this
+ * The windows resource compiler defines this by default.  Skip the rest of this
  * file when included from an rc script.
  */
 #ifndef RC_INVOKED
-
 
 #ifdef TIME_WITH_SYS_TIME
 #   include <sys/time.h>
@@ -86,8 +85,6 @@
 #	include <time.h>
 #   endif
 #endif
-
-
 
 #undef TCL_STORAGE_CLASS
 #if defined(BUILD_spawndriver)
