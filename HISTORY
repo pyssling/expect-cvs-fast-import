@@ -3,7 +3,7 @@ support are in ChangeLog. - Don
 
 Date	Version	Description
 -------	-------	------------------------------------------------------
-		Shlomi Mahlab <shlomi@seagull.co.il> noted all.tcl in CVS
+11/1/99 5.31.3	Shlomi Mahlab <shlomi@seagull.co.il> noted all.tcl in CVS
 		but not distribution.
 
 		More notes from Keith Brown on HP cc complaints in exp_pty.c.
