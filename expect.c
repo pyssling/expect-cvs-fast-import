@@ -619,12 +619,12 @@ pattern:
 	    /* useful for debugging but not otherwise used */
 
 	    ec.pat = objv[i];
-	    Tcl_IncrRefCount(ec.pat);
+	    if (eg->duration == EXP_PERMANENT) Tcl_IncrRefCount(ec.pat);
 
 	    i++;
 	    if (i < objc) {
 		ec.body = objv[i];
-		Tcl_IncrRefCount(ec.body);
+		if (eg->duration == EXP_PERMANENT) Tcl_IncrRefCount(ec.body);
 	    } else {
 		ec.body = NULL;
 	    }
