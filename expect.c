@@ -551,12 +551,14 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 			goto pattern;
 		    case EXP_ARG_DASH:
 		    case EXP_ARG_GLOB:
+			i++;
 			/* assignment here is not actually necessary */
 			/* since cases are initialized this way above */
 			/* ec.use = PAT_GLOB; */
 			goto pattern;
 		    case EXP_ARG_REGEXP:
-			if (i >= objc-1) {
+			i++;
+			if (i >= objc) {
 			    Tcl_WrongNumArgs(interp, 1, objv,
 				    "-regexp regexp");
 			    return TCL_ERROR;
@@ -569,12 +571,13 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 			 * use it.
 			 */
 
-			if (!(Tcl_GetRegExpFromObj(interp, objv[i+1],
+			if (!(Tcl_GetRegExpFromObj(interp, objv[i],
 				TCL_REG_ADVANCED))) {
 			    goto error;
 			}
 			goto pattern;
 		    case EXP_ARG_EXACT:
+			i++;
 			ec.use = PAT_EXACT;
 			goto pattern;
 
@@ -665,7 +668,6 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 	    /* keywords such as "-timeout" are saved as patterns here */
 	    /* useful for debugging but not otherwise used */
 
-	    i++;
 	    ec.pat = objv[i];
 	    Tcl_IncrRefCount(ec.pat);
 
@@ -1582,10 +1584,8 @@ expNullStrip(obj,offsetBytes)
     src2 = src = dest = Tcl_GetString(obj) + offsetBytes;
 
     while (*src) {
-	Tcl_UtfToUniChar(src,&uc);
-	if (uc == 0) {
-	    src += 2;   	    /* skip over UTF-encoded null */
-	} else {
+	src += Tcl_UtfToUniChar(src,&uc);
+	if (uc != 0) {
 	    dest += Tcl_UniCharToUtf(uc,dest);
 	}
     }
@@ -2128,7 +2128,7 @@ expMatchProcess(interp, eo, cc, bg, detail)
 	    re = Tcl_GetRegExpFromObj(interp, e->pat, flags);
 	    Tcl_RegExpGetInfo(re, &info);
 
-	    for (i=0;i<info.nsubs;i++) {
+	    for (i=0;i<=info.nsubs;i++) {
 		int offset, start, end;
 		Tcl_Obj *val;
 
@@ -2170,11 +2170,11 @@ expMatchProcess(interp, eo, cc, bg, detail)
 	    }
 
 	    /* string itself */
-	    str = Tcl_GetString(esPtr->buffer);
+	    str = Tcl_GetString(esPtr->buffer) + e->simple_start;
 	    /* temporarily null-terminate in middle */
 	    match_char = str[match];
 	    str[match] = 0;
-	    out("0,string",str + e->simple_start);
+	    out("0,string",str);
 	    str[match] = match_char;
 
 				/* redefine length of string that */

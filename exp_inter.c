@@ -1373,7 +1373,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 		    TCL_REG_ADVANCED|TCL_REG_BOSONLY);
 	    Tcl_RegExpGetInfo(re, &info);
 
-	    for (i=0;i<info.nsubs;i++) {
+	    for (i=0;i<=info.nsubs;i++) {
 		int start, end;
 		Tcl_Obj *val;
 

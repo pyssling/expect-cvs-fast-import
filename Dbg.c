@@ -159,7 +159,7 @@ Tcl_Obj *objPtr;
     /* uprooted by a NULL */
 
     Tcl_GetRegExpInfo(re, &info); 
-    for (i=0;i<info.nsubs;i++) {
+    for (i=0;i<=info.nsubs;i++) {
 	start = info.matches[i].start;
 	end = info.matches[i].end-1;
 
