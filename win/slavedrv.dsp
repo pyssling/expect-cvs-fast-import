@@ -94,11 +94,15 @@ SOURCE=.\expWinSlave.hpp
 # End Group
 # Begin Source File
 
-SOURCE=.\expWinClientStdio.cpp
+SOURCE=.\expWinClientTransport.hpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\expWinClientTransport.hpp
+SOURCE=.\expWinClientTransportConio.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\expWinClientTransportStdio.cpp
 # End Source File
 # Begin Source File
 

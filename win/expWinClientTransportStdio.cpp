@@ -1,7 +1,7 @@
 /* ----------------------------------------------------------------------------
- * expWinSpawnStdioClient.cpp --
+ * expWinClientTransportStdio.cpp --
  *
- *	Simple standard IO as our IPC mechanism.
+ *	Simple standard I/O as our client.
  *
  * ----------------------------------------------------------------------------
  *
@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinSpawnStdioClient.cpp,v 1.1.2.6 2002/06/22 14:02:03 davygrvy Exp $
+ * RCS: @(#) $Id: expWinClientStdio.cpp,v 1.1.2.1 2002/06/23 08:52:22 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -85,7 +85,7 @@ ClientStdio::~ClientStdio()
 
     readThread->GetExitCode(&dwExit);
     if (dwExit == STILL_ACTIVE) {
-	readThread->Terminate(0x128);
+	readThread->Terminate(128);
     }
 }
 
