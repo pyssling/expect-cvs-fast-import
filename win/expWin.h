@@ -39,19 +39,31 @@
  * run under windows.  There is special case code for the various types.
  */
 
-#define EXP_APPL_NONE	0
-#define EXP_APPL_DOS	1
-#define EXP_APPL_WIN3X	2
-#define EXP_APPL_WIN32	3
+#define EXP_APPL_NONE	    0
+#define EXP_APPL_BATCH	    1
+#define EXP_APPL_DOS16	    2
+#define EXP_APPL_OS2	    3
+#define EXP_APPL_OS2DRV	    4
+#define EXP_APPL_WIN16	    5
+#define EXP_APPL_WIN16DRV   6
+#define EXP_APPL_WIN32CUI   7
+#define EXP_APPL_WIN32GUI   8
+#define EXP_APPL_WIN32DLL   9
+#define EXP_APPL_WIN32DRV   10
+#define EXP_APPL_WIN64CUI   11
+#define EXP_APPL_WIN64GUI   12
+#define EXP_APPL_WIN64DLL   13
+#define EXP_APPL_WIN64DRV   14
 
 typedef struct {
     Tcl_Channel channelPtr;
     int toWrite;
 } ExpSpawnState;
 
+extern void		ExpWinProcessInit(void);
 extern DWORD		ExpApplicationType(const char *originalName,
 			    char *fullPath, char *imageName);
-extern DWORD		ExpCreateProcess(int argc, char **argv,
+extern DWORD		ExpWinCreateProcess(int argc, char **argv,
 			    HANDLE inputHandle, HANDLE outputHandle,
 			    HANDLE errorHandle, int allocConsole,
 			    int hideConsole, int debug, int newProcessGroup,

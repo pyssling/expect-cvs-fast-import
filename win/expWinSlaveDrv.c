@@ -220,6 +220,8 @@ main(argc, argv)
     Sleep(22000);		/* XXX: For debugging purposes */
 #endif
 
+    ExpWinProcessInit();
+
     if (argc < 2) {
 	exit(1);
     }
@@ -361,15 +363,16 @@ main(argc, argv)
     }
 
     bRet = PipeRespondToMaster(useSocket, hMaster, debugInfo.result, debugInfo.globalPid);
-
-//    DebugBreak();
-
     if (bRet == FALSE) {
 	ExitProcess(255);
     }
     if (debugInfo.result) {
 	ExitProcess(0);
     }
+
+#ifdef _DEBUG
+    DebugBreak();
+#endif
 
     if (passThrough) {
 	hProcess = GetCurrentProcess();
@@ -428,7 +431,7 @@ ExpProcessInput(HANDLE hMaster, HANDLE hConsoleInW, HANDLE hConsoleOut,
     over.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
     while (1) {
 	bRet = ExpReadMaster(useSocket, hMaster, &buffer[dwHave],
-			     dwNeeded-dwHave, &driverInCnt, &over, &dwResult);
+			     /*dwNeeded-dwHave*/ BUFSIZE, &driverInCnt, &over, &dwResult);
 	if ((bRet == TRUE && driverInCnt == 0) ||
 	    (bRet == FALSE && dwResult == ERROR_BROKEN_PIPE))
 	{
@@ -476,7 +479,7 @@ ExpProcessInput(HANDLE hMaster, HANDLE hConsoleInW, HANDLE hConsoleOut,
 	}
 
 	dwHave += driverInCnt;
-	if (dwHave != dwNeeded) {
+	if (dwNeeded < dwHave) {
 	    continue;
 	}
 	dwHave = 0;
