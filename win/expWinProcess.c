@@ -37,12 +37,12 @@ typedef struct {
 	    LPSECURITY_ATTRIBUTES, LPSECURITY_ATTRIBUTES, BOOL, DWORD, 
 	    LPVOID, CONST TCHAR *, LPSTARTUPINFOA, LPPROCESS_INFORMATION);
     DWORD (WINAPI *getFileAttributesProc)(CONST TCHAR *);
-    DWORD (WINAPI *getFullPathNameProc)(CONST TCHAR *, DWORD nBufferLength, 
-	    WCHAR *, TCHAR **);
     DWORD (WINAPI *getShortPathNameProc)(CONST TCHAR *, WCHAR *, DWORD); 
+    DWORD (WINAPI *searchPathProc)(CONST TCHAR *, CONST TCHAR *, 
+	    CONST TCHAR *, DWORD, WCHAR *, TCHAR **);
 } ExpWinProcs;
 
-static TclWinProcs asciiProcs = {
+static ExpWinProcs asciiProcs = {
     0,
     (HANDLE (WINAPI *)(CONST TCHAR *, DWORD, DWORD, SECURITY_ATTRIBUTES *, 
 	    DWORD, DWORD, HANDLE)) CreateFileA,
@@ -50,12 +50,12 @@ static TclWinProcs asciiProcs = {
 	    LPSECURITY_ATTRIBUTES, BOOL, DWORD, LPVOID, CONST TCHAR *, 
 	    LPSTARTUPINFOA, LPPROCESS_INFORMATION)) CreateProcessA,
     (DWORD (WINAPI *)(CONST TCHAR *)) GetFileAttributesA,
-    (DWORD (WINAPI *)(CONST TCHAR *, DWORD nBufferLength, WCHAR *, 
-	    TCHAR **)) GetFullPathNameA,
     (DWORD (WINAPI *)(CONST TCHAR *, WCHAR *, DWORD)) GetShortPathNameA,
+    (DWORD (WINAPI *)(CONST TCHAR *, CONST TCHAR *, CONST TCHAR *, DWORD, 
+	    WCHAR *, TCHAR **)) SearchPathA
 };
 
-static TclWinProcs unicodeProcs = {
+static ExpWinProcs unicodeProcs = {
     1,
     (HANDLE (WINAPI *)(CONST TCHAR *, DWORD, DWORD, SECURITY_ATTRIBUTES *, 
 	    DWORD, DWORD, HANDLE)) CreateFileW,
@@ -63,20 +63,19 @@ static TclWinProcs unicodeProcs = {
 	    LPSECURITY_ATTRIBUTES, BOOL, DWORD, LPVOID, CONST TCHAR *, 
 	    LPSTARTUPINFOA, LPPROCESS_INFORMATION)) CreateProcessW,
     (DWORD (WINAPI *)(CONST TCHAR *)) GetFileAttributesW,
-    (DWORD (WINAPI *)(CONST TCHAR *, DWORD nBufferLength, WCHAR *, 
-	    TCHAR **)) GetFullPathNameW,
     (DWORD (WINAPI *)(CONST TCHAR *, WCHAR *, DWORD)) GetShortPathNameW,
+    (DWORD (WINAPI *)(CONST TCHAR *, CONST TCHAR *, CONST TCHAR *, DWORD, 
+	    WCHAR *, TCHAR **)) SearchPathW
 };
 
 #define tclWinProcs expWinProcs
-static ExpWinProcs *expWinProcs;
+static ExpWinProcs *expWinProcs = &asciiProcs;
 
 void
 ExpInitWinProcessAPI (void)
 {
     OSVERSIONINFO os;
     os.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
-    expWinProcs = &asciiProcs;
     
     if (GetVersionEx(&os) != 0) {    
 	switch (os.dwPlatformId) {
