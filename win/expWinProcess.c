@@ -620,7 +620,8 @@ ExpCreateProcess(argc, argv, inputHandle, outputHandle, errorHandle,
     Tcl_DString cmdLine;
     STARTUPINFO startInfo;
     PROCESS_INFORMATION procInfo;
-    HANDLE hProcess;
+    SECURITY_ATTRIBUTES secAtts;
+    HANDLE hProcess, h;
     char execPath[MAX_PATH * TCL_UTF_MAX];
     char *originalName;
     LONG result;
@@ -637,7 +638,6 @@ ExpCreateProcess(argc, argv, inputHandle, outputHandle, errorHandle,
     argv[0] = execPath;
 
     Tcl_DStringInit(&cmdLine);
-
     hProcess = GetCurrentProcess();
 
     /*
@@ -648,6 +648,10 @@ ExpCreateProcess(argc, argv, inputHandle, outputHandle, errorHandle,
 
     ZeroMemory(&startInfo, sizeof(startInfo));
     startInfo.cb = sizeof(startInfo);
+
+    secAtts.nLength = sizeof(SECURITY_ATTRIBUTES);
+    secAtts.lpSecurityDescriptor = NULL;
+    secAtts.bInheritHandle = TRUE;
 
     if (inputHandle || outputHandle || errorHandle) {
 	startInfo.dwFlags   = STARTF_USESTDHANDLES;
@@ -672,7 +676,18 @@ ExpCreateProcess(argc, argv, inputHandle, outputHandle, errorHandle,
      * be inheritable, so the child process can use them.
      */
 
-    if (inputHandle != NULL) {
+    if (inputHandle == NULL || inputHandle == INVALID_HANDLE_VALUE) {
+	/* 
+	 * If handle was not set, stdin should return immediate EOF.
+	 * Under Windows95, some applications (both 16 and 32 bit!) 
+	 * cannot read from the NUL device; they read from console
+	 * instead.
+	 */
+
+	if (CreatePipe(&startInfo.hStdInput, &h, &secAtts, 0) != FALSE) {
+	    CloseHandle(h);
+	}
+    } else {
 	DuplicateHandle(hProcess, inputHandle, hProcess, &startInfo.hStdInput,
 			0, TRUE, DUPLICATE_SAME_ACCESS);
 	if (startInfo.hStdInput == INVALID_HANDLE_VALUE) {
@@ -682,7 +697,26 @@ ExpCreateProcess(argc, argv, inputHandle, outputHandle, errorHandle,
 	}
     }
 
-    if (outputHandle != NULL) {
+    if (outputHandle == NULL || outputHandle == INVALID_HANDLE_VALUE) {
+	/*
+	 * If handle was not set, output should be sent to an infinitely 
+	 * deep sink.  Under Windows 95, some 16 bit applications cannot
+	 * have stdout redirected to NUL; they send their output to
+	 * the console instead.  Some applications, like "more" or "dir /p", 
+	 * when outputting multiple pages to the console, also then try and
+	 * read from the console to go the next page.
+	 */
+
+	if ((TclWinGetPlatformId() == VER_PLATFORM_WIN32_WINDOWS) 
+		&& (applType == EXP_APPL_DOS)) {
+	    if (CreatePipe(&h, &startInfo.hStdOutput, &secAtts, 0) != FALSE) {
+		CloseHandle(h);
+	    }
+	} else {
+	    startInfo.hStdOutput = CreateFileA("NUL:", GENERIC_WRITE, 0,
+		    &secAtts, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+	}
+    } else {
 	DuplicateHandle(hProcess, outputHandle, hProcess,
 			&startInfo.hStdOutput, 0, TRUE, DUPLICATE_SAME_ACCESS);
 	if (startInfo.hStdOutput == INVALID_HANDLE_VALUE) {
@@ -692,7 +726,15 @@ ExpCreateProcess(argc, argv, inputHandle, outputHandle, errorHandle,
 	}
     }
 
-    if (errorHandle != NULL) {
+    if (errorHandle == NULL || errorHandle == INVALID_HANDLE_VALUE) {
+	/*
+	 * If handle was not set, errors should be sent to an infinitely
+	 * deep sink.
+	 */
+
+	startInfo.hStdError = CreateFileA("NUL:", GENERIC_WRITE, 0,
+		&secAtts, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    } else {
 	DuplicateHandle(hProcess, errorHandle, hProcess,
 			&startInfo.hStdError, 0, TRUE, DUPLICATE_SAME_ACCESS);
 	if (startInfo.hStdError == INVALID_HANDLE_VALUE) {
@@ -700,6 +742,105 @@ ExpCreateProcess(argc, argv, inputHandle, outputHandle, errorHandle,
 	    result = GetLastError();
 	    goto end;
 	}
+    }
+
+    /* 
+     * If we do not have a console window, then we must run DOS and
+     * WIN32 console mode applications as detached processes. This tells
+     * the loader that the child application should not inherit the
+     * console, and that it should not create a new console window for
+     * the child application.  The child application should get its stdio 
+     * from the redirection handles provided by this application, and run
+     * in the background.
+     *
+     * If we are starting a GUI process, they don't automatically get a 
+     * console, so it doesn't matter if they are started as foreground or
+     * detached processes.  The GUI window will still pop up to the
+     * foreground.
+     */
+
+    if (TclWinGetPlatformId() == VER_PLATFORM_WIN32_NT) {
+	if (!allocConsole && HasConsole()) {
+	    createFlags = 0;
+	} else if (applType == EXP_APPL_DOS || allocConsole) {
+	    /*
+	     * Under NT, 16-bit DOS applications will not run unless they
+	     * can be attached to a console.  If we are running without a
+	     * console, run the 16-bit program as an normal process inside
+	     * of a hidden console application, and then run that hidden
+	     * console as a detached process.
+	     */
+
+	    if (hideConsole) {
+		startInfo.wShowWindow = SW_HIDE;
+	    } else {
+		/* For debugging, show the sub process console */
+		startInfo.wShowWindow = SW_SHOW;
+	    }
+	    startInfo.dwFlags |= STARTF_USESHOWWINDOW;
+	    createFlags = CREATE_NEW_CONSOLE;
+	    Tcl_DStringAppend(&cmdLine, "cmd.exe /c ", -1);
+	} else {
+	    createFlags = DETACHED_PROCESS;
+	} 
+    } else {
+	if (!allocConsole && HasConsole()) {
+	    createFlags = 0;
+	} else if (allocConsole) {
+	    createFlags = CREATE_NEW_CONSOLE;
+	} else {
+	    createFlags = DETACHED_PROCESS;
+	}
+	
+	if (applType == EXP_APPL_DOS) {
+	    /*
+	     * Under Windows 95, 16-bit DOS applications do not work well 
+	     * with pipes:
+	     *
+	     * 1. EOF on a pipe between a detached 16-bit DOS application 
+	     * and another application is not seen at the other
+	     * end of the pipe, so the listening process blocks forever on 
+	     * reads.  This inablity to detect EOF happens when either a 
+	     * 16-bit app or the 32-bit app is the listener.  
+	     *
+	     * 2. If a 16-bit DOS application (detached or not) blocks when 
+	     * writing to a pipe, it will never wake up again, and it
+	     * eventually brings the whole system down around it.
+	     *
+	     * The 16-bit application is run as a normal process inside
+	     * of a hidden helper console app, and this helper may be run
+	     * as a detached process.  If any of the stdio handles is
+	     * a pipe, the helper application accumulates information 
+	     * into temp files and forwards it to or from the DOS 
+	     * application as appropriate.  This means that DOS apps 
+	     * must receive EOF from a stdin pipe before they will actually
+	     * begin, and must finish generating stdout or stderr before 
+	     * the data will be sent to the next stage of the pipe.
+	     *
+	     * The helper app should be located in the same directory as
+	     * the tcl dll.
+	     */
+
+	    if (createFlags != 0) {
+		if (hideConsole) {
+		    startInfo.wShowWindow = SW_HIDE;
+		} else {
+		    /* For debugging, show the sub process console */
+		    startInfo.wShowWindow = SW_SHOW;
+		}
+		startInfo.dwFlags |= STARTF_USESHOWWINDOW;
+		createFlags = CREATE_NEW_CONSOLE;
+	    }
+	    // BUG: fixme!  where is tclpipXX.dll ?????  set it!
+	    Tcl_DStringAppend(&cmdLine, "tclpip" STRINGIFY(TCL_MAJOR_VERSION) 
+		    STRINGIFY(TCL_MINOR_VERSION) ".dll ", -1);
+	}
+    }
+    if (debug) {
+	createFlags |= DEBUG_PROCESS;
+    }
+    if (newProcessGroup) {
+	createFlags |= CREATE_NEW_PROCESS_GROUP;
     }
 
     /* 
@@ -770,11 +911,20 @@ ExpCreateProcess(argc, argv, inputHandle, outputHandle, errorHandle,
 
     BuildCommandLine(execPath, argc, argv, &cmdLine);
 
-    b = CreateProcess(NULL, Tcl_DStringValue(&cmdLine), NULL, NULL, TRUE,
-	    createFlags, NULL, NULL, &startInfo, &procInfo);
-    if (! b) {
+    if ((b = (*tclWinProcs->createProcessProc)(NULL, 
+	    (TCHAR *) Tcl_DStringValue(&cmdLine), NULL, NULL, TRUE, 
+	    (DWORD) createFlags, NULL, NULL, &startInfo, &procInfo)) == 0) {
 	result = GetLastError();
 	goto end;
+    }
+
+    /*
+     * This wait is used to force the OS to give some time to the DOS
+     * process.
+     */
+
+    if (applType == EXP_APPL_DOS) {
+	WaitForSingleObject(procInfo.hProcess, 50);
     }
 
     /* 
@@ -812,343 +962,3 @@ ExpCreateProcess(argc, argv, inputHandle, outputHandle, errorHandle,
     }
     return result;
 }
-#if 0
-int
-TclpCreateProcess(
-    Tcl_Interp *interp,		/* Interpreter in which to leave errors that
-				 * occurred when creating the child process.
-				 * Error messages from the child process
-				 * itself are sent to errorFile. */
-    int argc,			/* Number of arguments in following array. */
-    char **argv,		/* Array of argument strings.  argv[0]
-				 * contains the name of the executable
-				 * converted to native format (using the
-				 * Tcl_TranslateFileName call).  Additional
-				 * arguments have not been converted. */
-    TclFile inputFile,		/* If non-NULL, gives the file to use as
-				 * input for the child process.  If inputFile
-				 * file is not readable or is NULL, the child
-				 * will receive no standard input. */
-    TclFile outputFile,		/* If non-NULL, gives the file that
-				 * receives output from the child process.  If
-				 * outputFile file is not writeable or is
-				 * NULL, output from the child will be
-				 * discarded. */
-    TclFile errorFile,		/* If non-NULL, gives the file that
-				 * receives errors from the child process.  If
-				 * errorFile file is not writeable or is NULL,
-				 * errors from the child will be discarded.
-				 * errorFile may be the same as outputFile. */
-    Tcl_Pid *pidPtr)		/* If this procedure is successful, pidPtr
-				 * is filled with the process id of the child
-				 * process. */
-{
-    int result, applType, createFlags;
-    Tcl_DString cmdLine;	/* Complete command line (TCHAR). */
-    STARTUPINFOA startInfo;
-    PROCESS_INFORMATION procInfo;
-    SECURITY_ATTRIBUTES secAtts;
-    HANDLE hProcess, h, inputHandle, outputHandle, errorHandle;
-    char execPath[MAX_PATH * TCL_UTF_MAX];
-    WinFile *filePtr;
-
-    PipeInit();
-
-    applType = ApplicationType(interp, argv[0], execPath);
-    if (applType == APPL_NONE) {
-	return TCL_ERROR;
-    } else if (applType == APPL_WIN32GUI) {
-	TclWinConvertError(ERROR_BAD_PIPE);
-	Tcl_AppendResult(interp, execPath,
-		" is a GUI application that doesn't support pipes: ",
-		Tcl_PosixError(interp), (char *) NULL);
-	return TCL_ERROR;
-    }
-
-    result = TCL_ERROR;
-    Tcl_DStringInit(&cmdLine);
-    hProcess = GetCurrentProcess();
-
-    /*
-     * STARTF_USESTDHANDLES must be used to pass handles to child process.
-     * Using SetStdHandle() and/or dup2() only works when a console mode 
-     * parent process is spawning an attached console mode child process.
-     */
-
-    ZeroMemory(&startInfo, sizeof(startInfo));
-    startInfo.cb = sizeof(startInfo);
-    startInfo.dwFlags   = STARTF_USESTDHANDLES;
-    startInfo.hStdInput	= INVALID_HANDLE_VALUE;
-    startInfo.hStdOutput= INVALID_HANDLE_VALUE;
-    startInfo.hStdError = INVALID_HANDLE_VALUE;
-
-    secAtts.nLength = sizeof(SECURITY_ATTRIBUTES);
-    secAtts.lpSecurityDescriptor = NULL;
-    secAtts.bInheritHandle = TRUE;
-
-    /*
-     * We have to check the type of each file, since we cannot duplicate 
-     * some file types.  
-     */
-
-    inputHandle = INVALID_HANDLE_VALUE;
-    if (inputFile != NULL) {
-	filePtr = (WinFile *)inputFile;
-	if (filePtr->type == WIN_FILE) {
-	    inputHandle = filePtr->handle;
-	}
-    }
-    outputHandle = INVALID_HANDLE_VALUE;
-    if (outputFile != NULL) {
-	filePtr = (WinFile *)outputFile;
-	if (filePtr->type == WIN_FILE) {
-	    outputHandle = filePtr->handle;
-	}
-    }
-    errorHandle = INVALID_HANDLE_VALUE;
-    if (errorFile != NULL) {
-	filePtr = (WinFile *)errorFile;
-	if (filePtr->type == WIN_FILE) {
-	    errorHandle = filePtr->handle;
-	}
-    }
-
-    /*
-     * Duplicate all the handles which will be passed off as stdin, stdout
-     * and stderr of the child process. The duplicate handles are set to
-     * be inheritable, so the child process can use them.
-     */
-
-    if (inputHandle == INVALID_HANDLE_VALUE) {
-	/* 
-	 * If handle was not set, stdin should return immediate EOF.
-	 * Under Windows95, some applications (both 16 and 32 bit!) 
-	 * cannot read from the NUL device; they read from console
-	 * instead.  When running tk, this is fatal because the child 
-	 * process would hang forever waiting for EOF from the unmapped 
-	 * console window used by the helper application.
-	 *
-	 * Fortunately, the helper application detects a closed pipe 
-	 * as an immediate EOF and can pass that information to the 
-	 * child process.
-	 */
-
-	if (CreatePipe(&startInfo.hStdInput, &h, &secAtts, 0) != FALSE) {
-	    CloseHandle(h);
-	}
-    } else {
-	DuplicateHandle(hProcess, inputHandle, hProcess, &startInfo.hStdInput,
-		0, TRUE, DUPLICATE_SAME_ACCESS);
-    }
-    if (startInfo.hStdInput == INVALID_HANDLE_VALUE) {
-	TclWinConvertError(GetLastError());
-	Tcl_AppendResult(interp, "couldn't duplicate input handle: ",
-		Tcl_PosixError(interp), (char *) NULL);
-	goto end;
-    }
-
-    if (outputHandle == INVALID_HANDLE_VALUE) {
-	/*
-	 * If handle was not set, output should be sent to an infinitely 
-	 * deep sink.  Under Windows 95, some 16 bit applications cannot
-	 * have stdout redirected to NUL; they send their output to
-	 * the console instead.  Some applications, like "more" or "dir /p", 
-	 * when outputting multiple pages to the console, also then try and
-	 * read from the console to go the next page.  When running tk, this
-	 * is fatal because the child process would hang forever waiting
-	 * for input from the unmapped console window used by the helper
-	 * application.
-	 *
-	 * Fortunately, the helper application will detect a closed pipe
-	 * as a sink.
-	 */
-
-	if ((TclWinGetPlatformId() == VER_PLATFORM_WIN32_WINDOWS) 
-		&& (applType == APPL_DOS)) {
-	    if (CreatePipe(&h, &startInfo.hStdOutput, &secAtts, 0) != FALSE) {
-		CloseHandle(h);
-	    }
-	} else {
-	    startInfo.hStdOutput = CreateFileA("NUL:", GENERIC_WRITE, 0,
-		    &secAtts, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-	}
-    } else {
-	DuplicateHandle(hProcess, outputHandle, hProcess, &startInfo.hStdOutput, 
-		0, TRUE, DUPLICATE_SAME_ACCESS);
-    }
-    if (startInfo.hStdOutput == INVALID_HANDLE_VALUE) {
-	TclWinConvertError(GetLastError());
-	Tcl_AppendResult(interp, "couldn't duplicate output handle: ",
-		Tcl_PosixError(interp), (char *) NULL);
-	goto end;
-    }
-
-    if (errorHandle == INVALID_HANDLE_VALUE) {
-	/*
-	 * If handle was not set, errors should be sent to an infinitely
-	 * deep sink.
-	 */
-
-	startInfo.hStdError = CreateFileA("NUL:", GENERIC_WRITE, 0,
-		&secAtts, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-    } else {
-	DuplicateHandle(hProcess, errorHandle, hProcess, &startInfo.hStdError, 
-		0, TRUE, DUPLICATE_SAME_ACCESS);
-    } 
-    if (startInfo.hStdError == INVALID_HANDLE_VALUE) {
-	TclWinConvertError(GetLastError());
-	Tcl_AppendResult(interp, "couldn't duplicate error handle: ",
-		Tcl_PosixError(interp), (char *) NULL);
-	goto end;
-    }
-    /* 
-     * If we do not have a console window, then we must run DOS and
-     * WIN32 console mode applications as detached processes. This tells
-     * the loader that the child application should not inherit the
-     * console, and that it should not create a new console window for
-     * the child application.  The child application should get its stdio 
-     * from the redirection handles provided by this application, and run
-     * in the background.
-     *
-     * If we are starting a GUI process, they don't automatically get a 
-     * console, so it doesn't matter if they are started as foreground or
-     * detached processes.  The GUI window will still pop up to the
-     * foreground.
-     */
-
-    if (TclWinGetPlatformId() == VER_PLATFORM_WIN32_NT) {
-	if (HasConsole()) {
-	    createFlags = 0;
-	} else if (applType == APPL_DOS) {
-	    /*
-	     * Under NT, 16-bit DOS applications will not run unless they
-	     * can be attached to a console.  If we are running without a
-	     * console, run the 16-bit program as an normal process inside
-	     * of a hidden console application, and then run that hidden
-	     * console as a detached process.
-	     */
-
-	    startInfo.wShowWindow = SW_HIDE;
-	    startInfo.dwFlags |= STARTF_USESHOWWINDOW;
-	    createFlags = CREATE_NEW_CONSOLE;
-	    Tcl_DStringAppend(&cmdLine, "cmd.exe /c ", -1);
-	} else {
-	    createFlags = DETACHED_PROCESS;
-	} 
-    } else {
-	if (HasConsole()) {
-	    createFlags = 0;
-	} else {
-	    createFlags = DETACHED_PROCESS;
-	}
-	
-	if (applType == APPL_DOS) {
-	    /*
-	     * Under Windows 95, 16-bit DOS applications do not work well 
-	     * with pipes:
-	     *
-	     * 1. EOF on a pipe between a detached 16-bit DOS application 
-	     * and another application is not seen at the other
-	     * end of the pipe, so the listening process blocks forever on 
-	     * reads.  This inablity to detect EOF happens when either a 
-	     * 16-bit app or the 32-bit app is the listener.  
-	     *
-	     * 2. If a 16-bit DOS application (detached or not) blocks when 
-	     * writing to a pipe, it will never wake up again, and it
-	     * eventually brings the whole system down around it.
-	     *
-	     * The 16-bit application is run as a normal process inside
-	     * of a hidden helper console app, and this helper may be run
-	     * as a detached process.  If any of the stdio handles is
-	     * a pipe, the helper application accumulates information 
-	     * into temp files and forwards it to or from the DOS 
-	     * application as appropriate.  This means that DOS apps 
-	     * must receive EOF from a stdin pipe before they will actually
-	     * begin, and must finish generating stdout or stderr before 
-	     * the data will be sent to the next stage of the pipe.
-	     *
-	     * The helper app should be located in the same directory as
-	     * the tcl dll.
-	     */
-
-	    if (createFlags != 0) {
-		startInfo.wShowWindow = SW_HIDE;
-		startInfo.dwFlags |= STARTF_USESHOWWINDOW;
-		createFlags = CREATE_NEW_CONSOLE;
-	    }
-	    Tcl_DStringAppend(&cmdLine, "tclpip" STRINGIFY(TCL_MAJOR_VERSION) 
-		    STRINGIFY(TCL_MINOR_VERSION) ".dll ", -1);
-	}
-    }
-    
-    /*
-     * cmdLine gets the full command line used to invoke the executable,
-     * including the name of the executable itself.  The command line
-     * arguments in argv[] are stored in cmdLine separated by spaces. 
-     * Special characters in individual arguments from argv[] must be 
-     * quoted when being stored in cmdLine.
-     *
-     * When calling any application, bear in mind that arguments that 
-     * specify a path name are not converted.  If an argument contains 
-     * forward slashes as path separators, it may or may not be 
-     * recognized as a path name, depending on the program.  In general,
-     * most applications accept forward slashes only as option 
-     * delimiters and backslashes only as paths.
-     *
-     * Additionally, when calling a 16-bit dos or windows application, 
-     * all path names must use the short, cryptic, path format (e.g., 
-     * using ab~1.def instead of "a b.default").  
-     */
-
-    BuildCommandLine(execPath, argc, argv, &cmdLine);
-
-    if ((*tclWinProcs->createProcessProc)(NULL, 
-	    (TCHAR *) Tcl_DStringValue(&cmdLine), NULL, NULL, TRUE, 
-	    (DWORD) createFlags, NULL, NULL, &startInfo, &procInfo) == 0) {
-	TclWinConvertError(GetLastError());
-	Tcl_AppendResult(interp, "couldn't execute \"", argv[0],
-		"\": ", Tcl_PosixError(interp), (char *) NULL);
-	goto end;
-    }
-
-    /*
-     * This wait is used to force the OS to give some time to the DOS
-     * process.
-     */
-
-    if (applType == APPL_DOS) {
-	WaitForSingleObject(procInfo.hProcess, 50);
-    }
-
-    /* 
-     * "When an application spawns a process repeatedly, a new thread 
-     * instance will be created for each process but the previous 
-     * instances may not be cleaned up.  This results in a significant 
-     * virtual memory loss each time the process is spawned.  If there 
-     * is a WaitForInputIdle() call between CreateProcess() and
-     * CloseHandle(), the problem does not occur." PSS ID Number: Q124121
-     */
-
-    WaitForInputIdle(procInfo.hProcess, 5000);
-    CloseHandle(procInfo.hThread);
-
-    *pidPtr = (Tcl_Pid) procInfo.hProcess;
-    if (*pidPtr != 0) {
-	TclWinAddProcess(procInfo.hProcess, procInfo.dwProcessId);
-    }
-    result = TCL_OK;
-
-    end:
-    Tcl_DStringFree(&cmdLine);
-    if (startInfo.hStdInput != INVALID_HANDLE_VALUE) {
-        CloseHandle(startInfo.hStdInput);
-    }
-    if (startInfo.hStdOutput != INVALID_HANDLE_VALUE) {
-        CloseHandle(startInfo.hStdOutput);
-    }
-    if (startInfo.hStdError != INVALID_HANDLE_VALUE) {
-	CloseHandle(startInfo.hStdError);
-    }
-    return result;
-}
-#endif
