@@ -28,7 +28,7 @@ would appreciate credit if this program or parts of it are used.
  * See the file "license.terms" for information on usage and redistribution
  * of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  *
- * RCS: @(#) $Id: exp_clib.c,v 5.28.1.1.2.7 1999/06/29 04:35:46 libes Exp $
+ * RCS: @(#) $Id: expect.h,v 5.28.1.1.2.2 1999/07/03 03:44:15 libes Exp $
  */
 
 #ifndef _TCL
@@ -338,7 +338,7 @@ typedef struct Tcl_RegExp_ *Tcl_RegExp;
  * Caveat:  this is V8 regexp(3) [actually, a reimplementation thereof],
  * not the System V one.
  *
- * RCS: @(#) $Id: exp_clib.c,v 5.28.1.1.2.7 1999/06/29 04:35:46 libes Exp $
+ * RCS: @(#) $Id: expect.h,v 5.28.1.1.2.2 1999/07/03 03:44:15 libes Exp $
  */
 
 #ifndef _REGEXP
@@ -369,7 +369,7 @@ typedef struct regexp {
 EXTERN regexp *TclRegComp _ANSI_ARGS_((char *exp));
 EXTERN int TclRegExec _ANSI_ARGS_((regexp *prog, char *string, char *start));
 EXTERN void TclRegSub _ANSI_ARGS_((regexp *prog, char *source, char *dest));
-EXTERN void TclRegError _ANSI_ARGS_((char *msg));
+EXTERN void exp_TclRegError _ANSI_ARGS_((char *msg));
 EXTERN char *TclGetRegError _ANSI_ARGS_((void));
 
 # undef TCL_STORAGE_CLASS

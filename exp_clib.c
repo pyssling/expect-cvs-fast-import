@@ -78,7 +78,7 @@ would appreciate credit if this program or parts of it are used.
  * See the file "license.terms" for information on usage and redistribution
  * of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  *
- * RCS: @(#) $Id: exp_clib.c,v 5.28.1.1.2.8 1999/07/03 03:44:13 libes Exp $
+ * RCS: @(#) $Id: exp_clib.c,v 5.28.1.1.2.9 1999/07/07 19:49:30 libes Exp $
  */
 
 #ifndef _STDLIB
@@ -117,7 +117,7 @@ extern unsigned long	strtoul _ANSI_ARGS_((CONST char *string,
 #endif
 
 #include "expect.h"
-static void TclRegError _ANSI_ARGS_((char *));
+#define TclRegError exp_TclRegError
 
 /*
  * regexp code - from tcl8.0.4/generic/regexp.c
@@ -166,7 +166,7 @@ static void TclRegError _ANSI_ARGS_((char *));
  * *** 2. This in addition to changes to TclRegError makes the   ***
  * ***    code multi-thread safe.                                ***
  *
- * RCS: @(#) $Id: exp_clib.c,v 5.28.1.1.2.8 1999/07/03 03:44:13 libes Exp $
+ * RCS: @(#) $Id: exp_clib.c,v 5.28.1.1.2.9 1999/07/07 19:49:30 libes Exp $
  */
 
 #if 0
@@ -1446,9 +1446,8 @@ char *s2;
  *----------------------------------------------------------------------
  */
 
-static
 void
-TclRegError(string)
+exp_TclRegError(string)
     char *string;			/* Error message. */
 {
     errMsg = string;
