@@ -23,7 +23,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: exp.h,v 1.1.4.4 2002/02/10 10:17:04 davygrvy Exp $
+ * RCS: @(#) $Id: expWinProcess.c,v 1.1.2.1.2.6 2002/02/10 12:03:30 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -442,7 +442,7 @@ BuildCommandLine(
     CONST char *executable,	/* Full path of executable (including 
 				 * extension).  Replacement for argv[0]. */
     int argc,			/* Number of arguments. */
-    char **argv,		/* Argument strings (in UTF-8). */
+    char *const *argv,		/* Argument strings (in UTF-8). */
     Tcl_DString *linePtr)	/* Initialized Tcl_DString that receives the
 				 * command line (TCHAR). */
 {
@@ -655,36 +655,34 @@ Exp_KillProcess(pid)
  */
 
 DWORD
-ExpWinCreateProcess(argc, argv, inputHandle, outputHandle, errorHandle,
-		 allocConsole, hideConsole, debug, newProcessGroup,
-		 pidPtr, globalPidPtr)
-    int argc;			/* Number of arguments in following array. */
-    char **argv;		/* Array of argument strings.  argv[0]
+ExpWinCreateProcess(
+    int argc,			/* Number of arguments in following array. */
+    char *const *argv,		/* Array of argument strings.  argv[0]
 				 * contains the name of the executable
 				 * converted to native format (using the
 				 * Tcl_TranslateFileName call).  Additional
 				 * arguments have not been converted. */
-    HANDLE inputHandle;		/* If non-NULL, gives the file to use as
+    HANDLE inputHandle,		/* If non-NULL, gives the file to use as
 				 * input for the child process.  If inputHandle
 				 * is NULL, the child will receive no standard
 				 * input. */
-    HANDLE outputHandle;		/* If non-NULL, gives the file that
+    HANDLE outputHandle,	/* If non-NULL, gives the file that
 				 * receives output from the child process.  If
 				 * outputHandle is NULL, output from the child
 				 * will be discarded. */
-    HANDLE errorHandle;		/* If non-NULL, gives the file that
+    HANDLE errorHandle,		/* If non-NULL, gives the file that
 				 * receives errors from the child process.  If
 				 * errorFile file is not writeable or is NULL,
 				 * errors from the child will be discarded.
 				 * errorFile may be the same as outputFile. */
-    int allocConsole;		/* Should a console be allocated */
-    int hideConsole;		/* Hide or display the created console */
-    int debug;			/* Is this process going to be debugged? */
-    int newProcessGroup;	/* Create a new process group */
-    Tcl_Pid *pidPtr;		/* If this procedure is successful, pidPtr
-				 * is filled with the process id of the child
+    int allocConsole,		/* Should a console be allocated */
+    int hideConsole,		/* Hide or display the created console */
+    int debug,			/* Is this process going to be debugged? */
+    int newProcessGroup,	/* Create a new process group */
+    HANDLE *processPtr,		/* If this procedure is successful, pidPtr
+				 * is filled with the process handle of the child
 				 * process. */
-    PDWORD globalPidPtr;	/* Globally unique pid */
+    PDWORD globalPidPtr)	/* Globally unique pid */
 {
     DWORD applType;
     int createFlags, i;
@@ -983,8 +981,8 @@ ExpWinCreateProcess(argc, argv, inputHandle, outputHandle, errorHandle,
     CloseHandle(procInfo.hThread);
 
     *globalPidPtr = procInfo.dwProcessId;
-    *pidPtr = (Tcl_Pid) procInfo.hProcess;
-    if (*pidPtr != 0) {
+    *processPtr = procInfo.hProcess;
+    if (procInfo.hProcess != 0) {
 	ProcInfo *procPtr = (ProcInfo *) ckalloc(sizeof(ProcInfo));
 	procPtr->hProcess = procInfo.hProcess;
 	procPtr->dwProcessId = procInfo.dwProcessId;
