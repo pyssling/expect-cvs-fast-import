@@ -271,118 +271,125 @@ int
 exp_interpreter(interp)
 Tcl_Interp *interp;
 {
-	int rc;
-	char *ccmd;		/* pointer to complete command */
-	char line[BUFSIZ+1];	/* space for partial command */
-	int newcmd = TRUE;
-	Tcl_DString dstring;
-	Interp *iPtr = (Interp *)interp;
-	int tty_changed = FALSE;
+    Tcl_Obj *commandPtr = NULL;
+    int code;
+    char *cmdstr;
+    int cmdlen;
+    int gotPartial;
+    Interp *iPtr = (Interp *)interp;
+    int tty_changed = FALSE;
+    exp_tty tty_old;
+    int was_raw, was_echo;
 
-	exp_tty tty_old;
-	int was_raw, was_echo;
-
-	int dummy;
-	Tcl_Channel outChannel;
-	int fd = fileno(stdin);
+    Tcl_Channel outChannel;
+    ExpState esPtr = expStdinout();
+    /*	int fd = fileno(stdin);*/
 	
-	expect_key++;
+    expect_key++;
 
-	Tcl_DStringInit(&dstring);
+    commandPtr = Tcl_NewObj();
+    Tcl_IncrRefCount(commandPtr);
 
-	newcmd = TRUE;
-	while (TRUE) {
-		outChannel = Tcl_GetStdChannel(TCL_STDOUT);
-		if (outChannel) {
-			Tcl_Flush(outChannel);
-		}
-
-		/* force terminal state */
-		tty_changed = exp_tty_cooked_echo(interp,&tty_old,&was_raw,&was_echo);
-
-		if (newcmd) {
-			rc = Tcl_Eval(interp,prompt1);
-			if (rc == TCL_OK) exp_log(1,"%s",interp->result);
-			else exp_log(1,prompt1_default,iPtr->numLevels,
-				     history_nextid(interp));
-		} else {
-			rc = Tcl_Eval(interp,prompt2);
-			if (rc == TCL_OK) exp_log(1,"%s",interp->result);
-			else exp_log(1,prompt2_default,1);
-		}
-
-		exp_fs[fd].force_read = 1;
-		rc = exp_get_next_event(interp,&fd,1,&dummy,EXP_TIME_INFINITY,
-			exp_fs[fd].key);
-		/*  check for rc == EXP_TCLERROR? */
-
-		if (rc != EXP_EOF) {
-			rc = read(0,line,BUFSIZ);
-#ifdef SIMPLE_EVENT
-			if (rc == -1 && errno == EINTR) {
-				if (Tcl_AsyncReady()) {
-					(void) Tcl_AsyncInvoke(interp,TCL_OK);
-				}
-				continue;
-			}
-#endif
-			if (rc <= 0) {
-				if (!newcmd) line[0] = 0;
-				else rc = EXP_EOF;
-			} else line[rc] = '\0';
-		}
-
-		if (rc == EXP_EOF) exp_exit(interp,0);
-
-		if (debugfile) fwrite(line,1,strlen(line),debugfile);
-		/* intentionally always write to logfile */
-		if (logfile) fwrite(line,1,strlen(line),logfile);
-		/* no need to write to stdout, since they will see */
-		/* it just from it having been echoed as they are */
-		/* typing it */
-
-		ccmd = Tcl_DStringAppend(&dstring,line,rc);
-		if (!Tcl_CommandComplete(ccmd)) {
-			newcmd = FALSE;
-			continue;	/* continue collecting command */
-		}
-		newcmd = TRUE;
-
-		if (tty_changed) exp_tty_set(interp,&tty_old,was_raw,was_echo);
-
-		rc = Tcl_RecordAndEval(interp,ccmd,0);
-		Tcl_DStringFree(&dstring);
-		switch (rc) {
-		case TCL_OK:
-			if (*interp->result != 0)
-				exp_log(1,"%s\r\n",exp_cook(interp->result,(int *)0));
-			continue;
-		case TCL_ERROR:
-			handle_eval_error(interp,1);
-			/* since user is typing by hand, we expect lots */
-			/* of errors, and want to give another chance */
-			continue;
-#define finish(x)	{rc = x; goto done;}
-		case TCL_BREAK:
-		case TCL_CONTINUE:
-			finish(rc);
-		case EXP_TCL_RETURN:
-			finish(TCL_RETURN);
-		case TCL_RETURN:
-			finish(TCL_OK);
-		default:
-			/* note that ccmd has trailing newline */
-			errorlog("error %d: %s\r\n",rc,ccmd);
-			continue;
-		}
+    gotPartial = 0;
+    while (TRUE) {
+	outChannel = Tcl_GetStdChannel(TCL_STDOUT);
+	if (outChannel) {
+	    Tcl_Flush(outChannel);
 	}
-	/* cannot fall thru here, must jump to label */
- done:
+
+	/* force terminal state */
+	tty_changed = exp_tty_cooked_echo(interp,&tty_old,&was_raw,&was_echo);
+
+	if (!gotPartial) {
+	    code = Tcl_Eval(interp,prompt1);
+	    if (code == TCL_OK) exp_log(1,"%s",interp->result);
+	    else exp_log(1,prompt1_default,iPtr->numLevels,history_nextid(interp));
+	} else {
+	    code = Tcl_Eval(interp,prompt2);
+	    if (code == TCL_OK) exp_log(1,"%s",interp->result);
+	    else exp_log(1,prompt2_default,1);
+	}
+
+	esPtr->force_read = 1;
+	code = exp_get_next_event(interp,&esPtr,1,&esPtr,EXP_TIME_INFINITY,
+		esPtr->key);
+	/*  check for code == EXP_TCLERROR? */
+
+	if (code != EXP_EOF) {
+	    code = length = Tcl_GetsObj(inChannel, commandPtr);
+#ifdef SIMPLE_EVENT
+	    if (code == -1 && errno == EINTR) {
+		if (Tcl_AsyncReady()) {
+		    (void) Tcl_AsyncInvoke(interp,TCL_OK);
+		}
+		continue;
+	    }
+#endif
+	    if ((code <= 0) && !gotPartial) code = EXP_EOF;
+	}
+
+	if (code == EXP_EOF) exp_exit(interp,0);
+
+	cmdstr = Tcl_GetStringFromObj(commandPtr,&cmdlen)
+	if (debugfile) fwrite(cmdstr,1,cmdlen,debugfile);
+	/* intentionally always write to logfile */
+	if (logfile) fwrite(cmdstr,1,cmdlen,logfile);
+	/* no need to write to stdout, since they will see */
+	/* it just from it having been echoed as they are */
+	/* typing it */
+
+        /*
+         * Add the newline removed by Tcl_GetsObj back to the string.
+         */
+
+	Tcl_AppendToObj(commandPtr, "\n", 1);
+	if (!TclObjCommandComplete(commandPtr)) {
+	    gotPartial = 1;
+	    continue;
+	}	
+
+	Tcl_AppendToObj(commandPtr, "\n", 1);
+	if (!TclObjCommandComplete(commandPtr)) {
+	    gotPartial = 1;
+	    continue;
+	}
+
+	gotPartial = 0;
+
 	if (tty_changed) exp_tty_set(interp,&tty_old,was_raw,was_echo);
 
-	Tcl_DStringFree(&dstring);
+	code = Tcl_RecordAndEvalObj(interp, commandPtr, 0);
+	Tcl_SetObjLength(commandPtr, 0);
+	switch (code) {
+	    case TCL_OK:
+		if (*interp->result != 0)
+		    exp_log(1,"%s\r\n",exp_cook(interp->result,(int *)0));
+		continue;
+	    case TCL_ERROR:
+		handle_eval_error(interp,1);
+		/* since user is typing by hand, we expect lots */
+		/* of errors, and want to give another chance */
+		continue;
+#define finish(x)	{code = x; goto done;}
+	    case TCL_BREAK:
+	    case TCL_CONTINUE:
+		finish(code);
+	    case EXP_TCL_RETURN:
+		finish(TCL_RETURN);
+	    case TCL_RETURN:
+		finish(TCL_OK);
+	    default:
+		/* note that ccmd has trailing newline */
+		errorlog("error %d: %s\r\n",code,Tcl_GetStringFromObj(Tcl_GetObjResult(interp),(int *)0));
+		continue;
+	}
+    }
+    /* cannot fall thru here, must jump to label */
+ done:
+    if (tty_changed) exp_tty_set(interp,&tty_old,was_raw,was_echo);
 
-	return(rc);
+    Tcl_DecrRefCount(commandPtr);
+    return(code);
 }
 
 /*ARGSUSED*/
@@ -776,7 +783,7 @@ Tcl_Interp *interp;
 FILE *fp;
 {
 	int rc = 0;
-	int newcmd;
+	int gotPartial;
 	int eof;
 
 	Tcl_DString dstring;
@@ -784,22 +791,22 @@ FILE *fp;
 
 	debuglog("executing commands from command file\r\n");
 
-	newcmd = TRUE;
+	gotPartial = 0;
 	eof = FALSE;
 	while (1) {
 		char line[BUFSIZ];/* buffer for partial Tcl command */
 		char *ccmd;	/* pointer to complete Tcl command */
 
 		if (fgets(line,BUFSIZ,fp) == NULL) {
-			if (newcmd) break;
+			if (!gotPartial) break;
 			eof = TRUE;
 		}
 		ccmd = Tcl_DStringAppend(&dstring,line,-1);
 		if (!Tcl_CommandComplete(ccmd) && !eof) {
-			newcmd = FALSE;
+			gotPartial = 1;
 			continue;	/* continue collecting command */
 		}
-		newcmd = TRUE;
+		gotPartial = 0;
 
 		rc = Tcl_Eval(interp,ccmd);
 		Tcl_DStringFree(&dstring);
@@ -813,92 +820,10 @@ FILE *fp;
 	return rc;
 }
 
-#ifdef SHARE_CMD_BUFFER
-/* fgets that shared input buffer with expect_user */
-int
-exp_fgets(interp,buf,max)
-Tcl_Interp *interp;
-char *buf;
-int max;
-{
-	char *nl;	/* position of newline which signifies end of line */
-	int write_count;/* length of first line of incoming data */
-
-	int m = fileno(stdin);
-	struct exp_f *f;
-	int cc;
-
-	int dummy;
-
-	/* avoid returning no data, just because someone else read it in by */
-	/* passing most recent key */
-	cc = exp_get_next_event(interp,&m,1,&dummy,EXP_TIME_INFINITY,exp_fs[m].key);
-
-	if (cc == EXP_DATA_NEW) {
-		/* try to read it */
-
-		cc = exp_i_read(m,EXP_TIME_INFINITY);
-
-		/* the meaning of 0 from i_read means eof.  Muck with it a */
-		/* little, so that from now on it means "no new data arrived */
-		/* but it should be looked at again anyway". */
-		if (cc == 0) {
-			cc = EXP_EOF;
-		} else if (cc > 0) {
-			f = exp_fs + m;
-			f->buffer[f->size += cc] = '\0';
-		}
-	} else if (cc == EXP_DATA_OLD) {
-		f = exp_fs + m;
-		cc = 0;
-	}
-
-	/* EOF and TIMEOUT return here */
-	/* In such cases, there is no need to update screen since, if there */
-	/* was prior data read, it would have been sent to the screen when */
-	/* it was read. */
-	if (cc < 0) return (cc);
-
-	/* copy up to end of first line */
-
-	/* calculate end of first line */
-	nl = strchr(f->buffer,'\n');
-	if (nl) write_count = 1+nl-f->buffer;
-	else write_count = f->size;
-
-	/* make sure line fits in buffer area */
-	if (write_count > max) write_count = max;
-
-	/* copy it */
-	memcpy(buf,f->buffer,write_count);
-	buf[write_count] = '\0';
-
-	/* update display and f */
-
-	f->printed = 0;
-	/* for simplicity force f->printed = 0.  This way, the user gets */
-	/* to see the commands that are about to be executed.  Not seeing */
-	/* commands you are supposedly typing sounds very uncomfortable! */
-
-	if (logfile_all || (loguser && logfile)) {
-		fwrite(f->buffer,1,write_count,logfile);
-	}
-	if (debugfile) fwrite(f->buffer,1,write_count,debugfile);
-
-	f->size -= write_count;
-	memcpy(f->buffer,f->buffer+write_count,1+f->size);
-	/* copy to lowercase buffer */
-	exp_lowmemcpy(f->lower,f->buffer,1+f->size);
-
-	return(write_count);
-}
-#endif /*SHARE_CMD_BUFFER*/
-
 static struct exp_cmd_data cmd_data[]  = {
-{"expect_version",exp_proc(Exp_ExpVersionCmd),	0,	0},	/* deprecated */
 {"exp_version",	exp_proc(Exp_ExpVersionCmd),	0,	0},
-{"prompt1",	exp_proc(Exp_Prompt1Cmd),		0,	EXP_NOPREFIX},
-{"prompt2",	exp_proc(Exp_Prompt2Cmd),		0,	EXP_NOPREFIX},
+{"prompt1",	exp_proc(Exp_Prompt1Cmd),	0,	EXP_NOPREFIX},
+{"prompt2",	exp_proc(Exp_Prompt2Cmd),	0,	EXP_NOPREFIX},
 {0}};
 
 void

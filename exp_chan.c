@@ -167,7 +167,7 @@ ExpCloseProc(instanceData, interp)
       user_spawn_id, it probably doesn't matter anyway.
     */
 
-    Tcl_DeleteFileHandler(esPtr->fd);
+    Tcl_DeleteFileHandler(esPtr->fdin);
 
     /*
      * Actually file descriptor should have been closed earlier.
@@ -266,7 +266,7 @@ ExpGetHandleProc(instanceData, direction, handlePtr)
 	*handlePtr = (ClientData) esPtr->fdin;
     }
     if (direction & TCL_READABLE) {
-	*handlePtr = (ClientData) esPtr->fd;
+	*handlePtr = (ClientData) esPtr->fdin;
     } else {
 	return TCL_ERROR;
     }
@@ -319,6 +319,24 @@ expWaitOnAny(interp) {
 	}
     }
     return esPtr;
+}
+
+ExpState *
+expWaitOnOne() {
+    ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
+    int result;
+    ExpState *esPtr;
+    int pid;
+    /* should really be recoded using the common wait code in command.c */
+    int status;
+
+    pid = wait(&status);
+    for (esPtr = tsdPtr->firstExpPtr;esPtr;esPtr = esPtr->nextPtr) {
+	if (esPtr->pid == pid) {
+	    esPtr->sys_waited = TRUE;
+	    esPtr->wait = status;
+	}
+    }
 }
 
 void

@@ -1211,7 +1211,7 @@ char **argv;
 		return TCL_ERROR;
 	    }
 	} else {
-	    if (!(esPtr = expGetState(interp,iflag,0,0,"dummy"))) {
+	    if (!(esPtr = expGetStateFromChannelName(interp,iflag,0,0,"dummy"))) {
 		/* if this is not a valid ExpState, then assume it is an
 		   indirect */
 		Tcl_ResetResult(interp);
@@ -2053,12 +2053,11 @@ exp_process_matches(interp, eo, bg, detail)
 
     /* this is broken out of (match > 0) (above) since it can */
     /* that an EOF occurred with match == 0 */
-    if (eo->f) {
+    if (eo->esPtr) {
 	char spawn_id[10];	/* enough for a %d */
 	char *str;
 
-	sprintf(spawn_id,"%d",f-exp_fs);
-	out("spawn_id",spawn_id);
+	out("spawn_id",esPtr->name);
 
 	str = Tcl_GetStringFromObj(esPtr->buffer, &length);
 			
@@ -2088,8 +2087,7 @@ exp_process_matches(interp, eo, bg, detail)
 		strcpy(eof_body,body);
 		body = eof_body;
 	    }
-
-	    exp_close(interp,f - exp_fs);
+	    exp_close(interp,esPtr);
 	}
 
     }
@@ -2148,7 +2146,7 @@ int mask;
 
 do_more_data:
     eo.e = 0;		/* no final case yet */
-    eo.f = 0;		/* no final file selected yet */
+    eo.esPtr = 0;		/* no final file selected yet */
     eo.match = 0;		/* nothing matched yet */
 
     /* force redisplay of buffer when debugging */
@@ -2186,7 +2184,7 @@ do_more_data:
 	/* special eof code that cannot be done in eval_cases */
 	/* or above, because it would then be executed several times */
 	if (cc == EXP_EOF) {
-		eo.f = exp_fs + m;
+		eo.esPtr = esPtr;
 		eo.match = eo.esPtr->size;
 		eo.buffer = eo.esPtr->buffer;
 		debuglog("expect_background: read eof\r\n");
@@ -2580,39 +2578,40 @@ Tcl_Interp *interp;
 int argc;
 char **argv;
 {
-	int size = -1;
-	ExpState *esPtr = 0;
-	int m = -1;
-	ExpState *f;
-	int Default = FALSE;
+    int size = -1;
+    ExpState *esPtr = 0;
+    char *chanName = 0;
+    int Default = FALSE;
 
-	argc--; argv++;
+    argc--; argv++;
 
-	for (;argc>0;argc--,argv++) {
-		if (streq(*argv,"-d")) {
-			Default = TRUE;
-		} else if (streq(*argv,"-i")) {
-			argc--;argv++;
-			if (argc < 1) {
-				exp_error(interp,"-i needs argument");
-				return(TCL_ERROR);
-			}
-			m = atoi(*argv);
-		} else break;
-	}
+    for (;argc>0;argc--,argv++) {
+	if (streq(*argv,"-d")) {
+	    Default = TRUE;
+	} else if (streq(*argv,"-i")) {
+	    argc--;argv++;
+	    if (argc < 1) {
+		exp_error(interp,"-i needs argument");
+		return(TCL_ERROR);
+	    }
+	    chanName = *argv;
+	} else break;
+    }
 
-	if (!Default) {
-		if (m == -1) {
-			if (!(f = exp_update_master(interp,&esPtr,0,0)))
-				return(TCL_ERROR);
-		} else {
-			if (!(f = exp_fd2f(interp,esPtr,0,0,"match_max")))
-				return(TCL_ERROR);
-		}
-	} else if (m != -1) {
-		exp_error(interp,"cannot do -d and -i at the same time");
+    if (!Default) {
+	if (!chanName) {
+	    if (!(esPtr = expGetCurrentMaster(interp,0,0))) {
+		return(TCL_ERROR);
+	    }
+	} else {
+	    
+	    if (!(esPtr = expGetStateFromChannelName(interp,chanName,0,0,"match_max")))
 		return(TCL_ERROR);
 	}
+    } else if (m != -1) {
+	exp_error(interp,"cannot do -d and -i at the same time");
+	return(TCL_ERROR);
+    }
 
 	if (argc == 0) {
 		if (Default) {
@@ -2745,7 +2744,7 @@ char **argv;
 		return(TCL_ERROR);
 	    }
 	} else {
-	    if (!(esPtr = expGetState(interp,chanName,0,0,"parity"))) {
+	    if (!(esPtr = expGetStateFromChannelName(interp,chanName,0,0,"parity"))) {
 		return(TCL_ERROR);
 	    }
 	}

@@ -37,7 +37,7 @@ expensive.
 
 #include "tcl.h"
 #include "exp_prog.h"
-#include "exp_command.h"	/* for struct exp_f defs */
+#include "exp_command.h"	/* for ExpState defs */
 #include "exp_event.h"
 
 typedef struct ThreadSpecificData {
@@ -188,8 +188,8 @@ int mask;
 int exp_get_next_event(interp,esPtrs,n,esPtrOut,timeout,key)
 Tcl_Interp *interp;
 ExpState (*esPtrs)[];
-int n;			/* # of masters */
-ExpState **esPtrOut;	/* 1st ready master, not set if none */
+int n;			/* # of esPtrs */
+ExpState **esPtrOut;	/* 1st ready esPtr, not set if none */
 int timeout;		/* seconds */
 int key;
 {
@@ -208,9 +208,6 @@ int key;
     Tcl_TimerToken timetoken;/* handle to Tcl timehandler descriptor */
 
     for (;;) {
-	int m;
-	struct exp_f *f;
-
 	/* if anything has been touched by someone else, report that */
 	/* an event has been received */
 
@@ -282,7 +279,7 @@ int key;
 	    tsdPtr->ready_esPtr = 0;
 	    continue;
 	    found:
-	    *master_out = esPtr;
+	    *esPtrOut = esPtr;
 	    tsdPtr->ready_esPtr = EXP_SPAWN_ID_BAD;
 
 	    /* this test should be redundant but SunOS */

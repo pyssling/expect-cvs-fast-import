@@ -3,6 +3,16 @@ support are in ChangeLog. - Don
 
 Date	Version	Description
 -------	-------	------------------------------------------------------
+		Scott Stanton switched to using objects more comprehensively
+		and using 8.1 regexp.
+
+		Created Expect channel driver.
+
+		Began adding thread support.
+
+		Forced existence of spawn_id variable in environment.
+		This makes things easier later.
+
 		Kenji Kamizono <kenji@math.columbia.edu> noted it was possible
 		to compile Linux (2.2.5) so that it recognized both openpty
 		and ptmx leading to conflicts.  I arbitrarily chose ptmx.

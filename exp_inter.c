@@ -392,28 +392,11 @@ clean_up_after_child(interp,esPtr)
 Tcl_Interp *interp;
 ExpState *esPtr;
 {
-/* should really be recoded using the common wait code in command.c */
-	int status;
-	int pid;
-	int i;
+    expWaitOnOne(); /* wait for slave */
+    expWaitOnOne(); /* wait for child */
 
-	pid = wait(&status);	/* for slave */
-	for (i=0;i<=exp_fd_max;i++) {
-		if (exp_fs[i].pid == pid) {
-			exp_fs[i].sys_waited = TRUE;
-			exp_fs[i].wait = status;
-		}
-	}
-	pid = wait(&status);	/* for child */
-	for (i=0;i<=exp_fd_max;i++) {
-		if (exp_fs[i].pid == pid) {
-			exp_fs[i].sys_waited = TRUE;
-			exp_fs[i].wait = status;
-		}
-	}
-
-	deferred_interrupt = FALSE;
-	exp_close(interp,esPtr);
+    deferred_interrupt = FALSE;
+    exp_close(interp,esPtr);
 }
 #endif /*SIMPLE_EVENT*/
 

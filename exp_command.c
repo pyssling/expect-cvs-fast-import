@@ -187,17 +187,32 @@ exp_error TCL_VARARGS_DEF(Tcl_Interp *,arg1)
 	va_end(args);
 }
 
-/* returns ExpState if channel is usable, 0 if not */
-/* this replaces exp_fd2f */
-ExpState *
-expGetState(interp,chan,opened,adjust,msg)
+/* returns current master (via out-parameter) */
+/* returns f or 0.  If 0, may be immediately followed by return TCL_ERROR. */
+struct ExpState *
+expGetCurrentState(interp,opened,adjust)
 Tcl_Interp *interp;
-Tcl_Channel chan;
-int opened;		/* check not closed */
-int adjust;		/* adjust buffer sizes */
-char *msg;
+int opened;
+int adjust;
+{
+    char *name = exp_get_var(interp,SPAWN_ID_VARNAME);
+    if (!name) return 0;
+
+    return expGetStateFromChannelName(interp,name,opened,adjust,SPAWN_ID_VARNAME);
+}
+
+ExpState *
+expGetStateFromChannelName(interp,name,opened,adjust,msg)
+    Tcl_Interp *interp,
+    char *name;
+    int opened;
+    int adjust;
+    char *msg;
 {
     ExpState *esPtr = Tcl_GetChannelInstanceData(chan);
+
+    Tcl_Channel channel = Tcl_GetChannel(interp,name,(int *)0);
+    if (!channel) return(0);
 
     /* following is a little tricky, do not be tempted do the */
     /* 'usual' boolean simplification */
@@ -236,22 +251,7 @@ WAIT_STATUS_TYPE *status;
 	}
 }
 
-/* I believe this busy nonsense can disappear but haven't thought about it
-   enough to be positive */
-/* prevent an fd from being allocated */
-void
-exp_busy(fd)
-int fd;
-{
-	int x = open("/dev/null",0);
-	if (x != fd) {
-		fcntl(x,F_DUPFD,fd);
-		close(x);
-	}
-	exp_close_on_exec(fd);
-}
-
-/* called just before an exp_f entry is about to be invalidated */
+/* called just before an ExpState entry is about to be invalidated */
 void
 exp_state_prep_for_invalidation(interp,esPtr)
 Tcl_Interp *interp;
@@ -288,23 +288,23 @@ exp_trap_off(name)
 char *name;
 {
 #ifdef HAVE_PTYTRAP
-	int master;
-	ExpState *esPtr;
-	int enable = 0;
+    int master;
+    ExpState *esPtr;
+    int enable = 0;
 
-	Tcl_HashEntry *entry = Tcl_FindHashEntry(&slaveNames,name);
-	if (!entry) {
-		debuglog("exp_trap_off: no entry found for %s\n",name);
-		return -1;
-	}
+    Tcl_HashEntry *entry = Tcl_FindHashEntry(&slaveNames,name);
+    if (!entry) {
+	debuglog("exp_trap_off: no entry found for %s\n",name);
+	return -1;
+    }
 
-	esPtr = (ExpState *)Tcl_GetHashValue(entry);
+    esPtr = (ExpState *)Tcl_GetHashValue(entry);
+    
+    exp_slave_control(master->fdin,0);
 
-	exp_slave_control(master->fdin,0);
-
-	return master->fdin;
+    return master->fdin;
 #else
-	return name[0];	/* pacify lint, use arg and return something */
+    return name[0];	/* pacify lint, use arg and return something */
 #endif
 }
 
@@ -313,23 +313,23 @@ void
 expSysClose(esPtr)
 ExpState *esPtr;
 {
-	/* Ignore close errors.  Some systems are really odd and */
-	/* return errors for no evident reason.  Anyway, receiving */
-	/* an error upon pty-close doesn't mean anything anyway as */
-	/* far as I know. */
-	close(esPtr->fd);
-	esPtr->sys_closed = TRUE;
+    /* Ignore close errors.  Some systems are really odd and */
+    /* return errors for no evident reason.  Anyway, receiving */
+    /* an error upon pty-close doesn't mean anything anyway as */
+    /* far as I know. */
+    close(esPtr->fdin);
+    esPtr->sys_closed = TRUE;
 
 #ifdef HAVE_PTYTRAP
-	if (esPtr->slave_name) {
-		Tcl_HashEntry *entry;
+    if (esPtr->slave_name) {
+	Tcl_HashEntry *entry;
+	
+	entry = Tcl_FindHashEntry(&slaveNames,esPtr->slave_name);
+	Tcl_DeleteHashEntry(entry);
 
-		entry = Tcl_FindHashEntry(&slaveNames,esPtr->slave_name);
-		Tcl_DeleteHashEntry(entry);
-
-		ckfree(esPtr->slave_name);
-		esPtr->slave_name = 0;
-	}
+	ckfree(esPtr->slave_name);
+	esPtr->slave_name = 0;
+    }
 #endif
 }
 
@@ -376,9 +376,6 @@ ExpState *esPtr;
 
     if (esPtr->user_waited) {
 	Tcl_UnregisterChannel(interp,channel);
-    } else {
-	exp_busy(esPtr->fdin);
-	esPtr->sys_closed = FALSE;
     }
 
     return(TCL_OK);
@@ -1249,7 +1246,6 @@ Tcl_Interp *interp;
 int argc;
 char **argv;
 {
-    struct exp_f *f;
     char *chanName = 0;
     ExpState *esPtr = 0;
 
@@ -1264,14 +1260,14 @@ char **argv;
     }
 
     if (chanName) {
-	if (!(esPtr = expGetState(interp,chan,1,0,"exp_pid"))) return TCL_ERROR;
+	if (!(esPtr = expGetStateFromChannelName(interp,chanName,1,0,"exp_pid"))) return TCL_ERROR;
     } else {
 	if (!(esPtr = expGetCurrentState(interp,0,0))) return TCL_ERROR;
     }
     
     sprintf(interp->result,"%d",esPtr->pid);
     return TCL_OK;
-    usage:
+  usage:
     exp_error(interp,"usage: -i spawn_id");
     return TCL_ERROR;
 }
@@ -1287,23 +1283,6 @@ char **argv;
 	debuglog("getpid is deprecated, use pid\r\n");
 	sprintf(interp->result,"%d",getpid());
 	return(TCL_OK);
-}
-
-/* returns current master (via out-parameter) */
-/* returns f or 0.  If 0, may be immediately followed by return TCL_ERROR. */
-struct ExpState *
-expGetCurrentState(interp,opened,adjust)
-Tcl_Interp *interp;
-int opened;
-int adjust;
-{
-    char *s = exp_get_var(interp,SPAWN_ID_VARNAME);
-    if (!s) return 0;
-
-    chan = Tcl_GetChannel(interp,s,(int *)0);
-    if (!chan) return 0;
-
-    return(expGetState(interp,chan,opened,adjust,SPAWN_ID_VARNAME));
 }
 
 /*ARGSUSED*/
@@ -2474,8 +2453,7 @@ Tcl_Obj *CONST objv[];	/* Argument objects. */
     }
 
     if (chanName) {
-	if (!(chan = Tcl_GetChannel(interp,chanName,(char *)0))) return TCL_ERROR;
-	if (!(esPtr = expGetState(interp,chan,1,0,"close"))) return TCL_ERROR;
+	if (!(esPtr = expGetStateFromChannelName(interp,chanName,1,0,"close"))) return TCL_ERROR;
     } else {
 	if (!(esPtr = expGetCurrentState(interp,1,0))) return TCL_ERROR;
     }
@@ -2797,7 +2775,7 @@ char **argv;
 	}
     }
 
-    /*  sigh, wedge forked_proc into an exp_f structure so we don't
+    /*  sigh, wedge forked_proc into an ExpState structure so we don't
      *  have to rewrite remaining code (too much)
      */
     if (fp) {
@@ -2890,92 +2868,96 @@ Tcl_Interp *interp;
 int argc;
 char **argv;
 {
-	/* tell Saber to ignore non-use of ttyfd */
-	/*SUPPRESS 591*/
-	int ttyfd;
+    ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
+    
 
-	if (argc > 1) {
-		exp_error(interp,"usage: disconnect");
-		return(TCL_ERROR);
-	}
+    /* tell CenterLine to ignore non-use of ttyfd */
+    /*SUPPRESS 591*/
+    int ttyfd;
 
-	if (exp_disconnected) {
-		exp_error(interp,"already disconnected");
-		return(TCL_ERROR);
-	}
-	if (!exp_forked) {
-		exp_error(interp,"can only disconnect child process");
-		return(TCL_ERROR);
-	}
-	exp_disconnected = TRUE;
+    if (argc > 1) {
+	exp_error(interp,"usage: disconnect");
+	return(TCL_ERROR);
+    }
 
-	/* ignore hangup signals generated by testing ptys in getptymaster */
-	/* and other places */
-	signal(SIGHUP,SIG_IGN);
+    if (exp_disconnected) {
+	exp_error(interp,"already disconnected");
+	return(TCL_ERROR);
+    }
+    if (!exp_forked) {
+	exp_error(interp,"can only disconnect child process");
+	return(TCL_ERROR);
+    }
+    exp_disconnected = TRUE;
 
-	/* reopen prevents confusion between send/expect_user */
-	/* accidentally mapping to a real spawned process after a disconnect */
+    /* ignore hangup signals generated by testing ptys in getptymaster */
+    /* and other places */
+    signal(SIGHUP,SIG_IGN);
 
-	/* if we're in a child that's about to be disconnected from the
-	   controlling tty, close and reopen 0, 1, and 2 but associated
-	   with /dev/null.  This prevents send and expect_user doing
-	   special things if newly spawned processes accidentally
-	   get allocated 0, 1, and 2.
-	*/
+    /* reopen prevents confusion between send/expect_user */
+    /* accidentally mapping to a real spawned process after a disconnect */
+
+    /* if we're in a child that's about to be disconnected from the
+       controlling tty, close and reopen 0, 1, and 2 but associated
+       with /dev/null.  This prevents send and expect_user doing
+       special things if newly spawned processes accidentally
+       get allocated 0, 1, and 2.
+    */
 	   
-	if (isatty(0)) {
-		exp_close(interp,0);
-		open("/dev/null",0);
-		Exp_CreateChannel(0,1,EXP_NOPID);
+    if (isatty(0)) {
+	exp_close(interp,tsdPtr->stdinout);
+	open("/dev/null",0);
+	open("/dev/null",1);
+	tsdPtr->stdinout = expCreateChannel(0,1,EXP_NOPID);
 	}
-	if (isatty(2)) {
-		/* reopen stderr saves error checking in error/log routines. */
-		exp_close(interp,2);
-		open("/dev/null",1);
-		Exp_CreateChannel(2,2,EXP_NOPID);
-	}
+    if (isatty(2)) {
+	/* reopen stderr saves error checking in error/log routines. */
+	exp_close(interp,ExpDevtty());
+	open("/dev/null",1);
+	tsdPtr->devtty = expCreateChannel(2,2,EXP_NOPID);
+    }
 
-	Tcl_UnsetVar(interp,"tty_spawn_id",TCL_GLOBAL_ONLY);
+    Tcl_UnsetVar(interp,"tty_spawn_id",TCL_GLOBAL_ONLY);
 
 #ifdef DO_SETSID
-	setsid();
+    setsid();
 #else
 #ifdef SYSV3
-	/* put process in our own pgrp, and lose controlling terminal */
+    /* put process in our own pgrp, and lose controlling terminal */
 #ifdef sysV88
-	/* With setpgrp first, child ends up with closed stdio */
-	/* according to Dave Schmitt <daves@techmpc.csg.gss.mot.com> */
-	if (fork()) exit(0);
-	setpgrp();
+    /* With setpgrp first, child ends up with closed stdio */
+    /* according to Dave Schmitt <daves@techmpc.csg.gss.mot.com> */
+    if (fork()) exit(0);
+    setpgrp();
 #else
-	setpgrp();
-	/*signal(SIGHUP,SIG_IGN); moved out to above */
-	if (fork()) exit(0);	/* first child exits (as per Stevens, */
-	/* UNIX Network Programming, p. 79-80) */
-	/* second child process continues as daemon */
+    setpgrp();
+    /*signal(SIGHUP,SIG_IGN); moved out to above */
+    if (fork()) exit(0);	/* first child exits (as per Stevens, */
+    /* UNIX Network Programming, p. 79-80) */
+    /* second child process continues as daemon */
 #endif
 #else /* !SYSV3 */
 #ifdef MIPS_BSD
-	/* required on BSD side of MIPS OS <jmsellen@watdragon.waterloo.edu> */
+    /* required on BSD side of MIPS OS <jmsellen@watdragon.waterloo.edu> */
 #	include <sysv/sys.s>
-	syscall(SYS_setpgrp);
+    syscall(SYS_setpgrp);
 #endif
-	setpgrp(0,0);
-/*	setpgrp(0,getpid());*/	/* put process in our own pgrp */
+    setpgrp(0,0);
+/*  setpgrp(0,getpid());*/	/* put process in our own pgrp */
 
 /* Pyramid lacks this defn */
 #ifdef TIOCNOTTY
-	ttyfd = open("/dev/tty", O_RDWR);
-	if (ttyfd >= 0) {
-		/* zap controlling terminal if we had one */
-		(void) ioctl(ttyfd, TIOCNOTTY, (char *)0);
-		(void) close(ttyfd);
-	}
+    ttyfd = open("/dev/tty", O_RDWR);
+    if (ttyfd >= 0) {
+	/* zap controlling terminal if we had one */
+	(void) ioctl(ttyfd, TIOCNOTTY, (char *)0);
+	(void) close(ttyfd);
+    }
 #endif /* TIOCNOTTY */
 
 #endif /* SYSV3 */
 #endif /* DO_SETSID */
-	return(TCL_OK);
+    return(TCL_OK);
 }
 
 /*ARGSUSED*/
@@ -3054,14 +3036,14 @@ Tcl_Interp *interp;
 int argc;
 char **argv;
 {
-	if (argc == 1) {
-		return EXP_CONTINUE;
-	} else if ((argc == 2) && (0 == strcmp(argv[1],"-continue_timer"))) {
-		return EXP_CONTINUE_TIMER;
-	}
+    if (argc == 1) {
+	return EXP_CONTINUE;
+    } else if ((argc == 2) && (0 == strcmp(argv[1],"-continue_timer"))) {
+	return EXP_CONTINUE_TIMER;
+    }
 
-	exp_error(interp,"usage: exp_continue [-continue_timer]\n");
-	return(TCL_ERROR);
+    exp_error(interp,"usage: exp_continue [-continue_timer]\n");
+    return(TCL_ERROR);
 }
 
 /* most of this is directly from Tcl's definition for return */
@@ -3093,10 +3075,8 @@ char **argv;
 {
     ExpState *esPtr;
     char *chanName;
-
     int newfd;
     int leaveopen = FALSE;
-    Tcl_Channel chan;
 
     argc--; argv++;
 
@@ -3117,10 +3097,8 @@ char **argv;
     if (!chanName) {
 	if (!(esPtr = expGetCurrentState(interp,0,0))) return TCL_ERROR;
     } else {
-	if (!(chan = Tcl_GetChannel(interp,chanName,(char *)0))) return
-								     TCL_ERROR;
-	if (!(esPtr = expGetState(interp,chan,0,0,"exp_open"))) return
-								    TCL_ERROR;
+	if (!(esPtr = expGetStateFromChannelName(interp,chanName,0,0,"exp_open")))
+return TCL_ERROR;
     }
 
     /* make a new copy of file descriptor */

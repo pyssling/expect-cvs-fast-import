@@ -8,12 +8,12 @@ would appreciate credit if this program or parts of it are used.
 */
 
 EXTERN ExpState *       expGetCurrentState _ANSI_ARGS_((Tcl_Interp *,int,int));
-EXTERN ExpState *       expGetState _ANSI_ARGS_((Tcl_Interp
-	*,Tcl_Channel,int,int,char *));
+EXTERN ExpState *       expGetStateFromChannelName _ANSI_ARGS_((Tcl_Interp *,char *,int,int,char *));
 
 #define EXP_CHANNELNAMELEN (16 + TCL_INTEGER_SPACE)
 
 #ifdef OBSOLETE 
+EXTERN struct exp_f *exp_fs;
 EXTERN struct exp_f *	exp_fd2f _ANSI_ARGS_((Tcl_Interp *,int,int,int,char *));
 EXTERN struct exp_f *	exp_update_master
 				_ANSI_ARGS_((Tcl_Interp *,int *,int,int));
@@ -232,10 +232,8 @@ extern Tcl_ChannelType expChannelType;
 #define EXP_DIRECT	1
 #define EXP_INDIRECT	2
 
-EXTERN struct exp_f *exp_fs;
-
-EXTERN void		exp_adjust _ANSI_ARGS_((struct exp_f *));
-EXTERN void		exp_buffer_shuffle _ANSI_ARGS_((Tcl_Interp *,struct exp_f *,int,char *,char *));
+EXTERN void		exp_adjust _ANSI_ARGS_((ExpState *));
+EXTERN void		exp_buffer_shuffle _ANSI_ARGS_((Tcl_Interp *,ExpState *,int,char *,char *));
 EXTERN int		exp_close _ANSI_ARGS_((Tcl_Interp *,int));
 EXTERN void		exp_close_all _ANSI_ARGS_((Tcl_Interp *));
 EXTERN void		exp_ecmd_remove_fd_direct_and_indirect 
