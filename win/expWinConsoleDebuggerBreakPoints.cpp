@@ -24,11 +24,11 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinConsoleDebuggerBreakPoints.cpp,v 1.1.2.11 2002/06/18 22:51:31 davygrvy Exp $
+ * RCS: @(#) $Id: expWinConsoleDebuggerBreakPoints.cpp,v 1.1.2.12 2002/06/21 03:01:51 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
-#include "expWinConsoleDebugger.hpp"
+#include "expWinSlave.hpp"
 
 // NOTE:  black magic abounds...  be warry young padwon...
 

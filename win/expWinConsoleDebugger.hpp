@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinConsoleDebugger.hpp,v 1.1.2.23 2002/06/22 02:50:09 davygrvy Exp $
+ * RCS: @(#) $Id: expWinConsoleDebugger.hpp,v 1.1.2.24 2002/06/22 05:54:32 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -42,7 +42,7 @@ class ConsoleDebugger : public CMclThreadHandler, ArgMaker
 public:
     ConsoleDebugger(int _argc, char * const *_argv, CMclQueue<Message *> &_mQ);
     ~ConsoleDebugger();
-    void Write (Message *);
+    void WriteRecord (INPUT_RECORD *ir);
 
 private:
     virtual unsigned ThreadHandlerProc(void);
@@ -279,7 +279,7 @@ private:
     PFNVIRTUALALLOCEX pfnVirtualAllocEx;
     PFNVIRTUALFREEEX pfnVirtualFreeEx;
 
-    CMclMailbox *injectorIPC;
+    CMclMailbox *injectorIPC;	// IPC transfer mechanism to the injector dll.
 };
 
 #endif // INC_expWinConsoleDebugger_hpp__

@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinSlaveMain.cpp,v 1.1.4.18 2002/06/18 22:51:31 davygrvy Exp $
+ * RCS: @(#) $Id: expWinSlaveMain.cpp,v 1.1.4.19 2002/06/22 02:50:09 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -172,6 +172,7 @@ DoEvents(SpawnClientTransport *transport, SlaveTrap *slaveCtrl,
 	    break;
 
 	case Message::TYPE_INSTREAM:
+	case Message::TYPE_INRECORD:
 	    //  Send stuff to the slave.
 	    //
 	    slaveCtrl->Write(msg);
@@ -183,8 +184,8 @@ DoEvents(SpawnClientTransport *transport, SlaveTrap *slaveCtrl,
 	    break;
 
 	case Message::TYPE_SLAVEDONE:
-	    //delete slaveCtrl;
-	    Sleep(500);  // bad hack, please ignore for now.
+	    delete slaveCtrl;
+	    //Sleep(500);  // bad hack, please ignore for now.
 	    return 0;
 	}
     }

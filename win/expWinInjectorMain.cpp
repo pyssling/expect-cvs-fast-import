@@ -23,7 +23,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinInjectorMain.cpp,v 1.1.2.9 2002/06/21 22:04:24 davygrvy Exp $
+ * RCS: @(#) $Id: expWinInjectorMain.cpp,v 1.1.2.10 2002/06/22 02:50:09 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -34,6 +34,7 @@ class Injector : public CMclThreadHandler
     CMclMailbox *ConsoleDebuggerIPC;
     HANDLE console;
     CMclEvent *interrupt;
+    char sysMsgSpace[512];
 
 public:
 
@@ -99,8 +100,6 @@ private:
 		sysMsgSpace+chars, (512-chars),	0);
 	return sysMsgSpace;
     }
-
-    char sysMsgSpace[512];
 };
 
 CMclEvent *interrupt;

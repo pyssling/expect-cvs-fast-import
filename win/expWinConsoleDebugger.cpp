@@ -22,13 +22,13 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinConsoleDebugger.cpp,v 1.1.2.21 2002/06/22 02:50:09 davygrvy Exp $
+ * RCS: @(#) $Id: expWinConsoleDebugger.cpp,v 1.1.2.22 2002/06/22 05:54:32 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
 #include <stddef.h>
 #include <assert.h>
-#include "expWinConsoleDebugger.hpp"
+#include "expWinSlave.hpp"
 #ifdef _MSC_VER
 #   pragma comment (lib, "imagehlp.lib")
 #endif
@@ -237,6 +237,7 @@ ConsoleDebugger::ConsoleDebugger
 ConsoleDebugger::~ConsoleDebugger()
 {
     delete [] SymbolPath;
+    if (injectorIPC) delete injectorIPC;
 }
 
 unsigned
@@ -357,13 +358,6 @@ again:
 	    case 2:
 		OnXSecondBreakpoint(proc, &debEvent); break;
 	    case 3:
-		if ((DWORD)debEvent.u.Exception.ExceptionRecord.ExceptionAddress
-			!= (injectorStub.operand_PUSH_value - sizeof(BYTE)))
-		{
-		    --(proc->nBreakCount);
-		    dwContinueStatus = DBG_EXCEPTION_NOT_HANDLED;
-		    break;
-		}
 		OnXThirdBreakpoint(proc, &debEvent); break;
 	    case 4:
 		OnXBreakpoint(proc, &debEvent);
@@ -1793,7 +1787,8 @@ ConsoleDebugger::WriteMasterCopy(CHAR *buf, DWORD len)
 
     msg = new Message;
     msg->bytes = new CHAR [len];
-    for (i = 0; i < len; i++) msg->bytes[i] = buf[i];
+    for (i = 0; i < len; i++)
+	    ((PCHAR)msg->bytes)[i] = buf[i];
     msg->length = len;
     msg->type = Message::TYPE_NORMAL;
     mQ.Put(msg);
@@ -1832,7 +1827,11 @@ ConsoleDebugger::NotifyDone()
 }
 
 void
-ConsoleDebugger::Write (Message *msg)
+ConsoleDebugger::WriteRecord (INPUT_RECORD *ir)
 {
-    delete msg;
+    if (injectorIPC != 0L) {
+	injectorIPC->Post(ir);
+    }
 }
+
+

@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinSpawnStdioClient.cpp,v 1.1.2.4 2002/06/21 03:01:51 davygrvy Exp $
+ * RCS: @(#) $Id: expWinSpawnStdioClient.cpp,v 1.1.2.5 2002/06/22 02:50:09 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -44,9 +44,7 @@ SpawnStdioClient::~SpawnStdioClient()
 
     readThread->GetExitCode(&dwExit);
     if (dwExit == STILL_ACTIVE) {
-	// by cute convention, terminate threads with a 666.
-	//
-	readThread->Terminate(0x666);
+	readThread->Terminate(0x128);
     }
     delete reader;
 }
