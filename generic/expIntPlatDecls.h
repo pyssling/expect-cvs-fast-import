@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expIntPlatDecls.h,v 1.1.4.4 2002/03/07 02:49:36 davygrvy Exp $
+ * RCS: @(#) $Id: expIntPlatDecls.h,v 1.1.4.5 2002/03/11 06:52:53 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -37,29 +37,29 @@
 
 #ifdef __WIN32__
 /* 0 */
-TCL_EXTERN(DWORD)	ExpWinApplicationType _ANSI_ARGS_((
+EXTERN DWORD		ExpWinApplicationType _ANSI_ARGS_((
 				const char * originalName, 
 				Tcl_DString * fullPath));
 /* 1 */
-TCL_EXTERN(DWORD)	ExpWinCreateProcess _ANSI_ARGS_((int argc, 
+EXTERN DWORD		ExpWinCreateProcess _ANSI_ARGS_((int argc, 
 				char *const * argv, HANDLE inputHandle, 
 				HANDLE outputHandle, HANDLE errorHandle, 
 				int allocConsole, int hideConsole, int debug, 
 				int newProcessGroup, HANDLE * processPtr, 
 				PDWORD globalPidPtr));
 /* 2 */
-TCL_EXTERN(void)	ExpWinSyslog _ANSI_ARGS_(TCL_VARARGS(DWORD,errId));
+EXTERN void		ExpWinSyslog _ANSI_ARGS_(TCL_VARARGS(DWORD,errId));
 /* 3 */
-TCL_EXTERN(char *)	ExpSyslogGetSysMsg _ANSI_ARGS_((DWORD errId));
+EXTERN char *		ExpSyslogGetSysMsg _ANSI_ARGS_((DWORD errId));
 /* 4 */
-TCL_EXTERN(Tcl_Pid)	Exp_WaitPid _ANSI_ARGS_((Tcl_Pid pid, int * statPtr, 
+EXTERN Tcl_Pid		Exp_WaitPid _ANSI_ARGS_((Tcl_Pid pid, int * statPtr, 
 				int options));
 /* 5 */
-TCL_EXTERN(void)	Exp_KillProcess _ANSI_ARGS_((Tcl_Pid pid));
+EXTERN void		Exp_KillProcess _ANSI_ARGS_((Tcl_Pid pid));
 /* 6 */
-TCL_EXTERN(void)	ExpWinInit _ANSI_ARGS_((void));
+EXTERN void		ExpWinInit _ANSI_ARGS_((void));
 /* 7 */
-TCL_EXTERN(void)	BuildCommandLine _ANSI_ARGS_((
+EXTERN void		BuildCommandLine _ANSI_ARGS_((
 				CONST char * executable, int argc, 
 				char *const * argv, Tcl_DString * linePtr));
 #endif /* __WIN32__ */

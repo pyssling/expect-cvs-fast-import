@@ -23,7 +23,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expIntDecls.h,v 1.1.4.4 2002/02/10 13:40:47 davygrvy Exp $
+ * RCS: @(#) $Id: expIntDecls.h,v 1.1.4.5 2002/02/13 02:39:41 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -44,122 +44,122 @@
 
 /* Slot 0 is reserved */
 /* 1 */
-TCL_EXTERN(int)		Exp_StringMatch _ANSI_ARGS_((CONST char * string, 
+EXTERN int		Exp_StringMatch _ANSI_ARGS_((CONST char * string, 
 				CONST char * pattern, int * offset));
 /* 2 */
-TCL_EXTERN(int)		Exp_StringMatch2 _ANSI_ARGS_((CONST char * string, 
+EXTERN int		Exp_StringMatch2 _ANSI_ARGS_((CONST char * string, 
 				CONST char * pattern));
 /* Slot 3 is reserved */
 /* 4 */
-TCL_EXTERN(struct exp_i *) exp_new_i_complex _ANSI_ARGS_((
-				Tcl_Interp * interp, char * arg, 
-				int duration, Tcl_VarTraceProc * updateproc, 
+EXTERN struct exp_i *	exp_new_i_complex _ANSI_ARGS_((Tcl_Interp * interp, 
+				char * arg, int duration, 
+				Tcl_VarTraceProc * updateproc, 
 				CONST char * msg));
 /* 5 */
-TCL_EXTERN(struct exp_i *) exp_new_i_simple _ANSI_ARGS_((struct exp_f * fd, 
+EXTERN struct exp_i *	exp_new_i_simple _ANSI_ARGS_((struct exp_f * fd, 
 				int duration));
 /* 6 */
-TCL_EXTERN(struct exp_fs_list *) exp_new_fs _ANSI_ARGS_((struct exp_f * f));
+EXTERN struct exp_fs_list * exp_new_fs _ANSI_ARGS_((struct exp_f * f));
 /* 7 */
-TCL_EXTERN(void)	exp_free_i _ANSI_ARGS_((Tcl_Interp * interp, 
+EXTERN void		exp_free_i _ANSI_ARGS_((Tcl_Interp * interp, 
 				struct exp_i * i, 
 				Tcl_VarTraceProc * updateproc));
 /* 8 */
-TCL_EXTERN(void)	exp_free_fs _ANSI_ARGS_((
+EXTERN void		exp_free_fs _ANSI_ARGS_((
 				struct exp_fs_list * fs_first));
 /* 9 */
-TCL_EXTERN(void)	exp_free_fs_single _ANSI_ARGS_((
+EXTERN void		exp_free_fs_single _ANSI_ARGS_((
 				struct exp_fs_list * fs));
 /* 10 */
-TCL_EXTERN(void)	exp_i_update _ANSI_ARGS_((Tcl_Interp * interp, 
+EXTERN void		exp_i_update _ANSI_ARGS_((Tcl_Interp * interp, 
 				struct exp_i * i));
 /* 11 */
-TCL_EXTERN(void)	exp_pty_exit _ANSI_ARGS_((void));
+EXTERN void		exp_pty_exit _ANSI_ARGS_((void));
 /* 12 */
-TCL_EXTERN(void)	exp_init_spawn_ids _ANSI_ARGS_((Tcl_Interp * interp));
+EXTERN void		exp_init_spawn_ids _ANSI_ARGS_((Tcl_Interp * interp));
 /* 13 */
-TCL_EXTERN(void)	exp_init_pty _ANSI_ARGS_((Tcl_Interp * interp));
+EXTERN void		exp_init_pty _ANSI_ARGS_((Tcl_Interp * interp));
 /* 14 */
-TCL_EXTERN(void)	exp_init_tty _ANSI_ARGS_((Tcl_Interp * interp));
+EXTERN void		exp_init_tty _ANSI_ARGS_((Tcl_Interp * interp));
 /* 15 */
-TCL_EXTERN(void)	exp_init_stdio _ANSI_ARGS_((void));
+EXTERN void		exp_init_stdio _ANSI_ARGS_((void));
 /* 16 */
-TCL_EXTERN(void)	exp_init_sig _ANSI_ARGS_((void));
+EXTERN void		exp_init_sig _ANSI_ARGS_((void));
 /* 17 */
-TCL_EXTERN(void)	exp_init_trap _ANSI_ARGS_((void));
+EXTERN void		exp_init_trap _ANSI_ARGS_((void));
 /* 18 */
-TCL_EXTERN(void)	exp_init_unit_random _ANSI_ARGS_((void));
+EXTERN void		exp_init_unit_random _ANSI_ARGS_((void));
 /* 19 */
-TCL_EXTERN(void)	exp_init_spawn_id_vars _ANSI_ARGS_((
+EXTERN void		exp_init_spawn_id_vars _ANSI_ARGS_((
 				Tcl_Interp * interp));
 /* 20 */
-TCL_EXTERN(void)	exp_adjust _ANSI_ARGS_((struct exp_f * f));
+EXTERN void		exp_adjust _ANSI_ARGS_((struct exp_f * f));
 /* 21 */
-TCL_EXTERN(void)	exp_ecmd_remove_f_direct_and_indirect _ANSI_ARGS_((
+EXTERN void		exp_ecmd_remove_f_direct_and_indirect _ANSI_ARGS_((
 				Tcl_Interp * interp, struct exp_f * f));
 /* 22 */
-TCL_EXTERN(void)	exp_rearm_sigchld _ANSI_ARGS_((Tcl_Interp * interp));
+EXTERN void		exp_rearm_sigchld _ANSI_ARGS_((Tcl_Interp * interp));
 /* 23 */
-TCL_EXTERN(struct exp_f *) exp_chan2f _ANSI_ARGS_((Tcl_Interp * interp, 
+EXTERN struct exp_f *	exp_chan2f _ANSI_ARGS_((Tcl_Interp * interp, 
 				CONST char * chan, int opened, int adjust, 
 				CONST char * msg));
 /* 24 */
-TCL_EXTERN(int)		exp_fcheck _ANSI_ARGS_((Tcl_Interp * interp, 
+EXTERN int		exp_fcheck _ANSI_ARGS_((Tcl_Interp * interp, 
 				struct exp_f * f, int opened, int adjust, 
 				CONST char * msg));
 /* 25 */
-TCL_EXTERN(int)		exp_close _ANSI_ARGS_((Tcl_Interp * interp, 
+EXTERN int		exp_close _ANSI_ARGS_((Tcl_Interp * interp, 
 				struct exp_f * f));
 /* 26 */
-TCL_EXTERN(void)	exp_strftime _ANSI_ARGS_((char * format, 
+EXTERN void		exp_strftime _ANSI_ARGS_((char * format, 
 				const struct tm * timeptr, 
 				Tcl_DString * dstring));
 /* 27 */
-TCL_EXTERN(void)	exp_create_commands _ANSI_ARGS_((Tcl_Interp * interp, 
+EXTERN void		exp_create_commands _ANSI_ARGS_((Tcl_Interp * interp, 
 				struct exp_cmd_data * c));
 /* 28 */
-TCL_EXTERN(void)	exp_tty_break _ANSI_ARGS_((Tcl_Interp * interp, 
+EXTERN void		exp_tty_break _ANSI_ARGS_((Tcl_Interp * interp, 
 				struct exp_f * f));
 /* 29 */
-TCL_EXTERN(void)	exp_event_disarm _ANSI_ARGS_((struct exp_f * f));
+EXTERN void		exp_event_disarm _ANSI_ARGS_((struct exp_f * f));
 /* 30 */
-TCL_EXTERN(void)	exp_arm_background_filehandler _ANSI_ARGS_((
+EXTERN void		exp_arm_background_filehandler _ANSI_ARGS_((
 				struct exp_f * f));
 /* 31 */
-TCL_EXTERN(void)	exp_disarm_background_filehandler _ANSI_ARGS_((
+EXTERN void		exp_disarm_background_filehandler _ANSI_ARGS_((
 				struct exp_f * f));
 /* 32 */
-TCL_EXTERN(void)	exp_disarm_background_filehandler_force _ANSI_ARGS_((
+EXTERN void		exp_disarm_background_filehandler_force _ANSI_ARGS_((
 				struct exp_f * f));
 /* 33 */
-TCL_EXTERN(void)	exp_unblock_background_filehandler _ANSI_ARGS_((
+EXTERN void		exp_unblock_background_filehandler _ANSI_ARGS_((
 				struct exp_f * f));
 /* 34 */
-TCL_EXTERN(void)	exp_block_background_filehandler _ANSI_ARGS_((
+EXTERN void		exp_block_background_filehandler _ANSI_ARGS_((
 				struct exp_f * f));
 /* 35 */
-TCL_EXTERN(int)		exp_get_next_event _ANSI_ARGS_((Tcl_Interp * interp, 
+EXTERN int		exp_get_next_event _ANSI_ARGS_((Tcl_Interp * interp, 
 				struct exp_f ** masters, int n, 
 				struct exp_f ** master_out, int timeout, 
 				int key));
 /* 36 */
-TCL_EXTERN(int)		exp_get_next_event_info _ANSI_ARGS_((
+EXTERN int		exp_get_next_event_info _ANSI_ARGS_((
 				Tcl_Interp * interp, struct exp_f * fd, 
 				int ready_mask));
 /* 37 */
-TCL_EXTERN(struct exp_f *) exp_f_find _ANSI_ARGS_((Tcl_Interp * interp, 
+EXTERN struct exp_f *	exp_f_find _ANSI_ARGS_((Tcl_Interp * interp, 
 				char * spawnId));
 /* 38 */
-TCL_EXTERN(struct exp_f *) exp_f_new _ANSI_ARGS_((Tcl_Interp * interp, 
+EXTERN struct exp_f *	exp_f_new _ANSI_ARGS_((Tcl_Interp * interp, 
 				Tcl_Channel chan, char * spawnId, int pid));
 /* 39 */
-TCL_EXTERN(int)		exp_f_new_platform _ANSI_ARGS_((struct exp_f * f));
+EXTERN int		exp_f_new_platform _ANSI_ARGS_((struct exp_f * f));
 /* 40 */
-TCL_EXTERN(void)	exp_f_free _ANSI_ARGS_((struct exp_f * f));
+EXTERN void		exp_f_free _ANSI_ARGS_((struct exp_f * f));
 /* 41 */
-TCL_EXTERN(void)	exp_f_free_platform _ANSI_ARGS_((struct exp_f * f));
+EXTERN void		exp_f_free_platform _ANSI_ARGS_((struct exp_f * f));
 /* 42 */
-TCL_EXTERN(int)		exp_exact_write _ANSI_ARGS_((struct exp_f * f, 
+EXTERN int		exp_exact_write _ANSI_ARGS_((struct exp_f * f, 
 				char * buffer, int rembytes));
 
 typedef struct ExpIntStubs {

@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: exp.h,v 1.1.4.8 2002/03/06 02:18:20 davygrvy Exp $
+ * RCS: @(#) $Id: exp.h,v 1.1.4.9 2002/03/07 02:49:36 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -67,7 +67,7 @@
 			JOIN(., EXP_RELEASE_SERIAL)))
 
 #else
-#	include "bad/release/level/used"
+#	error bad release level used.
 #endif
 
 /*
@@ -95,30 +95,37 @@
 #ifndef TCL_EXTERN
 #   undef DLLIMPORT
 #   undef DLLEXPORT
-#   if (defined(__WIN32__) &&  (defined(_MSC_VER) || (__BORLANDC__ >= 0x0550) \
+#   if (defined(__WIN32__) &&  \
+		(defined(_MSC_VER) || (__BORLANDC__ >= 0x0550) \
 	    || (defined(__GNUC__) && defined(__DECLSPEC_SUPPORTED)))) \
 	    || (defined(MAC_TCL) && FUNCTION_DECLSPEC)
 #	define DLLIMPORT __declspec(dllimport)
 #	define DLLEXPORT __declspec(dllexport)
 #   elif defined(__BORLANDC__)
+	/* Pre 5.5 Borland */
 #	define OLD_BORLAND 1
 #	define DLLIMPORT __import
 #	define DLLEXPORT __export
 #   else
+	/* Systems that don't support keywords for exporting/importing
+	 * functions from dynamic libraries. */
 #	define DLLIMPORT
 #	define DLLEXPORT
 #   endif
-    /* Avoid name mangling. */
+    /* Avoid C++ name mangling. */
 #   ifdef __cplusplus
 #	define TCL_CPP "C"
 #   else
 #	define TCL_CPP
 #   endif
-    /* Pre 5.5 Borland requires the attributes be placed after the return type. */
+    /* Pre 5.5 Borland requires the attributes be placed after the return
+     * type. */
 #   if OLD_BORLAND
-#	define TCL_EXTERN(rtnType) extern TCL_CPP rtnType TCL_STORAGE_CLASS
+#	define TCL_EXTERN(rtnType) \
+	    extern TCL_CPP rtnType TCL_STORAGE_CLASS
 #   else
-#	define TCL_EXTERN(rtnType) extern TCL_CPP TCL_STORAGE_CLASS rtnType
+#	define TCL_EXTERN(rtnType) \
+	    extern TCL_CPP TCL_STORAGE_CLASS rtnType
 #   endif
 #endif
 

@@ -23,7 +23,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expDecls.h,v 1.1.4.2 2002/02/10 12:04:22 davygrvy Exp $
+ * RCS: @(#) $Id: expDecls.h,v 1.1.4.3 2002/02/10 13:40:47 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -43,113 +43,113 @@
  */
 
 /* 0 */
-TCL_EXTERN(int)		Expect_Init _ANSI_ARGS_((Tcl_Interp * interp));
+EXTERN int		Expect_Init _ANSI_ARGS_((Tcl_Interp * interp));
 /* Slot 1 is reserved */
 /* Slot 2 is reserved */
 /* 3 */
-TCL_EXTERN(int)		Exp_ExpInternalCmd _ANSI_ARGS_((
+EXTERN int		Exp_ExpInternalCmd _ANSI_ARGS_((
 				ClientData clientData, Tcl_Interp * interp, 
 				int argc, char * argv[]));
 /* Slot 4 is reserved */
 /* 5 */
-TCL_EXTERN(int)		Exp_ExitCmd _ANSI_ARGS_((ClientData clientData, 
+EXTERN int		Exp_ExitCmd _ANSI_ARGS_((ClientData clientData, 
 				Tcl_Interp * interp, int argc, char * argv[]));
 /* 6 */
-TCL_EXTERN(int)		Exp_ExpContinueCmd _ANSI_ARGS_((
+EXTERN int		Exp_ExpContinueCmd _ANSI_ARGS_((
 				ClientData clientData, Tcl_Interp * interp, 
 				int argc, char * argv[]));
 /* Slot 7 is reserved */
 /* 8 */
-TCL_EXTERN(int)		Exp_ExpPidCmd _ANSI_ARGS_((ClientData clientData, 
+EXTERN int		Exp_ExpPidCmd _ANSI_ARGS_((ClientData clientData, 
 				Tcl_Interp * interp, int argc, char * argv[]));
 /* 9 */
-TCL_EXTERN(int)		Exp_GetpidDeprecatedCmd _ANSI_ARGS_((
+EXTERN int		Exp_GetpidDeprecatedCmd _ANSI_ARGS_((
 				ClientData clientData, Tcl_Interp * interp, 
 				int argc, char * argv[]));
 /* Slot 10 is reserved */
 /* 11 */
-TCL_EXTERN(int)		Exp_LogFileCmd _ANSI_ARGS_((ClientData clientData, 
+EXTERN int		Exp_LogFileCmd _ANSI_ARGS_((ClientData clientData, 
 				Tcl_Interp * interp, int argc, char * argv[]));
 /* 12 */
-TCL_EXTERN(int)		Exp_LogUserCmd _ANSI_ARGS_((ClientData clientData, 
+EXTERN int		Exp_LogUserCmd _ANSI_ARGS_((ClientData clientData, 
 				Tcl_Interp * interp, int argc, char * argv[]));
 /* 13 */
-TCL_EXTERN(int)		Exp_OpenCmd _ANSI_ARGS_((ClientData clientData, 
+EXTERN int		Exp_OpenCmd _ANSI_ARGS_((ClientData clientData, 
 				Tcl_Interp * interp, int argc, char * argv[]));
 /* Slot 14 is reserved */
 /* Slot 15 is reserved */
 /* Slot 16 is reserved */
 /* 17 */
-TCL_EXTERN(int)		Exp_SendLogCmd _ANSI_ARGS_((ClientData clientData, 
+EXTERN int		Exp_SendLogCmd _ANSI_ARGS_((ClientData clientData, 
 				Tcl_Interp * interp, int argc, char * argv[]));
 /* 18 */
-TCL_EXTERN(int)		Exp_SleepCmd _ANSI_ARGS_((ClientData clientData, 
+EXTERN int		Exp_SleepCmd _ANSI_ARGS_((ClientData clientData, 
 				Tcl_Interp * interp, int argc, char * argv[]));
 /* 19 */
-TCL_EXTERN(int)		Exp_SpawnCmd _ANSI_ARGS_((ClientData clientData, 
+EXTERN int		Exp_SpawnCmd _ANSI_ARGS_((ClientData clientData, 
 				Tcl_Interp * interp, int argc, char * argv[]));
 /* 20 */
-TCL_EXTERN(int)		Exp_StraceCmd _ANSI_ARGS_((ClientData clientData, 
+EXTERN int		Exp_StraceCmd _ANSI_ARGS_((ClientData clientData, 
 				Tcl_Interp * interp, int argc, char * argv[]));
 /* 21 */
-TCL_EXTERN(int)		Exp_WaitCmd _ANSI_ARGS_((ClientData clientData, 
+EXTERN int		Exp_WaitCmd _ANSI_ARGS_((ClientData clientData, 
 				Tcl_Interp * interp, int argc, char * argv[]));
 /* 22 */
-TCL_EXTERN(int)		Exp_ExpVersionCmd _ANSI_ARGS_((ClientData clientData, 
+EXTERN int		Exp_ExpVersionCmd _ANSI_ARGS_((ClientData clientData, 
 				Tcl_Interp * interp, int argc, char * argv[]));
 /* 23 */
-TCL_EXTERN(int)		Exp_Prompt1Cmd _ANSI_ARGS_((ClientData clientData, 
+EXTERN int		Exp_Prompt1Cmd _ANSI_ARGS_((ClientData clientData, 
 				Tcl_Interp * interp, int argc, char * argv[]));
 /* 24 */
-TCL_EXTERN(int)		Exp_Prompt2Cmd _ANSI_ARGS_((ClientData clientData, 
+EXTERN int		Exp_Prompt2Cmd _ANSI_ARGS_((ClientData clientData, 
 				Tcl_Interp * interp, int argc, char * argv[]));
 /* 25 */
-TCL_EXTERN(int)		Exp_TrapCmd _ANSI_ARGS_((ClientData clientData, 
+EXTERN int		Exp_TrapCmd _ANSI_ARGS_((ClientData clientData, 
 				Tcl_Interp * interp, int argc, char * argv[]));
 /* 26 */
-TCL_EXTERN(int)		Exp_SttyCmd _ANSI_ARGS_((ClientData clientData, 
+EXTERN int		Exp_SttyCmd _ANSI_ARGS_((ClientData clientData, 
 				Tcl_Interp * interp, int argc, char * argv[]));
 /* 27 */
-TCL_EXTERN(int)		Exp_SystemCmd _ANSI_ARGS_((ClientData clientData, 
+EXTERN int		Exp_SystemCmd _ANSI_ARGS_((ClientData clientData, 
 				Tcl_Interp * interp, int argc, char * argv[]));
 /* 28 */
-TCL_EXTERN(int)		Exp_ExpectCmd _ANSI_ARGS_((ClientData clientData, 
+EXTERN int		Exp_ExpectCmd _ANSI_ARGS_((ClientData clientData, 
 				Tcl_Interp * interp, int objc, 
 				Tcl_Obj *CONST objv[]));
 /* 29 */
-TCL_EXTERN(int)		Exp_ExpectGlobalCmd _ANSI_ARGS_((
+EXTERN int		Exp_ExpectGlobalCmd _ANSI_ARGS_((
 				ClientData clientData, Tcl_Interp * interp, 
 				int argc, Tcl_Obj *CONST objv[]));
 /* 30 */
-TCL_EXTERN(int)		Exp_MatchMaxCmd _ANSI_ARGS_((ClientData clientData, 
+EXTERN int		Exp_MatchMaxCmd _ANSI_ARGS_((ClientData clientData, 
 				Tcl_Interp * interp, int argc, char * argv[]));
 /* 31 */
-TCL_EXTERN(int)		Exp_RemoveNullsCmd _ANSI_ARGS_((
+EXTERN int		Exp_RemoveNullsCmd _ANSI_ARGS_((
 				ClientData clientData, Tcl_Interp * interp, 
 				int argc, char * argv[]));
 /* 32 */
-TCL_EXTERN(int)		Exp_ParityCmd _ANSI_ARGS_((ClientData clientData, 
+EXTERN int		Exp_ParityCmd _ANSI_ARGS_((ClientData clientData, 
 				Tcl_Interp * interp, int argc, char * argv[]));
 /* 33 */
-TCL_EXTERN(int)		Exp_TimestampCmd _ANSI_ARGS_((ClientData clientData, 
+EXTERN int		Exp_TimestampCmd _ANSI_ARGS_((ClientData clientData, 
 				Tcl_Interp * interp, int argc, char * argv[]));
 /* 34 */
-TCL_EXTERN(int)		Exp_CloseCmd _ANSI_ARGS_((ClientData clientData, 
+EXTERN int		Exp_CloseCmd _ANSI_ARGS_((ClientData clientData, 
 				Tcl_Interp * interp, int argc, char * argv[]));
 /* 35 */
-TCL_EXTERN(int)		Exp_InterpreterCmd _ANSI_ARGS_((
+EXTERN int		Exp_InterpreterCmd _ANSI_ARGS_((
 				ClientData clientData, Tcl_Interp * interp, 
 				int argc, char * argv[]));
 /* 36 */
-TCL_EXTERN(int)		Exp_SendCmd _ANSI_ARGS_((ClientData clientData, 
+EXTERN int		Exp_SendCmd _ANSI_ARGS_((ClientData clientData, 
 				Tcl_Interp * interp, int argc, char * argv[]));
 /* 37 */
-TCL_EXTERN(int)		Exp_KillCmd _ANSI_ARGS_((ClientData clientData, 
+EXTERN int		Exp_KillCmd _ANSI_ARGS_((ClientData clientData, 
 				Tcl_Interp * interp, int argc, char * argv[]));
 /* Slot 38 is reserved */
 /* Slot 39 is reserved */
 /* 40 */
-TCL_EXTERN(char *)	exp_printify _ANSI_ARGS_((char * s));
+EXTERN char *		exp_printify _ANSI_ARGS_((char * s));
 /* Slot 41 is reserved */
 /* Slot 42 is reserved */
 /* Slot 43 is reserved */
@@ -160,104 +160,104 @@ TCL_EXTERN(char *)	exp_printify _ANSI_ARGS_((char * s));
 /* Slot 48 is reserved */
 /* Slot 49 is reserved */
 /* 50 */
-TCL_EXTERN(void)	exp_errorlog _ANSI_ARGS_(TCL_VARARGS(char *,fmt));
+EXTERN void		exp_errorlog _ANSI_ARGS_(TCL_VARARGS(char *,fmt));
 /* 51 */
-TCL_EXTERN(void)	exp_log _ANSI_ARGS_(TCL_VARARGS(int,force_stdout));
+EXTERN void		exp_log _ANSI_ARGS_(TCL_VARARGS(int,force_stdout));
 /* 52 */
-TCL_EXTERN(void)	exp_debuglog _ANSI_ARGS_(TCL_VARARGS(char *,fmt));
+EXTERN void		exp_debuglog _ANSI_ARGS_(TCL_VARARGS(char *,fmt));
 /* 53 */
-TCL_EXTERN(void)	exp_nflog _ANSI_ARGS_((char * buf, int force_stdout));
+EXTERN void		exp_nflog _ANSI_ARGS_((char * buf, int force_stdout));
 /* 54 */
-TCL_EXTERN(void)	exp_nferrorlog _ANSI_ARGS_((char * buf, 
+EXTERN void		exp_nferrorlog _ANSI_ARGS_((char * buf, 
 				int force_stdout));
 /* 55 */
-TCL_EXTERN(void)	exp_error _ANSI_ARGS_(TCL_VARARGS(Tcl_Interp *,interp));
+EXTERN void		exp_error _ANSI_ARGS_(TCL_VARARGS(Tcl_Interp *,interp));
 /* Slot 56 is reserved */
 /* Slot 57 is reserved */
 /* Slot 58 is reserved */
 /* Slot 59 is reserved */
 /* 60 */
-TCL_EXTERN(void)	exp_parse_argv _ANSI_ARGS_((Tcl_Interp * interp, 
+EXTERN void		exp_parse_argv _ANSI_ARGS_((Tcl_Interp * interp, 
 				int argc, char ** argv));
 /* 61 */
-TCL_EXTERN(int)		exp_interpreter _ANSI_ARGS_((Tcl_Interp * interp));
+EXTERN int		exp_interpreter _ANSI_ARGS_((Tcl_Interp * interp));
 /* 62 */
-TCL_EXTERN(int)		exp_interpret_cmdfile _ANSI_ARGS_((
+EXTERN int		exp_interpret_cmdfile _ANSI_ARGS_((
 				Tcl_Interp * interp, Tcl_Channel cmdfile));
 /* 63 */
-TCL_EXTERN(int)		exp_interpret_cmdfilename _ANSI_ARGS_((
+EXTERN int		exp_interpret_cmdfilename _ANSI_ARGS_((
 				Tcl_Interp * interp, char * filename));
 /* 64 */
-TCL_EXTERN(void)	exp_interpret_rcfiles _ANSI_ARGS_((
+EXTERN void		exp_interpret_rcfiles _ANSI_ARGS_((
 				Tcl_Interp * interp, int my_rc, int sys_rc));
 /* 65 */
-TCL_EXTERN(char *)	exp_cook _ANSI_ARGS_((CONST char * s, int * len));
+EXTERN char *		exp_cook _ANSI_ARGS_((CONST char * s, int * len));
 /* Slot 66 is reserved */
 /* 67 */
-TCL_EXTERN(int)		exp_getpidproc _ANSI_ARGS_((void));
+EXTERN int		exp_getpidproc _ANSI_ARGS_((void));
 /* 68 */
-TCL_EXTERN(Tcl_Channel)	 ExpCreateSpawnChannel _ANSI_ARGS_((
+EXTERN Tcl_Channel	ExpCreateSpawnChannel _ANSI_ARGS_((
 				Tcl_Interp * interp, Tcl_Channel chan));
 /* 69 */
-TCL_EXTERN(int)		ExpPlatformSpawnOutput _ANSI_ARGS_((
+EXTERN int		ExpPlatformSpawnOutput _ANSI_ARGS_((
 				ClientData instanceData, CONST char * bufPtr, 
 				int toWrite, int * errorPtr));
 /* 70 */
-TCL_EXTERN(void)	exp_init_main_cmds _ANSI_ARGS_((Tcl_Interp * interp));
+EXTERN void		exp_init_main_cmds _ANSI_ARGS_((Tcl_Interp * interp));
 /* 71 */
-TCL_EXTERN(void)	exp_init_expect_cmds _ANSI_ARGS_((
+EXTERN void		exp_init_expect_cmds _ANSI_ARGS_((
 				Tcl_Interp * interp));
 /* 72 */
-TCL_EXTERN(void)	exp_init_most_cmds _ANSI_ARGS_((Tcl_Interp * interp));
+EXTERN void		exp_init_most_cmds _ANSI_ARGS_((Tcl_Interp * interp));
 /* 73 */
-TCL_EXTERN(void)	exp_init_trap_cmds _ANSI_ARGS_((Tcl_Interp * interp));
+EXTERN void		exp_init_trap_cmds _ANSI_ARGS_((Tcl_Interp * interp));
 /* 74 */
-TCL_EXTERN(void)	exp_init_interact_cmds _ANSI_ARGS_((
+EXTERN void		exp_init_interact_cmds _ANSI_ARGS_((
 				Tcl_Interp * interp));
 /* 75 */
-TCL_EXTERN(int)		exp_init_tty_cmds _ANSI_ARGS_((Tcl_Interp * interp));
+EXTERN int		exp_init_tty_cmds _ANSI_ARGS_((Tcl_Interp * interp));
 /* Slot 76 is reserved */
 /* Slot 77 is reserved */
 /* 78 */
-TCL_EXTERN(Tcl_Channel)	 ExpCreatePairChannel _ANSI_ARGS_((
+EXTERN Tcl_Channel	ExpCreatePairChannel _ANSI_ARGS_((
 				Tcl_Interp * interp, CONST char * chanInId, 
 				CONST char * chanOutId, 
 				CONST char * chanName));
 /* 79 */
-TCL_EXTERN(int)		ExpSpawnOpen _ANSI_ARGS_((Tcl_Interp * interp, 
+EXTERN int		ExpSpawnOpen _ANSI_ARGS_((Tcl_Interp * interp, 
 				char * chanId, int leaveopen));
 /* 80 */
-TCL_EXTERN(struct exp_f *) exp_update_master _ANSI_ARGS_((
-				Tcl_Interp * interp, int opened, int adjust));
+EXTERN struct exp_f *	exp_update_master _ANSI_ARGS_((Tcl_Interp * interp, 
+				int opened, int adjust));
 /* 81 */
-TCL_EXTERN(CONST char *) exp_get_var _ANSI_ARGS_((Tcl_Interp * interp, 
+EXTERN CONST char *	exp_get_var _ANSI_ARGS_((Tcl_Interp * interp, 
 				char * var));
 /* 82 */
-TCL_EXTERN(void)	exp_exit _ANSI_ARGS_((Tcl_Interp * interp, 
+EXTERN void		exp_exit _ANSI_ARGS_((Tcl_Interp * interp, 
 				int status));
 /* 83 */
-TCL_EXTERN(int)		exp_dsleep _ANSI_ARGS_((Tcl_Interp * interp, 
+EXTERN int		exp_dsleep _ANSI_ARGS_((Tcl_Interp * interp, 
 				double sec));
 /* 84 */
-TCL_EXTERN(void)	exp_init_event _ANSI_ARGS_((void));
+EXTERN void		exp_init_event _ANSI_ARGS_((void));
 /* Slot 85 is reserved */
 /* 86 */
-TCL_EXTERN(void)	exp_background_filehandler _ANSI_ARGS_((
+EXTERN void		exp_background_filehandler _ANSI_ARGS_((
 				ClientData clientData, int mask));
 /* 87 */
-TCL_EXTERN(void)	exp_exit_handlers _ANSI_ARGS_((ClientData clientData));
+EXTERN void		exp_exit_handlers _ANSI_ARGS_((ClientData clientData));
 /* 88 */
-TCL_EXTERN(void)	exp_close_on_exec _ANSI_ARGS_((int fd));
+EXTERN void		exp_close_on_exec _ANSI_ARGS_((int fd));
 /* 89 */
-TCL_EXTERN(int)		exp_flageq_code _ANSI_ARGS_((char * flag, 
+EXTERN int		exp_flageq_code _ANSI_ARGS_((char * flag, 
 				char * string, int minlen));
 /* 90 */
-TCL_EXTERN(void)	exp_close_tcl_files _ANSI_ARGS_((void));
+EXTERN void		exp_close_tcl_files _ANSI_ARGS_((void));
 /* 91 */
-TCL_EXTERN(void)	exp_lowmemcpy _ANSI_ARGS_((char * dest, 
+EXTERN void		exp_lowmemcpy _ANSI_ARGS_((char * dest, 
 				CONST char * src, int n));
 /* 92 */
-TCL_EXTERN(void)	exp_timestamp _ANSI_ARGS_((Tcl_Interp * interp, 
+EXTERN void		exp_timestamp _ANSI_ARGS_((Tcl_Interp * interp, 
 				time_t * timeval, char * array));
 
 typedef struct ExpStubHooks {
