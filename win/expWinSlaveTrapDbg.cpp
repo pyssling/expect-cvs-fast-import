@@ -29,11 +29,12 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinSlaveTrapDbg.cpp,v 1.1.4.6 2002/03/12 07:59:14 davygrvy Exp $
+ * RCS: @(#) $Id: expWinSlaveTrapDbg.cpp,v 1.1.4.7 2002/03/12 18:15:37 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
 #include "expWinSlave.hpp"
+#include "expWinConsoleDebugger.hpp"
 
 
 SlaveTrapDbg::SlaveTrapDbg(int argc, char * const argv[], CMclQueue<Message *> &_mQ)

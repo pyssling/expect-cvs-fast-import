@@ -23,28 +23,13 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinSlave.hpp,v 1.1.4.8 2002/03/12 07:59:14 davygrvy Exp $
+ * RCS: @(#) $Id: expWinSlave.hpp,v 1.1.4.9 2002/03/12 21:07:00 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
-#ifndef _EXPWINSLAVE_HPP
-#define _EXPWINSLAVE_HPP
+#ifndef INC_expWinSlave_hpp__
+#define INC_expWinSlave_hpp__
 
 #include <windows.h>
-
-extern DWORD   ExpConsoleInputMode;
-extern HANDLE  ExpConsoleOut;
-extern int     ExpDebug;
-
-//extern TCL_CPP void ExpAddToWaitQueue(HANDLE handle);
-//extern TCL_CPP void ExpKillProcessList();
-//extern TCL_CPP DWORD WINAPI ExpSlaveDebugThread(LPVOID arg);
-//extern TCL_CPP DWORD WINAPI ExpGetExecutablePathA(PSTR pathInOut);
-//extern TCL_CPP DWORD WINAPI ExpGetExecutablePathW(PWSTR pathInOut);
-//extern TCL_CPP BOOL ExpWriteMaster(int useSocket, HANDLE hFile, LPCVOID buf, DWORD n, LPOVERLAPPED over);
-//extern TCL_CPP BOOL ExpReadMaster(int useSocket, HANDLE hFile, void *buf, DWORD n, PDWORD pCount, LPWSAOVERLAPPED over, PDWORD pError);
-//extern TCL_CPP void ExpNewConsoleSequences(int useSocket, HANDLE hMaster, LPWSAOVERLAPPED over);
-//extern TCL_CPP void ExpProcessFreeByHandle(HANDLE hProcess);
-//extern TCL_CPP void ExpSetConsoleSize(HANDLE hConsoleInW, HANDLE hConsoleOut, int w, int h, int useSocket, HANDLE hMaster, LPWSAOVERLAPPED over);
 
 void DynloadTclStubs (void);
 void ShutdownTcl (void);
@@ -54,8 +39,7 @@ void ShutdownTcl (void);
 #include "slavedrvmc.h"
 #include "expWinUtils.hpp"
 #include "expWinMessage.hpp"
-#include "expWinConsoleDebugger.hpp"
 #include "expWinSpawnClient.hpp"
 #include "expWinSlaveTrap.hpp"
 
-#endif /* _EXPWINSLAVE_HPP */
+#endif // INC_expWinSlave_hpp__

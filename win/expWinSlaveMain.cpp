@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinSlaveMain.cpp,v 1.1.4.11 2002/03/12 07:59:14 davygrvy Exp $
+ * RCS: @(#) $Id: expWinSlaveMain.cpp,v 1.1.4.12 2002/03/12 21:34:31 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -81,12 +81,12 @@ main (void)
     }
 
     //  Open the client side of our IPC transport that connects us back
-    //  to Expect.
+    //  to the parent (ie. the Expect extension).
     //
     tclient = SpawnOpenClientTransport(argv[1], messageQ);
 
-    //  Create the process to be intercepted within the trap method requested
-    //  on the commandline.
+    //  Start the process to be intercepted within the trap method requested
+    //  on the commandline (ie. run telnet in a debugger and trap OS calls).
     //
     slaveCtrl = SlaveOpenTrap(argv[2], argc-3, &argv[3], messageQ);
 
@@ -102,7 +102,7 @@ main (void)
 
 /*
  *----------------------------------------------------------------------
- *  ExpWinSpawnOpenTransport --
+ *  SpawnOpenTransport --
  *
  *	The factory method for creating the client IPC transport from
  *	the name asked of it.
@@ -119,7 +119,7 @@ SpawnOpenClientTransport(const char *method, CMclQueue<Message *> &mQ)
     if (!strcmp(method, "stdio")) {
 	return new SpawnStdioClient(method, mQ);
     }
-    else EXP_LOG1(MSG_IO_TRANSPRTARGSBAD, name);
+    else EXP_LOG1(MSG_IO_TRANSPRTARGSBAD, method);
 
     // not reached.
     return 0L;
@@ -132,7 +132,7 @@ SpawnOpenClientTransport(const char *method, CMclQueue<Message *> &mQ)
  *	The factory method for creating the trap class instance.
  *
  *  Returns:
- *	a polymorphed ExpSpawnTrap pointer or die.
+ *	a polymorphed SpawnTrap pointer or die.
  *
  *----------------------------------------------------------------------
  */
