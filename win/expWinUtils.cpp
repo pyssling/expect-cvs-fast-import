@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinSpawnPipeClient.cpp,v 1.1.2.2 2002/03/11 06:53:39 davygrvy Exp $
+ * RCS: @(#) $Id: expWinUtils.cpp,v 1.1.2.2 2002/03/11 06:56:02 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -54,10 +54,10 @@ ArgMaker::BuildCommandLine(
 {
     const char *arg, *start, *special;
     char *out;
-    int quote, i, need = 0;
+    int quote, i, need;
 
     // Guess how large we are.
-    for (i = 0; i < argc; i++) {
+    for (i = need = 0; i < argc; i++) {
 	need += strlen(argv[i]) + 10;
     }
 
