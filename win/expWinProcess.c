@@ -13,8 +13,7 @@
  *
  */
 
-#include "tclWinInt.h"  /* an overly deep request for Tcl's internals 
-			 * for the TclWinProcs structure :) */
+#include "tclPort.h"
 #include "expWin.h"
 
 /*
@@ -30,22 +29,64 @@ typedef struct ProcInfo {
 static ProcInfo *procList = NULL;
 
 
-#ifdef USE_TCL_STUBS
+typedef struct {
+    int useWide;
+    HANDLE (WINAPI *createFileProc)(CONST TCHAR *, DWORD, DWORD, 
+	    LPSECURITY_ATTRIBUTES, DWORD, DWORD, HANDLE);
+    BOOL (WINAPI *createProcessProc)(CONST TCHAR *, TCHAR *, 
+	    LPSECURITY_ATTRIBUTES, LPSECURITY_ATTRIBUTES, BOOL, DWORD, 
+	    LPVOID, CONST TCHAR *, LPSTARTUPINFOA, LPPROCESS_INFORMATION);
+    DWORD (WINAPI *getFileAttributesProc)(CONST TCHAR *);
+    DWORD (WINAPI *getFullPathNameProc)(CONST TCHAR *, DWORD nBufferLength, 
+	    WCHAR *, TCHAR **);
+    DWORD (WINAPI *getShortPathNameProc)(CONST TCHAR *, WCHAR *, DWORD); 
+} ExpWinProcs;
+
+static TclWinProcs asciiProcs = {
+    0,
+    (HANDLE (WINAPI *)(CONST TCHAR *, DWORD, DWORD, SECURITY_ATTRIBUTES *, 
+	    DWORD, DWORD, HANDLE)) CreateFileA,
+    (BOOL (WINAPI *)(CONST TCHAR *, TCHAR *, LPSECURITY_ATTRIBUTES, 
+	    LPSECURITY_ATTRIBUTES, BOOL, DWORD, LPVOID, CONST TCHAR *, 
+	    LPSTARTUPINFOA, LPPROCESS_INFORMATION)) CreateProcessA,
+    (DWORD (WINAPI *)(CONST TCHAR *)) GetFileAttributesA,
+    (DWORD (WINAPI *)(CONST TCHAR *, DWORD nBufferLength, WCHAR *, 
+	    TCHAR **)) GetFullPathNameA,
+    (DWORD (WINAPI *)(CONST TCHAR *, WCHAR *, DWORD)) GetShortPathNameA,
+};
+
+static TclWinProcs unicodeProcs = {
+    1,
+    (HANDLE (WINAPI *)(CONST TCHAR *, DWORD, DWORD, SECURITY_ATTRIBUTES *, 
+	    DWORD, DWORD, HANDLE)) CreateFileW,
+    (BOOL (WINAPI *)(CONST TCHAR *, TCHAR *, LPSECURITY_ATTRIBUTES, 
+	    LPSECURITY_ATTRIBUTES, BOOL, DWORD, LPVOID, CONST TCHAR *, 
+	    LPSTARTUPINFOA, LPPROCESS_INFORMATION)) CreateProcessW,
+    (DWORD (WINAPI *)(CONST TCHAR *)) GetFileAttributesW,
+    (DWORD (WINAPI *)(CONST TCHAR *, DWORD nBufferLength, WCHAR *, 
+	    TCHAR **)) GetFullPathNameW,
+    (DWORD (WINAPI *)(CONST TCHAR *, WCHAR *, DWORD)) GetShortPathNameW,
+};
+
 #define tclWinProcs expWinProcs
-TclWinProcs *expWinProcs;
+static ExpWinProcs *expWinProcs;
 
 void
-ExpInitWinProcess (HINSTANCE tclDll)
+ExpInitWinProcessAPI (void)
 {
-    /*
-     * tclWinProcs is actually an export in the DLL.  We could have
-     * copied the work, or hack our way inside the DLL for it.  Personally,
-     * I'll choose the second option when the work involved isn't that
-     * painful.
-     */
-    expWinProcs = (TclWinProcs *) *(GetProcAddress(tclDll, "tclWinProcs"));
+    OSVERSIONINFO os;
+    os.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
+    expWinProcs = &asciiProcs;
+    
+    if (GetVersionEx(&os) != 0) {    
+	switch (os.dwPlatformId) {
+	    case VER_PLATFORM_WIN32_WINDOWS:
+		expWinProcs = &asciiProcs; break;
+	    case VER_PLATFORM_WIN32_NT:
+		expWinProcs = &unicodeProcs; break;
+	}
+    }
 }
-#endif /* USE_TCL_STUBS */
 
 /*
  *----------------------------------------------------------------------
@@ -831,7 +872,7 @@ ExpCreateProcess(argc, argv, inputHandle, outputHandle, errorHandle,
 		startInfo.dwFlags |= STARTF_USESHOWWINDOW;
 		createFlags = CREATE_NEW_CONSOLE;
 	    }
-	    // BUG: fixme!  where is tclpipXX.dll ?????  set it!
+	    // BUG: Fixme!  Where is tclpipXX.dll ?????  Set it!
 	    Tcl_DStringAppend(&cmdLine, "tclpip" STRINGIFY(TCL_MAJOR_VERSION) 
 		    STRINGIFY(TCL_MINOR_VERSION) ".dll ", -1);
 	}
