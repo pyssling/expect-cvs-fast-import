@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinSlaveTrapDbg.cpp,v 1.1.2.1 2001/11/15 07:25:19 davygrvy Exp $
+ * RCS: @(#) $Id: expWinConsoleDebugger.hpp,v 1.1.2.1 2002/03/07 00:21:57 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -45,7 +45,7 @@
 #define PAGEMASK (PAGESIZE-1)
 
 
-//  This is our debugger. We run it as a thread.
+//  This is our debugger.  We run it as a thread. 
 //
 class ConsoleDebugger : public CMclThreadHandler
 {
@@ -61,67 +61,67 @@ private:
 
     class CreateProcessInfo {
 	friend class ConsoleDebugger;
-	TCHAR appName[8192];
-	TCHAR cmdLine[8192];
+	TCHAR		    appName[8192];
+	TCHAR		    cmdLine[8192];
 	SECURITY_ATTRIBUTES procAttrs;
 	SECURITY_ATTRIBUTES threadAttrs;
-	BOOL bInheritHandles;
-	DWORD dwCreationFlags;
-	LPVOID lpEnvironment;
-	TCHAR currDir[8192];
-	STARTUPINFO si;
+	BOOL		    bInheritHandles;
+	DWORD		    dwCreationFlags;
+	LPVOID		    lpEnvironment;
+	TCHAR		    currDir[8192];
+	STARTUPINFO	    si;
 	PROCESS_INFORMATION pi;
-	PVOID piPtr;		// Pointer to PROCESS_INFORMATION in slave.
-	DWORD flags;
+	PVOID		    piPtr;  // Pointer to PROCESS_INFORMATION in slave.
+	DWORD		    flags;
     };
 
     class CreateProcessThreadArgs {
 	friend class ConsoleDebugger;
-	CreateProcessInfo *cp;
-	Process *proc;
+	CreateProcessInfo   *cp;
+	Process		    *proc;
 	//ExpSlaveDebugArg debugInfo;
     };
 
     class ThreadInfo {
 	friend class ConsoleDebugger;
-	HANDLE hThread;
-	DWORD dwThreadId;
-	DWORD nargs;
-	DWORD args[16];		// Space for saving 16 args.  We need this
+	HANDLE	    hThread;
+	DWORD	    dwThreadId;
+	DWORD	    nargs;
+	DWORD	    args[16];	// Space for saving 16 args.  We need this
 				// space while we are waiting for the return
 				// value for the function.
-	LPCONTEXT context;	// Current context.
+	LPCONTEXT   context;	// Current context.
 	CreateProcessInfo *createProcess; // Create process pointer.
-	ThreadInfo *nextPtr;	// Linked list.
+	ThreadInfo  *nextPtr;	// Linked list.
     };
 
     class BreakInfo {
 	friend class ConsoleDebugger;
-	const char *funcName;   // Name of function to intercept.
-	DWORD nargs;		// Number of arguments.
-	void (ConsoleDebugger::*breakProc)(Process *, ThreadInfo *,
-	Breakpoint *, PDWORD returnValue, DWORD direction);   // Member Function to call when a breakpoint is hit.
+	const char  *funcName;	// Name of function to intercept.
+	DWORD	    nargs;	// Number of arguments.
+	void (ConsoleDebugger::*breakProc)(Process *, ThreadInfo *, Breakpoint *, PDWORD returnValue, DWORD direction);
+				// Function to call when the breakpoint is hit.
 #	define BREAK_IN  1	// Call handler on the way in.
 #	define BREAK_OUT 2	// Call handler on the way out.
-	DWORD dwFlags;		// Bits for direction to call handler in.
+	DWORD	    dwFlags;	// Bits for direction to call handler in.
     };
 
     class DllBreakpoints {
-	friend class ConsoleDebugger;
-	const char *dllName;
-	BreakInfo *breakInfo;
+	friend class	ConsoleDebugger;
+	const char	*dllName;
+	BreakInfo	*breakInfo;
     };
 
     class Breakpoint {
 	friend class ConsoleDebugger;
-	BOOL  returning;	// Is this a returning breakpoint?
-	UCHAR code;		// Original code.
-	PVOID codePtr;		// Address of original code.
-	PVOID codeReturnPtr;	// Address of return breakpoint.
-	DWORD origRetAddr;	// Original return address.
-	BreakInfo *breakInfo;	// Information about the breakpoint.
-	ThreadInfo *threadInfo;	// If this breakpoint is for a specific thread.
-	Breakpoint *nextPtr;    // Linked list.
+	BOOL	    returning;	    // Is this a returning breakpoint?
+	UCHAR	    code;	    // Original code.
+	PVOID	    codePtr;	    // Address of original code.
+	PVOID	    codeReturnPtr;  // Address of return breakpoint.
+	DWORD	    origRetAddr;    // Original return address.
+	BreakInfo   *breakInfo;	    // Information about the breakpoint.
+	ThreadInfo  *threadInfo;    // If this breakpoint is for a specific thread.
+	Breakpoint  *nextPtr;	    // Linked list.
     };
 
     class Module {
@@ -138,27 +138,26 @@ private:
     //
     class Process {
 	friend class ConsoleDebugger;
-	ThreadInfo *threadList;		// List of threads in the subprocess
-	Breakpoint *brkptList;		// List of breakpoints in the subprocess
-	Breakpoint *lastBrkpt;		// Last Breakpoint Hit
-	DWORD  offset;			// Breakpoint offset in allocated mem
-	DWORD  nBreakCount;		// Number of breakpoints hit
-	DWORD  consoleHandles[100];	// A list of input console handles
-	DWORD  consoleHandlesMax;
-	BOOL   isConsoleApp;		// Is this a console app?
-	BOOL   isShell;			// Is this some sort of console shell?
-	HANDLE hProcess;		// handle to subprocess
-	DWORD  hPid;			// Global process id
-	DWORD  threadCount;		// Number of threads in process
-	DWORD  pSubprocessMemory;	// Pointer to allocated memory in subprocess
-	DWORD  pSubprocessBuffer;	// Pointer to buffer memory in subprocess
-	DWORD  pMemoryCacheBase;	// Base address of memory cache
-	BYTE   pMemoryCache[PAGESIZE];	// Subprocess memory cache
-	OVERLAPPED overlapped;		// Overlapped structure for writing to master
-	Tcl_HashTable *funcTable;	// Function table name to address mapping
-	Tcl_HashTable *moduleTable;	// Win32 modules that have been loaded
-	Module *exeModule;		// Executable module info
-	Process *nextPtr;		// Linked list.
+	ThreadInfo  *threadList;	// List of threads in the subprocess.
+	Breakpoint  *brkptList;		// List of breakpoints in the subprocess.
+	Breakpoint  *lastBrkpt;		// Last breakpoint hit.
+	DWORD	    offset;		// Breakpoint offset in allocated mem.
+	DWORD	    nBreakCount;	// Number of breakpoints hit.
+	DWORD	    consoleHandles[100];// A list of input console handles.
+	DWORD	    consoleHandlesMax;
+	BOOL	    isConsoleApp;	// Is this a console app?
+	BOOL	    isShell;		// Is this some sort of console shell?
+	HANDLE	    hProcess;		// handle to subprocess.
+	DWORD	    hPid;		// Global process id.
+	DWORD	    threadCount;	// Number of threads in process.
+	DWORD	    pSubprocessMemory;	// Pointer to allocated memory in subprocess.
+	DWORD	    pSubprocessBuffer;	// Pointer to buffer memory in subprocess.
+	DWORD	    pMemoryCacheBase;	// Base address of memory cache.
+	BYTE	    pMemoryCache[PAGESIZE];// Subprocess memory cache.
+	Tcl_HashTable *funcTable;	// Function table name to address mapping.
+	Tcl_HashTable *moduleTable;	// Win32 modules that have been loaded.
+	Module	    *exeModule;		// Executable module info.
+	Process	    *nextPtr;		// Linked list.
     };
 
     //  Direct debug event handlers.
@@ -202,13 +201,16 @@ private:
 
     // Internal utilities
     //
-    Process *ProcessNew();
-    void ProcessFree(Process *);
-    void CommonDebugger();
-    BOOL SetBreakpoint(Process *, BreakInfo *);
+    Process *ProcessNew		();
+    void ProcessFree		(Process *);
+    void CommonDebugger		();
+    BOOL SetBreakpoint		(Process *, BreakInfo *);
     Breakpoint * SetBreakpointAtAddr(Process *, BreakInfo *, PVOID);
-    BOOL ReadSubprocessMemory	(Process *, LPVOID , LPVOID , DWORD);
-    BOOL WriteSubprocessMemory	(Process *, LPVOID , LPVOID , DWORD);
+    BOOL ReadSubprocessMemory	(Process *, LPVOID, LPVOID, DWORD);
+    BOOL WriteSubprocessMemory	(Process *, LPVOID, LPVOID, DWORD);
+    int ReadSubprocessStringA	(Process *, PVOID, PCHAR, int);
+    int ReadSubprocessStringW	(Process *, PVOID, PWCHAR, int);
+    void CreateVtSequence	(Process *proc, COORD newPos, DWORD n);
 
     // The arrays of functions where we set breakpoints
     //
@@ -219,12 +221,12 @@ private:
     // private vars
     //
     Process *ProcessList;   // Top of linked list of Process instances.
-    HANDLE HConsole;	    // Master console handle (us).
-    COORD ConsoleSize;	    // Size of the console in the slave.
-    COORD CursorPosition;   // Coordinates of the cursor in the slave.
-    BOOL CursorKnown;	    // Do we know where the remote cursor is?
-    char *SymbolPath;	    // Storage for setting OS kernel symbols path.
-    int _argc;		    // Debugged process commandline count
+    HANDLE  HConsole;	    // Master console handle (us).
+    COORD   ConsoleSize;    // Size of the console in the slave.
+    COORD   CursorPosition; // Coordinates of the cursor in the slave.
+    BOOL    CursorKnown;    // Do we know where the remote cursor is?
+    char    *SymbolPath;    // Storage for setting OS kernel symbols path.
+    int	    _argc;	    // Debugged process commandline count
     char * const * _argv;   // Debugged process commandline args
 };
 
