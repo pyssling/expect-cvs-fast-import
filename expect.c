@@ -84,7 +84,7 @@ struct ecase {	/* case for expect command */
 #define CASE_NORM	1
 #define CASE_LOWER	2
 	int Case;	/* convert case before doing match? */
-	regexp *re;	/* if this is 0, then pattern match via glob */
+	Tcl_RegExp re;	/* if this is 0, then pattern match via glob */
 };
 
 /* descriptions of the pattern types, used for debugging */
@@ -380,11 +380,7 @@ char **argv;
 		for (;isspace(*a);a++) {
 			if (*a == '\n') *a = ' ';
 		}
-#if TCL_MAJOR_VERSION < 8
-		a = TclWordEnd(a,0,(int *)0)+1;
-#else
 		a = TclWordEnd(a,&a[strlen(a)],0,(int *)0)+1;
-#endif
 	}
 
 	rc = Tcl_Eval(interp,buf);
@@ -1831,7 +1827,12 @@ struct exp_i *exp_i;
 			/* by code in next section already */
 			if (!exp_fd2f(interp,fdl->fd,1,0,"")) continue;
 
-			exp_fs[m].bg_ecount--;
+			/* check before decrementing, ecount may not be */
+			/* positive if update is called before ecount is */
+			/* properly synchronized */
+			if (exp_fs[m].bg_ecount > 0) {
+				exp_fs[m].bg_ecount--;
+			}
 			if (exp_fs[m].bg_ecount == 0) {
 				exp_disarm_background_filehandler(m);
 				exp_fs[m].bg_interp = 0;

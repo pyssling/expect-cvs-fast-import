@@ -112,10 +112,8 @@ ClientData clientData;
 
 	/* don't think this code is relevant any longer, but not positive! */
 	if (!interp) {
-		/* if no interp handy (i.e., called from interrupt handler) */
-		/* use last one created - it's a hack but we're exiting */
-		/* ungracefully to begin with */
-		interp = exp_interp;
+		/* if no interp handy there is nothing meaningful to do */
+		return;
 	}
 
 	if (!did_expect_exit) {
@@ -161,9 +159,6 @@ Tcl_Interp *interp;
 {
 	Interp *iPtr = (Interp *)interp;
 
-#if TCL_MAJOR_VERSION < 8
-	return iPtr->curEventNum+1;
-#else
 	/* unncessarily tricky coding - if nextid isn't defined,
 	   maintain our own static version */
 
@@ -174,7 +169,6 @@ Tcl_Interp *interp;
 		(void) sscanf(nextidstr,"%d",&nextid);
 	}
 	return ++nextid;
-#endif
 }
 
 /* this stupidity because Tcl needs commands in writable space */
@@ -443,7 +437,13 @@ char **argv;
 	/*NOTREACHED*/
 }
 
-static char init_auto_path[] = "lappend auto_path $exp_library $exp_exec_library";
+static char init_auto_path[] = "\
+if {$exp_library != \"\"} {\n\
+    lappend auto_path $exp_library\n\
+}\n\
+if {$exp_exec_library != \"\"} {\n\
+    lappend auto_path $exp_exec_library\n\
+}";
 
 int
 Expect_Init(interp)
@@ -484,7 +484,7 @@ Tcl_Interp *interp;
 		exp_init_unit_random();
 		exp_init_spawn_ids();
 
-		Tcl_CreateExitHandler(exp_exit_handlers,(ClientData)interp);
+		Tcl_CreateExitHandler(exp_exit_handlers,(ClientData)NULL);
 
 		first_time = FALSE;
 	}
@@ -502,9 +502,24 @@ Tcl_Interp *interp;
 
 	exp_init_spawn_id_vars(interp);
 
-	Tcl_SetVar(interp,"expect_library",SCRIPTDIR,0);/* deprecated */
-	Tcl_SetVar(interp,"exp_library",SCRIPTDIR,0);
-	Tcl_SetVar(interp,"exp_exec_library",EXECSCRIPTDIR,0);
+	/*
+	 * For each of the the Tcl variables, "expect_library",
+	 *"exp_library", and "exp_exec_library", set the variable
+	 * if it does not already exist.  This mechanism allows the
+	 * application calling "Expect_Init()" to set these varaibles
+	 * to alternate locations from where Expect was built.
+	 */
+
+	if (Tcl_GetVar(interp, "expect_library", TCL_GLOBAL_ONLY) == NULL) {
+	    Tcl_SetVar(interp,"expect_library",SCRIPTDIR,0);/* deprecated */
+	}
+	if (Tcl_GetVar(interp, "exp_library", TCL_GLOBAL_ONLY) == NULL) {
+	    Tcl_SetVar(interp,"exp_library",SCRIPTDIR,0);
+	}
+	if (Tcl_GetVar(interp, "exp_exec_library", TCL_GLOBAL_ONLY) == NULL) {
+	    Tcl_SetVar(interp,"exp_exec_library",EXECSCRIPTDIR,0);
+	}
+
 	Tcl_Eval(interp,init_auto_path);
 	Tcl_ResetResult(interp);
 

@@ -159,12 +159,12 @@ exp_error TCL_VARARGS_DEF(Tcl_Interp *,arg1)
 	Tcl_Interp *interp;
 	char *fmt;
 	va_list args;
+	char buffer[2000];
 
 	interp = TCL_VARARGS_START(Tcl_Interp *,arg1,args);
-	/*va_start(args);*/
-	/*interp = va_arg(args,Tcl_Interp *);*/
 	fmt = va_arg(args,char *);
-	vsprintf(interp->result,fmt,args);
+	vsprintf(buffer,fmt,args);
+	Tcl_SetResult(interp,buffer,TCL_VOLATILE);
 	va_end(args);
 }
 
@@ -471,14 +471,6 @@ int pid;
 	exp_fs[fd].key = expect_key++;
 	exp_fs[fd].force_read = FALSE;
 	exp_fs[fd].fg_armed = FALSE;
-#if TCL_MAJOR_VERSION < 8
-	/* Master must be inited each time because Tcl could have alloc'd */
-	/* this fd and shut it down (deallocating the FileHandle) behind */
-	/* our backs */
-	exp_fs[fd].Master = Tcl_GetFile((ClientData)fd,TCL_UNIX_FD);
-	exp_fs[fd].MasterOutput = 0;
-	exp_fs[fd].Slave = 0;
-#endif /* TCL_MAJOR_VERSION < 8 */
 	exp_fs[fd].tcl_handle = 0;
 	exp_fs[fd].slave_fd = EXP_NOFD;
 #ifdef HAVE_PTYTRAP
@@ -844,40 +836,9 @@ when trapping, see below in child half of fork */
 	} else {
 		Tcl_Channel chan;
 		int mode;
-#if TCL_MAJOR_VERSION < 8
-		Tcl_File tclReadFile, tclWriteFile;
-#endif /* TCL_MAJOR_VERSION < 8 */
 		int rfd, wfd;
 
 		if (echo) exp_log(0,"%s [open ...]\r\n",argv0);
-
-#if TCL7_4
-		rc = Tcl_GetOpenFile(interp,openarg,0,1,&readfilePtr);
-		wc = Tcl_GetOpenFile(interp,openarg,1,1,&writefilePtr);
-
-		/* fail only if both descriptors are bad */
-		if (rc == TCL_ERROR && wc == TCL_ERROR) {
-			return TCL_ERROR;		
-		}
-
-		master = fileno((rc == TCL_OK)?readfilePtr:writefilePtr);
-
-		/* make a new copy of file descriptor */
-		if (-1 == (write_master = master = dup(master))) {
-			exp_error(interp,"fdopen: %s",Tcl_PosixError(interp));
-			return TCL_ERROR;
-		}
-
-		/* if writefilePtr is different, dup that too */
-		if ((rc == TCL_OK) && (wc == TCL_OK) && (fileno(writefilePtr) != fileno(readfilePtr))) {
-			if (-1 == (write_master = dup(fileno(writefilePtr)))) {
-				exp_error(interp,"fdopen: %s",Tcl_PosixError(interp));
-				return TCL_ERROR;
-			}
-			exp_close_on_exec(write_master);
-		}
-
-#endif
 		if (!(chan = Tcl_GetChannel(interp,openarg,&mode))) {
 			return TCL_ERROR;
 		}
@@ -886,24 +847,14 @@ when trapping, see below in child half of fork */
 			return TCL_ERROR;
 		}
 		if (mode & TCL_READABLE) {
-#if TCL_MAJOR_VERSION < 8
-			tclReadFile = Tcl_GetChannelFile(chan, TCL_READABLE);
-			rfd = (int)Tcl_GetFileInfo(tclReadFile, (int *)0);
-#else
 			if (TCL_ERROR == Tcl_GetChannelHandle(chan, TCL_READABLE, (ClientData) &rfd)) {
 				return TCL_ERROR;
 			}
-#endif
 		}
 		if (mode & TCL_WRITABLE) {
-#if TCL_MAJOR_VERSION < 8
-			tclWriteFile = Tcl_GetChannelFile(chan, TCL_WRITABLE);
-			wfd = (int)Tcl_GetFileInfo(tclWriteFile, (int *)0);
-#else
 			if (TCL_ERROR == Tcl_GetChannelHandle(chan, TCL_WRITABLE, (ClientData) &wfd)) {
 				return TCL_ERROR;
 			}
-#endif
 		}
 
 		master = ((mode & TCL_READABLE)?rfd:wfd);
@@ -1247,7 +1198,12 @@ parent_error:
 
 	if (0 > (slave = getptyslave(ttycopy,ttyinit,stty_init))) {
 		restore_error_fd
-		errorlog("open(slave pty): %s\r\n",Tcl_ErrnoMsg(errno));
+
+		if (exp_pty_error) {
+			errorlog("open(slave pty): %s\r\n",exp_pty_error);
+		} else {
+			errorlog("open(slave pty): %s\r\n",Tcl_ErrnoMsg(errno));
+		}
 		exit(-1);
 	}
 	/* sanity check */
@@ -2280,6 +2236,10 @@ char **argv;
 	if (aflag && !(openarg || filename)) {
 		usage_error
 	}
+	if (current_append && (openarg || filename)) {
+		exp_error(interp,"cannot start logging without first stopping logging");
+		return TCL_ERROR;
+	}
 
 	logfile = 0;
 	logfile_all = aflag;
@@ -2320,37 +2280,19 @@ char **argv;
 		int fd;
 		Tcl_Channel chan;
 		int mode;
-#if TCL_MAJOR_VERSION < 8
-		Tcl_File tclWriteFile;
-#endif /* TCL_MAJOR_VERSION < 8 */
 
 		Tcl_DStringTrunc(&dstring,0);
 
-#if TCL7_4
-		cc = Tcl_GetOpenFile(interp,openarg,1,1,&writefilePtr);
-		if (cc == TCL_ERROR) goto error;
-
-		if (-1 == (fd = dup(fileno(writefilePtr)))) {
-			exp_error(interp,"dup: %s",Tcl_PosixError(interp));
-			goto error;
-		}
-#endif
 		if (!(chan = Tcl_GetChannel(interp,openarg,&mode))) {
 			return TCL_ERROR;
 		}
 		if (!(mode & TCL_WRITABLE)) {
 			exp_error(interp,"channel is not writable");
 		}
-#if TCL_MAJOR_VERSION < 8
-		tclWriteFile = Tcl_GetChannelFile(chan, TCL_WRITABLE);
-		fd = dup((int)Tcl_GetFileInfo(tclWriteFile, (int *)0));
-#else
 		if (TCL_ERROR == Tcl_GetChannelHandle(chan, TCL_WRITABLE, (ClientData) &fd)) {
 			goto error;
 		}
 		fd = dup(fd);
-#endif
-	
 		if (!(logfile = fdopen(fd,type))) {
 			exp_error(interp,"fdopen: %s",Tcl_PosixError(interp));
 			close(fd);
@@ -2617,11 +2559,7 @@ Exp_CloseCmd(clientData, interp, argc, argv)
 ClientData clientData;
 Tcl_Interp *interp;
 int argc;
-#if TCL_MAJOR_VERSION < 8
-char **argv;
-#else
 Tcl_Obj *CONST argv[];	/* Argument objects. */
-#endif
 {
 	int onexec_flag = FALSE;	/* true if -onexec seen */
 	int close_onexec;
@@ -2629,19 +2567,11 @@ Tcl_Obj *CONST argv[];	/* Argument objects. */
 	int m = -1;
 
 	int argc_orig = argc;
-#if TCL_MAJOR_VERSION < 8
-	char **argv_orig = argv;
-#else
 	Tcl_Obj *CONST *argv_orig = argv;
-#endif
 
 	argc--; argv++;
 
-#if TCL_MAJOR_VERSION < 8
-#define STARARGV *argv
-#else
 #define STARARGV Tcl_GetStringFromObj(*argv,(int *)0)
-#endif
 
 	for (;argc>0;argc--,argv++) {
 		if (streq("-i",STARARGV)) {
@@ -2675,11 +2605,7 @@ Tcl_Obj *CONST argv[];	/* Argument objects. */
 		if (0 == Tcl_GetCommandInfo(interp,"close",&info)) {
 			info.clientData = 0;
 		}
-#if TCL_MAJOR_VERSION < 8
-		return(Tcl_CloseCmd(info.clientData,interp,argc_orig,argv_orig));
-#else
 		return(Tcl_CloseObjCmd(info.clientData,interp,argc_orig,argv_orig));
-#endif
 	}
 
 	if (m == -1) {
@@ -2942,11 +2868,7 @@ char **argv;
 
 				/* pass to Tcl, so it can do wait */
 				/* in background */
-#if TCL_MAJOR_VERSION < 8
-				Tcl_DetachPids(1,&f->pid);
-#else
 				Tcl_DetachPids(1,(Tcl_Pid *)&f->pid);
-#endif
 				exp_wait_zero(&f->wait);
 			} else {
 				while (1) {
@@ -3329,26 +3251,6 @@ char **argv;
 	return(TCL_ERROR);
 }
 
-#if TCL_MAJOR_VERSION < 8
-/* most of this is directly from Tcl's definition for return */
-/*ARGSUSED*/
-int
-Exp_InterReturnCmd(clientData, interp, argc, argv)
-ClientData clientData;
-Tcl_Interp *interp;
-int argc;
-char **argv;
-{
-	/* let Tcl's return command worry about args */
-	/* if successful (i.e., TCL_RETURN is returned) */
-	/* modify the result, so that we will handle it specially */
-
-	int result = Tcl_ReturnCmd(clientData,interp,argc,argv);
-	if (result == TCL_RETURN)
-		result = EXP_TCL_RETURN;
-	return result;
-}
-#else
 /* most of this is directly from Tcl's definition for return */
 /*ARGSUSED*/
 int
@@ -3367,7 +3269,6 @@ Tcl_Obj *CONST objv[];
         result = EXP_TCL_RETURN;
     return result;
 }
-#endif
 
 /*ARGSUSED*/
 int
@@ -3414,11 +3315,7 @@ char **argv;
 	if (!leaveopen) {
 		/* remove from Expect's memory in anticipation of passing to Tcl */
 		if (f->pid != EXP_NOPID) {
-#if TCL_MAJOR_VERSION < 8
-			Tcl_DetachPids(1,&f->pid);
-#else
 			Tcl_DetachPids(1,(Tcl_Pid *)&f->pid);
-#endif
 			f->pid = EXP_NOPID;
 			f->sys_waited = f->user_waited = TRUE;
 		}
@@ -3426,9 +3323,6 @@ char **argv;
 	}
 
 	chan = Tcl_MakeFileChannel(
-#if TCL_MAJOR_VERSION < 8
-			    (ClientData)m2,
-#endif
 			    (ClientData)m2,
 			    TCL_READABLE|TCL_WRITABLE);
 	Tcl_RegisterChannel(interp, chan);
@@ -3457,27 +3351,11 @@ exp_create_commands(interp,c)
 Tcl_Interp *interp;
 struct exp_cmd_data *c;
 {
-#if TCL_MAJOR_VERSION < 8
-	Interp *iPtr = (Interp *) interp;
-#else
 	Namespace *globalNsPtr = (Namespace *) Tcl_GetGlobalNamespace(interp);
 	Namespace *currNsPtr   = (Namespace *) Tcl_GetCurrentNamespace(interp);
-#endif
 	char cmdnamebuf[80];
 
 	for (;c->name;c++) {
-#if TCL_MAJOR_VERSION < 8
-		int create = FALSE;
-		/* if already defined, don't redefine */
-		if (c->flags & EXP_REDEFINE) create = TRUE;
-		else if (!Tcl_FindHashEntry(&iPtr->commandTable,c->name)) {
-			create = TRUE;
-		}
-		if (create) {
-			Tcl_CreateCommand(interp,c->name,c->proc,
-				c->data,exp_deleteProc);
-		}
-#else
 		/* if already defined, don't redefine */
 		if ((c->flags & EXP_REDEFINE) ||
 		    !(Tcl_FindHashEntry(&globalNsPtr->cmdTable,c->name) ||
@@ -3489,33 +3367,23 @@ struct exp_cmd_data *c;
 				Tcl_CreateCommand(interp,c->name,c->proc,
 						  c->data,exp_deleteProc);
 		}
-#endif
 		if (!(c->name[0] == 'e' &&
 		      c->name[1] == 'x' &&
 		      c->name[2] == 'p')
 		    && !(c->flags & EXP_NOPREFIX)) {
 			sprintf(cmdnamebuf,"exp_%s",c->name);
-#if TCL_MAJOR_VERSION < 8
-			Tcl_CreateCommand(interp,cmdnamebuf,c->proc,
-				c->data,exp_deleteProc);
-#else
 			if (c->objproc)
 				Tcl_CreateObjCommand(interp,cmdnamebuf,c->objproc,c->data,
 						     exp_deleteObjProc);
 			else
 				Tcl_CreateCommand(interp,cmdnamebuf,c->proc,
 						  c->data,exp_deleteProc);
-#endif
 		}
 	}
 }
 
 static struct exp_cmd_data cmd_data[]  = {
-#if TCL_MAJOR_VERSION < 8
-{"close",	Exp_CloseCmd,	0,	EXP_REDEFINE},
-#else
 {"close",	Exp_CloseObjCmd,	0,	0,	EXP_REDEFINE},
-#endif
 #ifdef TCL_DEBUGGER
 {"debug",	exp_proc(Exp_DebugCmd),	0,	0},
 #endif
@@ -3531,11 +3399,7 @@ static struct exp_cmd_data cmd_data[]  = {
 {"log_user",	exp_proc(Exp_LogUserCmd),	0,	0},
 {"exp_open",	exp_proc(Exp_OpenCmd),	0,	0},
 {"overlay",	exp_proc(Exp_OverlayCmd),	0,	0},
-#if TCL_MAJOR_VERSION < 8
-{"inter_return",Exp_InterReturnCmd,	0,	0},
-#else
 {"inter_return",Exp_InterReturnObjCmd,	0,	0,	0},
-#endif
 {"send",	exp_proc(Exp_SendCmd),	(ClientData)&sendCD_proc,	0},
 {"send_error",	exp_proc(Exp_SendCmd),	(ClientData)&sendCD_error,	0},
 {"send_log",	exp_proc(Exp_SendLogCmd),	0,	0},

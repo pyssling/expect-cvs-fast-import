@@ -372,11 +372,7 @@ Tk_Init2(interp)
      * Invoke platform-specific initialization.
      */
 
-#if TCL_MAJOR_VERSION < 8
-    code = TkPlatformInit(interp);
-#else
     code = TkpInit(interp, 0);
-#endif
 
     done:
     if (argv != NULL) {

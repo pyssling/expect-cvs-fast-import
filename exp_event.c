@@ -55,11 +55,7 @@ void
 exp_event_disarm(fd)
 int fd;
 {
-#if TCL_MAJOR_VERSION < 8
-	Tcl_DeleteFileHandler(exp_fs[fd].Master);
-#else
 	Tcl_DeleteFileHandler(fd);
-#endif
 
 	/* remember that filehandler has been disabled so that */
 	/* it can be turned on for fg expect's as well as bg */
@@ -75,11 +71,7 @@ Tcl_FileProc *filehandler;
 	/* that permits no events! */
 	/* This reduces the calls to malloc/free inside Tcl_...FileHandler */
 	/* Tk insists on having a valid proc here even though it isn't used */
-#if TCL_MAJOR_VERSION < 8
-	Tcl_CreateFileHandler(exp_fs[fd].Master,0,filehandler,(ClientData)0);
-#else
 	Tcl_CreateFileHandler(fd,0,filehandler,(ClientData)0);
-#endif
 
 	/* remember that filehandler has been disabled so that */
 	/* it can be turned on for fg expect's as well as bg */
@@ -90,11 +82,7 @@ static void
 exp_arm_background_filehandler_force(m)
 int m;
 {
-#if TCL_MAJOR_VERSION < 8
-	Tcl_CreateFileHandler(exp_fs[m].Master,
-#else
 	Tcl_CreateFileHandler(m,
-#endif
 		TCL_READABLE|TCL_EXCEPTION,
 		exp_background_filehandler,
 		(ClientData)(exp_fs[m].fd_ptr));
@@ -286,11 +274,7 @@ int key;
 
 				if (!exp_fs[k].fg_armed) {
 					Tcl_CreateFileHandler(
-#if TCL_MAJOR_VERSION < 8
-					     exp_fs[k].Master,
-#else
 					     k,
-#endif
 					     default_mask,
 					     exp_filehandler,
 					     (ClientData)exp_fs[k].fd_ptr);

@@ -179,22 +179,7 @@ struct exp_f {
 	int force_read;	/* force read to occur (even if buffer already has */
 			/* data).  This supports interact CAN_MATCH */
 	int fg_armed;	/* If Tk_CreateFileHandler is active for responding */
-			/* to foreground events */
-
-
-#if TCL_MAJOR_VERSION < 8
-	Tcl_File Master;	/* corresponds to master fd */
-	Tcl_File Slave;		/* corresponds to slave_fd */
-	Tcl_File MasterOutput;	/* corresponds to tcl_output */
-	/*
-	 *  Following comment only applies to Tcl 7.6:
-	 *  Explicit fds aren't necessary now, but since the code is already
-	 *  here from before Tcl required Tcl_File, we'll continue using
-	 *  the old fds.  If we ever port this code to a non-UNIX system,
-	 *  we'll dump the fds totally.
-	 */
-#endif /* TCL_MAJOR_VERSION < 8 */
-	   
+			/* to foreground events */	   
 	int slave_fd;	/* slave fd if "spawn -pty" used */
 #ifdef HAVE_PTYTRAP
 	char *slave_name;/* Full name of slave, i.e., /dev/ttyp0 */
@@ -321,19 +306,11 @@ EXTERN void		exp_i_update _ANSI_ARGS_((Tcl_Interp *,
 #define EXP_NOPREFIX	1	/* don't define with "exp_" prefix */
 #define EXP_REDEFINE	2	/* stomp on old commands with same name */
 
-/* a hack for easily supporting both Tcl 7 and 8 CreateCommand/Obj split */
-/* Can be discarded with Tcl 7 is. */
-#if TCL_MAJOR_VERSION < 8
-#define exp_proc(cmdproc) cmdproc
-#else
 #define exp_proc(cmdproc) 0, cmdproc
-#endif
 
 struct exp_cmd_data {
 	char		*name;
-#if TCL_MAJOR_VERSION >= 8
 	Tcl_ObjCmdProc	*objproc;
-#endif
 	Tcl_CmdProc	*proc;
 	ClientData	data;
 	int 		flags;
