@@ -10,8 +10,8 @@ AC_INIT(expect.h)
 # note when updating version numbers here, also update pkgIndex.in (see
 # comments in Makefile)
 EXP_MAJOR_VERSION=5
-EXP_MINOR_VERSION=28
-EXP_MICRO_VERSION=1
+EXP_MINOR_VERSION=32
+EXP_MICRO_VERSION=2
 EXP_VERSION=$EXP_MAJOR_VERSION.$EXP_MINOR_VERSION
 EXP_VERSION_NODOTS=$EXP_MAJOR_VERSION$EXP_MINOR_VERSION
 EXP_VERSION_FULL=$EXP_VERSION.$EXP_MICRO_VERSION
@@ -21,6 +21,30 @@ VERSION=$EXP_MAJOR_VERSION.$EXP_MINOR_VERSION
 # Too many people send me configure output without identifying the version.
 # This forced identification should reduce my pain significantly.
 echo "configuring Expect $EXP_MAJOR_VERSION.$EXP_MINOR_VERSION.$EXP_MICRO_VERSION"
+
+# People (when downloading Expect from CVS archive) sometimes run into
+# Make thinking configure is old and needs to be rebuilt.  If they
+# don't have a clue about autoconf, they get confused.  This is
+# particular irritating because the problem only crops up after
+# configure has successfully completed.  Help them out by checking it
+# right now and giving some advice.  Alas, we cannot summarily fix the
+# problem because it might conceivably be someone doing real
+# development.
+# Test if configure is older than configure.in and explain if no autoconf
+AC_CHECK_PROG(found,autoconf,yes,no,)
+AC_MSG_CHECKING([configure up to date])
+for i in `ls -tr ${srcdir}/configure ${srcdir}/configure.in ${srcdir}/Makefile.in` ; do
+  newest=$i
+done
+if test "$srcdir/configure" = "$newest" ; then
+  AC_MSG_RESULT(yes)
+else
+  AC_MSG_RESULT(no)
+fi
+if test $found = "no" -a "$newest" != "$srcdir/configure" ; then
+  AC_MSG_WARN([$srcdir/configure appears to be old ($srcdir/configure.in and/or $srcdir/Makefile.in are newer) and the autoconf program to fix this situation was not found.  If you've no idea what this means, enter the command \"touch $srcdir/configure\" and restart $srcdir/configure.])
+  exit
+fi
 
 dnl AC_CONFIG_AUX_DIR(`cd $srcdir;pwd`/..)
 AC_CANONICAL_SYSTEM
@@ -41,14 +65,6 @@ AC_MSG_RESULT($CONFIG_SHELL)
 dnl unset MFLAGS MAKEFLAGS
 MFLAGS=
 MAKEFLAGS=
-
-CY_AC_PATH_TCLCONFIG
-CY_AC_LOAD_TCLCONFIG
-CC=$TCL_CC
-EXP_AND_TCL_LIBS=$TCL_LIBS
-CY_AC_PATH_TKCONFIG
-CY_AC_LOAD_TKCONFIG
-EXP_AND_TK_LIBS=$TK_LIBS
 
 # An explanation is in order for the strange things going on with the
 # various LIBS.  There are three separate definitions for LIBS.  The
@@ -77,6 +93,22 @@ OLD_CFLAGS=$CFLAGS
 AC_PROG_CC
 CFLAGS=$OLD_CFLAGS
 
+#------------------------------------------------------------------------
+# Hook for when threading is supported in Expect.  The --enable-threads
+# flag currently has no effect.
+#------------------------------------------------------------------------
+
+SC_ENABLE_THREADS
+
+CY_AC_PATH_TCLCONFIG
+CY_AC_LOAD_TCLCONFIG
+CC=$TCL_CC
+EXP_AND_TCL_LIBS=$TCL_LIBS
+CY_AC_PATH_TKCONFIG
+CY_AC_LOAD_TKCONFIG
+EXP_AND_TK_LIBS=$TK_LIBS
+
+
 CY_AC_C_WORKS
 
 # this'll use a BSD compatible install or our included install-sh
@@ -103,7 +135,16 @@ dnl AC_TIME_WITH_SYS_TIME
 AC_HEADER_TIME
 AC_HEADER_SYS_WAIT
 
-EXP_CFLAGS=-g
+AC_ARG_ENABLE(symbols,
+	[  --enable-symbols   allow use of symbols if available],
+	[enable_symbols=$enableval], [enable_symbols=no])
+if test "$enable_symbols" = "no"; then
+  EXP_CFLAGS="$TCL_EXTRA_CFLAGS"
+else
+  EXP_CFLAGS="-g $TCL_EXTRA_CFLAGS"
+  # This is always "g" for unix.
+  DBGX=g
+fi
 case "${host}" in
  # Use -g on all systems but Linux where it upsets the dynamic X libraries.
   i[[3456]]86-*-linux*)	EXP_CFLAGS="" ;;
@@ -493,6 +534,19 @@ LIBS=$EXP_LIBS
 # End of library/func checking
 ######################################################################
 
+# Hand patches to library/func checking.
+
+dnl From: Michael Kuhl <mkuhl@legato.com>
+dnl To get expect to compile on a Sequent NUMA-Q running DYNIX/ptx v4.4.2.
+AC_MSG_CHECKING([if running Sequent running SVR4])
+if test "$host_alias" = "i386-sequent-sysv4" ; then
+ EXP_AND_TCL_LIBS="-lnsl -lsocket -lm"
+ dnl if there's something similar required for Tk, no one's told me!
+ AC_MSG_RESULT(yes)
+else
+ AC_MSG_RESULT(no)
+fi
+
 ######################################################################
 #
 # Look for various header files
@@ -507,7 +561,9 @@ dnl AC_CHECK_HEADER(stdarg.h, AC_DEFINE(HAVE_STDARG_H))
 
 AC_CHECK_HEADER(varargs.h, AC_DEFINE(HAVE_VARARGS_H))
 AC_CHECK_HEADER(unistd.h, AC_DEFINE(HAVE_UNISTD_H))
-AC_CHECK_HEADER(sys/stropts.h, AC_DEFINE(HAVE_STROPTS_H))
+# If no stropts.h, then the svr4 implementation is broken.
+# At least it is on my Debian "potato" system. - Rob Savoye
+AC_CHECK_HEADER(sys/stropts.h, AC_DEFINE(HAVE_STROPTS_H), svr4_ptys_broken=1)
 AC_CHECK_HEADER(sys/sysconfig.h, AC_DEFINE(HAVE_SYSCONF_H))
 AC_CHECK_HEADER(sys/fcntl.h, AC_DEFINE(HAVE_SYS_FCNTL_H))
 AC_CHECK_HEADER(sys/select.h, AC_DEFINE(HAVE_SYS_SELECT_H))
@@ -539,6 +595,7 @@ AC_CHECK_FUNC(sysconf, AC_DEFINE(HAVE_SYSCONF))
 AC_CHECK_FUNC(strftime, AC_DEFINE(HAVE_STRFTIME))
 AC_CHECK_FUNC(strchr, AC_DEFINE(HAVE_STRCHR))
 AC_CHECK_FUNC(timezone, AC_DEFINE(HAVE_TIMEZONE))
+AC_CHECK_FUNC(siglongjmp, AC_DEFINE(HAVE_SIGLONGJMP))
 
 # dnl check for memcpy by hand
 # because Unixware 2.0 handles it specially and refuses to compile
@@ -600,6 +657,28 @@ main() {
 ,
 	AC_MSG_ERROR([Expect can't be cross compiled])
 )
+
+#-----Stolen from Tcl's configure file-------------------------------
+#	The check below checks whether <sys/wait.h> defines the type
+#	"union wait" correctly.  It's needed because of weirdness in
+#	HP-UX where "union wait" is defined in both the BSD and SYS-V
+#	environments.  Checking the usability of WIFEXITED seems to do
+#	the trick.
+#--------------------------------------------------------------------
+
+AC_MSG_CHECKING([union wait])
+AC_TRY_LINK([#include <sys/types.h> 
+#include <sys/wait.h>], [
+union wait x;
+WIFEXITED(x);		/* Generates compiler error if WIFEXITED
+			 * uses an int. */
+], tcl_ok=yes, tcl_ok=no)
+AC_MSG_RESULT($tcl_ok)
+if test $tcl_ok = no; then
+    AC_DEFINE(NO_UNION_WAIT)
+fi
+
+
 
 #
 # check how signals work
@@ -692,7 +771,7 @@ else
   AC_MSG_RESULT(no)
 fi
 
-EXP_LDFLAGS=
+EXP_LDFLAGS="$LDFLAGS"
 
 AC_MSG_CHECKING([if on NeXT])
 if test -r /NextApps ; then
@@ -787,10 +866,11 @@ if test -r /dev/ptmx -a "x$svr4_ptys_broken" = x ; then
   AC_MSG_RESULT(yes)
   AC_DEFINE(HAVE_PTMX)
   # aargg. Some systems need libpt.a to use /dev/ptmx
-  AC_CHECK_FUNC(ptsname, , LIBS="${LIBS} -lpt")
+  AC_CHECK_LIB(pt, libpts="-lpt", libpts="")
+  AC_CHECK_FUNC(ptsname, , LIBS="${LIBS} $libpts")
   # I've never seen Tcl or Tk include -lpt so don't bother with explicit test
-  AC_CHECK_FUNC(ptsname, , EXP_AND_TCL_LIBS="${EXP_AND_TCL_LIBS} -lpt")
-  AC_CHECK_FUNC(ptsname, , EXP_AND_TK_LIBS="${EXP_AND_TK_LIBS} -lpt")
+  AC_CHECK_FUNC(ptsname, , EXP_AND_TCL_LIBS="${EXP_AND_TCL_LIBS} $libpts")
+  AC_CHECK_FUNC(ptsname, , EXP_AND_TK_LIBS="${EXP_AND_TK_LIBS} $libpts")
 else
   AC_MSG_RESULT(no)
 fi
@@ -972,6 +1052,9 @@ fi
 AC_HAVE_FUNCS(_getpty)
 AC_HAVE_FUNCS(getpty)
 
+# following test sets SETPGRP_VOID if setpgrp takes 0 args, else takes 2
+AC_FUNC_SETPGRP
+
 #
 # check for timezones
 #
@@ -1048,14 +1131,18 @@ if test $ac_cv_sys_long_file_names = no; then
     EXP_LIB_VERSION=$EXP_VERSION_NODOTS
 fi
 
-EXP_BUILD_LIB_SPEC="-L`pwd` -lexpect${EXP_LIB_VERSION}"
-EXP_LIB_SPEC="-L\${exec_prefix}/lib -lexpect${EXP_LIB_VERSION}"
-EXP_UNSHARED_LIB_FILE=libexpect${EXP_LIB_VERSION}.a
+EXP_BUILD_LIB_SPEC="-L`pwd` -lexpect${EXP_LIB_VERSION}${DBGX}"
+EXP_LIB_SPEC="-L\${INSTALL_ROOT}\${exec_prefix}/lib -lexpect${EXP_LIB_VERSION}${DBGX}"
+EXP_UNSHARED_LIB_FILE=libexpect${EXP_LIB_VERSION}${DBGX}.a
+
+# The TCL_SHARED_LIB_SUFFIX macro below relies on the DBGX macro,
+# which is set way far above here.  Don't set it to the value of
+# TCL_DBGX, or you'll run into problems if you build Tcl with symbols
+# and expect without (and vice versa?)
 
 AC_MSG_CHECKING([for type of library to build])
 if test "$enable_shared" = "yes" && test "x${TCL_SHLIB_SUFFIX}" != "x" ; then
   EXP_SHLIB_CFLAGS=$TCL_SHLIB_CFLAGS
-#  EXP_SHARED_LIB_FILE=libexpect$EXP_LIB_VERSION$TCL_SHLIB_SUFFIX
   eval "EXP_SHARED_LIB_FILE=libexpect${TCL_SHARED_LIB_SUFFIX}"
   EXP_LIB_FILE=$EXP_SHARED_LIB_FILE
   EXP_LIB_FILES="$EXP_SHARED_LIB_FILE $EXP_UNSHARED_LIB_FILE"
@@ -1068,18 +1155,13 @@ else
   AC_MSG_RESULT(unshared)
 fi
 
-# now broken out into EXP_AND_TCL_LIBS and EXP_AND_TK_LIBS.  Had to do this
-# in order to avoid repeating lib specs to which some systems object.
-EXP_AND_TCL_LIBS="$EXP_AND_TCL_LIBS $TCL_LD_SEARCH_FLAGS"
-EXP_AND_TK_LIBS="$EXP_AND_TK_LIBS $TCL_LD_SEARCH_FLAGS"
-
 # Sigh - Tcl defines SHLIB_LD_LIBS to be either empty or ${LIBS} and
 # LIBS is intended to be expanded by Make.  But since we're too close
 # to hitting config's max symbols, pack everything together here and
 # do test ourselves.  Ugh.  
 #
 if test "x$TCL_SHLIB_LD_LIBS" = "x" ; then
-	EXP_SHLIB_LD_LIBS=""
+	EXP_SHLIB_LD_LIBS="$LIBS"
 else
 	# seems a little strange to build in Tcl's build-lib, but
 	# that's what Tk does.
@@ -1104,20 +1186,38 @@ LIB_RUNTIME_DIR='${LIB_RUNTIME_DIR}'
 # If Tcl and Expect are installed in different places, adjust the library
 # search path to reflect this.
 
-if test "$TCL_EXEC_PREFIX" != "$exec_prefix"; then
-    LIB_RUNTIME_DIR="${LIB_RUNTIME_DIR}:${TCL_EXEC_PREFIX}"
+if test x"$no_tk" = x"true" ; then
+  if test "$TCL_EXEC_PREFIX" != "$exec_prefix"; then
+    LIB_RUNTIME_DIR="${LIB_RUNTIME_DIR}:${TCL_EXEC_PREFIX}/lib"
+  fi
+else
+  if test "$TK_EXEC_PREFIX" != "$exec_prefix"; then
+    LIB_RUNTIME_DIR="${LIB_RUNTIME_DIR}:${TK_EXEC_PREFIX}/lib"
+    # no need to include TCL's search path, because TK does it already
+    # (it is actually appended later, via TK_LD_SEARCH_FLAGS trick below)
+  fi
 fi
 
 if test "${TCL_LD_SEARCH_FLAGS}" = '-L${LIB_RUNTIME_DIR}'; then
     LIB_RUNTIME_DIR=`echo ${LIB_RUNTIME_DIR} |sed -e 's/:/ -L/g'`
 fi
 
-# The statement below is very tricky!  It actually *evaluates* the
-# string in TCL_LD_SEARCH_FLAGS, which causes a substitution of the
+# The eval below is tricky!  It *evaluates* the string in
+# ..._CC_SEARCH_FLAGS, which causes a substitution of the
 # variable LIB_RUNTIME_DIR.
 
-eval "EXP_CC_SEARCH_FLAGS=\"$TCL_LD_SEARCH_FLAGS\""
-EXP_LD_SEARCH_FLAGS=`echo ${EXP_CC_SEARCH_FLAGS} |sed -e "s|-Wl,||g" -e "s|,| |g"`
+if test x"$no_tk" = x"true" ; then
+  eval "EXP_CC_SEARCH_FLAGS=\"$TCL_CC_SEARCH_FLAGS\""
+  EXP_LD_SEARCH_FLAGS=${TCL_LD_SEARCH_FLAGS}
+else
+  eval "EXP_CC_SEARCH_FLAGS=\"$TK_CC_SEARCH_FLAGS\""
+  EXP_LD_SEARCH_FLAGS=${TK_LD_SEARCH_FLAGS}
+fi
+
+# now broken out into EXP_AND_TCL_LIBS and EXP_AND_TK_LIBS.  Had to do this
+# in order to avoid repeating lib specs to which some systems object.
+EXP_AND_TCL_LIBS="$EXP_AND_TCL_LIBS $EXP_CC_SEARCH_FLAGS"
+EXP_AND_TK_LIBS="$EXP_AND_TK_LIBS $EXP_CC_SEARCH_FLAGS"
 
 #
 # Set up makefile substitutions
@@ -1139,6 +1239,7 @@ AC_SUBST(EXP_LIB_SPEC)
 AC_SUBST(EXP_CFLAGS)
 AC_SUBST(EXP_LDFLAGS)
 AC_SUBST(EXP_LD_SEARCH_FLAGS)
+AC_SUBST(TCL_LD_SEARCH_FLAGS)
 AC_SUBST(EXP_AND_TCL_LIBS)
 AC_SUBST(EXP_AND_TK_LIBS)
 AC_SUBST(EXP_SHLIB_LD_LIBS)
@@ -1149,4 +1250,6 @@ AC_SUBST(EVENT_ABLE)
 AC_SUBST(SETUID)
 AC_SUBST(UNSHARED_RANLIB)
 AC_SUBST(DEFAULT_STTY_ARGS)
-AC_OUTPUT(Makefile pkgIndex)
+AC_OUTPUT([Makefile \
+	pkgIndex],
+	chmod +x ${srcdir}/install-sh ${srcdir}/mkinstalldirs)

@@ -3,6 +3,224 @@ support are in ChangeLog. - Don
 
 Date	Version	Description
 -------	-------	------------------------------------------------------
+8/4/00 5.32.2	Allen J. Newton <anewton@alturia.fleet.org> provided code for
+		generating passwords with special characters in mkpasswd.
+
+		Brent Welch <welch@ajubasolutions.com> changed the fix1line
+		install script so that "autoexpect" and other scripts that
+		get installed into the platform-independent bin directory
+		generically invoke "expect" from the users PATH instead
+		of hardwiring the platform-specific expect pathname.
+
+		TclPro 1.4 released with 5.32.2 bundled.
+
+7/13/00	5.32.1	Uwe Klein <uwe-klein@foni.net> reported segfaults from reading
+		nulls.  Due to code rewrite in 5.30->5.31 transition.
+
+5/14/00 5.32.0	New version for timing with Ajuba TclPro 1.4.  This version
+		of Expect has no new features or behaviors but a lot has been
+		fixed since 5.31.0.
+
+		Martin Buchholz <martin@xemacs.org> noted that his
+		alphaev56-dec-osf4.0e has ptmx and ptmx_bsd (and ptm, pts,
+		pty, ptym).  He suggested that BSD things are now usually
+		deprecated so to skip ptmx_bsd if ptmx avail.
+
+		Chang Li <changl@neatware.com> noted that debugger's bp cmd
+		broke on every command.  Was a bug in breakpoint_trace from
+		when we installed the new regexp engine.
+
+		Jonathan Kamens fixed printf formats in several pty diags.
+
+		rm_nulls -d was set to wrong value.
+
+5/12/00 5.31.8	After receiving yet another request for fully versioned
+		archives, gave in.
+
+		Signal handler sometimes sent error to stderr inappropriately.
+
+4/27/00 5.31.7	Rob Savoye fixed Debian ptys and properly checking of libpt.
+
+3/8/00  5.31.6	Petrus Vloet <petrus.vloet@siemens.at> noted that Expect
+		installed tclRegexp.h which included regex.h which of course
+		misbehaves when it reads the system's version.  This is new
+		since 8.0.  Since I need to revise the Clib anyway (which
+		is what this install was for), I'll back this out for now.
+
+3/6/00	5.31.5	Larry Virden noted that configure checked for threads twice.
+
+2/19/00 5.31.4	Omer Azmon <oazmon@telsoft-solutions.com> note errors in
+		pty_termios.c in exp_pty_test that caused problems during
+		pty testing.
+
+		Jeffrey Hobbs recommended having configure accept and warn
+		about --enable-threads.
+
+		John Ellson <ellson@lucent.com> noted configure's autoconf
+		testing had leftover debugging code.  Also provided a fix for
+		building w/shared libs on HP - appeared to be leftover from
+		earlier Tcl-required configuration that has now disappeared.
+
+		Susan Muston <smuston@crosskeys.com> noted that exp_wait with
+		no spawned processes exited immediately which is different
+		than 5.29 behavior which reported "no children".  This new
+		behavior was evidentally a gratuitous change during the
+		channel driver addition.  Backed out.  At the same time,
+		neither behavior matches documentation - doc should be fixed
+		and improved except I'm not sure if the behavior should yet
+		be something else (depending if stdin closed or not).
+
+		istvan.nadas@epfl.ch reported "spawn cat;exp_open" failed.
+		Uninited variable.
+
+		Scriptics reported memory leak.  Was bug in parse_expect_args.
+
+		"Michael P. Reilly" <arcege@shore.net> noted clib was hanging
+		in spawn code.  status_pipe wasn't being closed.
+
+		Egil Kvaleberg <egil@kvaleberg.no> provided fix due to new gcc
+		which defines strchr as a macro.
+
+		Dave Morrison <drmorris@corp.phone.com> noted some printfs
+		in exp_log.c that misinterpreted embedded %'s with resulting
+		core dumps.
+
+		Dick Goodwin <goodwin@qosnetics.com> noted that "system echo
+		foo" returned with no apparent effect.  Due to closeonexec
+		in expect's channel driver.  Added skip if std channel.
+		Fixed similar bug in stty command.  Minor bug left in stty
+		which isn't passing output back from underlying exec.
+
+		Stacy W. Smith <stacy@ixc-comm.com> provided patch that uses
+		sigsetjmp instead of setjmp that he says fixes a problem he
+		encountered with C lib where it stopped timing out in expect()
+		as if the signals were corrupted.  The man page doesn't
+		explain the difference between these calls in a way that makes
+		sense as to why they should make a difference, but I'll the
+		names are certainly suggestive so I'll try it.  He says "it
+		  appears that the linux setjmp behaves a little differently
+		  compared to setjmp on some other OSs.  Specifically, setjmp
+		  on linux does not save the signal context.  It seems most
+		  BSDish OSs do save the signal context with setjmp.  On those
+		  machines, it appears setjmp(env) is equivalent to
+		  sigsetjmp(env,1) whereas on linux, setjmp(env) is equivalent
+		  to sigsetjmp(env,0).  My patch made a (probably bad)
+		  assumption that if siglongjmp() exists that we should use
+		  the sigXXX versions.  I specifically tested for siglongjmp 
+		  rather than sigsetjmp because on linux, sigsetjmp is just a
+		  #define for  __sigsetjmp.  It appears that linux will give
+		  the BSD behaviour if  __FAVOR_BSD is defined, but I didn't
+		  know what other implications that might have.
+
+		Michael Schumacher provided fix so that test for whether
+		configure was out-of-date worked when not using the default
+		build dir.
+
+11/1/99 5.31.3	Shlomi Mahlab <shlomi@seagull.co.il> noted all.tcl in CVS
+		but not distribution.
+
+		More notes from Keith Brown on HP cc complaints in exp_pty.c.
+
+10/28/99 5.31.2	"Keith Brown" <surely@nortelnetworks.com> noted that HP cc
+		objected to auto aggregate initialization in
+		expLogChannelOpen.
+
+10/22/99 5.31.1 Official release!
+
+		P Darcy Barnett <pdb@cam.nist.gov> noted Makefile could
+		produce "autoconf not found" for non-developers using CVS.
+		Made configure detect and provide advice on workaround.
+
+		Fixed bug in interact -echo exhibited in rftp example.
+
+		Ryan Murray <rmurray@cyberhqz.com> noted Expect wasn't
+		handling handling 8-bit bytes correctly.  I had accidentally
+		used Tcl_Write instead of Tcl_WriteChar.
+
+		Ashley Pittman <ashley@ilo.dec.com> noted that digital unix
+		V5.0 prefers openpty (4000 ptys) over ptmx (60 ptys), so I'm
+		reversing the login in pty_termios.c.  This also controls
+		linux, but no linux hackers have weighed in on this subject
+		yet.
+
+		Andrew Tannenbaum <trb@world.std.com> noted exp_internal
+		command and "expect -exact" were broken.
+
+6/29/99 5.31.0	See the NEWS file for this date for an overview.  (I'm
+		too tired to add all the details.  Maybe later.)
+
+		Fixed exp_clib so that it immediately reported failure of
+		exec (in spawn) rather than passing it back through pipe.
+
+		Removed error checking from ioctl(TIOCSCTTY) to pacify the
+		variety of (but not all) Linux systems and a few others which
+		define TIOCSCTTY but return an error although seem to work
+		anyway.
+
+		Added configure test for 0 vs 2-arg setpgrp.
+
+		Kenji Kamizono <kenji@math.columbia.edu> noted it was possible
+		to compile Linux (2.2.5) so that it recognized both openpty
+		and ptmx leading to conflicts.  I arbitrarily chose ptmx.
+
+10/15/99 5.30.2	Herve Tireford <tdes46@email.sps.mot.com> noted extraneous
+		sleep(20) in clib.  Apparently left over from debugging, oops.
+
+8/18/99 5.30.1	Added test for newer versions of Tcl that are incompatible.
+
+		Kenji Kamizono <kenji@math.columbia.edu> noted it was possible
+		to compile Linux (2.2.5) so that it recognized both openpty
+		and ptmx leading to conflicts.  I arbitrarily chose ptmx.
+
+4/1/99	5.30.0  Martin Forssen <maf@crt.se> provided fix to allow configure
+		to start with LDFLAGS from environment.
+
+		Paul Tazzyman <Paul.Tazzyman@one.at> noted that log_file didn't
+		check for logging twice without turning off logging first.
+
+		Ben <spy@calvin.iconoclasm.org> provided updated host for
+		weather example.
+
+		Jonathon Kamens noted that Expect didn't build properly if
+		Tcl and/or Tk used build/install directories out of the usual
+		hierarchy.  At the same time, I fixed a number of other related
+		problems in Makefile/configure.
+
+		Pierre Pomes <ppomes@it.marseille-innov.assoc.fr> provided fix
+		to ftp-inband.  It blew up from an unprotected send that
+		was handed a uuencoded line that started with a -.
+
+		Autoexpect was thrown off by simple-minded [file executable]
+		test picking up expect directory while searching for
+		executable.
+
+1/21/99 5.29.0	Martin Forssen provides mods to support INSTALL_ROOT.
+
+		Bryan Surles <surles@scriptics.com> modified configure.in to
+		map DBGX to the same value as TCL_DBGX so the .so is named
+		correctly.
+
+		Suresh Sastry <suresh@scriptics.com> forced $LIBS to be
+		added to EXP_SHLIB_LD_LIBS.  It's not clear to me why this is
+		necessary (since Tk doesn't) but he was having a problem
+		with openpty not being found during runtime on Linux.
+
+		Martin Forssen noted expectk was crashing if a Tcl error was
+		encountered.  He found that exp_exit_handlers() was trying
+		to write into interp->result after interp had been deleted.
+
+		Added another copy to distribution site - with version number.
+
+		Stanislav Shalunov <shalunov@mccme.ru> closed race in pty code.
+
+		Fixed man page: -brace should be -nobrace.
+
+		Dan O'Brien <dmobrien@lucent.com> noted that Expect needed to
+		call Tcl_FindExecutable at startup for info nameofexecutable.
+
+		Robbie Gilbert <rwg@nc.fnc.fujitsu.com> noted indirect spawn
+		ids occasionally failed.  Fixed.
+
 9/30/98	5.28.1	Brian France <franceb@fsj.co.jp> noted that his compiler
 		rejected label with no statement.
 
@@ -44,7 +262,7 @@ Date	Version	Description
 		fine!)  Solution: documented this in Expect man page.
 
 		Zachariah Baum <zack@studioarchetype.com> noted that config.sub
-		didn't grok Intel 686.  Found a newer version that did in
+		didn't recognize Intel 686.  Found a newer version that did in
 		autoconf-2.11.
 
 		POTENTIAL INCOMPATIBILITY: Changed interact so that it observes
@@ -247,7 +465,7 @@ Date	Version	Description
 		a constant which in the regexp code, which Expect didn't see
 		because it provides its own defn for interact.  Alas, the one
 		thing Expect reuses from Tcl was where the change was.  This
-		should really be fixed so Expect doesn't rely on Expect in this
+		should really be fixed so Expect doesn't rely on Tcl in this
 		way, but there's no point in putting in a lot of work on regexp
 		when we're anticipating a new one soon anyway.
 
@@ -1618,7 +1836,7 @@ Date	Version	Description
 		"-console" to spawn.
 
 		Pang Wai Man Raymond <wmpang@cuse1.se.cuhk.hk> reported that
-		passmass didn't grok DEC's passwd prompts for root.
+		passmass didn't recognize DEC's passwd prompts for root.
 
 4/7/93	4.5.0	Fixed bug in interact regexp preventing match of multichar
 		literals.
@@ -1651,8 +1869,7 @@ Date	Version	Description
 		match_max to do -i correctly.
 
 3/15/93	4.2.4	Fixed to work on new SGI which returns slave-close via excep
-		(select) or POLLERR (poll) rather than thru read().  Why do you
-		people do things like this?
+		(select) or POLLERR (poll) rather than thru read().
 
 3/12/93	4.2.3	Fixed to work on AIX (using /dev/ptc) and UTS (using getpty).
 
@@ -1942,9 +2159,8 @@ Date	Version	Description
 		a status.  This royally complicated the code, partly because
 		of the special casing all over the place in the trap command,
 		the asynchronous delivery of SIGCLD and also because Tcl itself
-		is not prepared to have system calls be interrupted.  Cleverly,
-		the HP also defines both CLD and CHLD which threw my macros
-		off at first.  Thanks, but I don't this kind of help!
+		is not prepared to have system calls be interrupted.  The HP
+		also defines both CLD and CHLD which threw my macros off.
 
 		Anyway, the end result is that on the HP, SIGCLD is ignored.
 		The manual claims wait status will not be delivered but it
@@ -1965,7 +2181,7 @@ Date	Version	Description
 		inter_select.c.  HP transmits some pty interactions via the
 		exception field in select.
 
-		Michael Grant gave me a mod to grok ~ in the logfile and
+		Michael Grant gave me a mod to recognize ~ in the logfile and
 		debug commands.
 
 2/17/92	3.17.1	Brian Keves <keves@meaddata.com> pointed out that the man page
@@ -2206,7 +2422,7 @@ Date	Version	Description
 
 		Modified expect so that if timeout > 0, and nothing in the
 		buffer matched, it will force a read, no matter how long the
-		preceeding code took.  This may be hard to understand, but is
+		preceding code took.  This may be hard to understand, but is
 		the intuitive behavior that I always desired.
 
 10/30/91 3.2.0	Fixed bug in eof handling.  Converted some more of the
@@ -2924,9 +3140,9 @@ To get | to return ->	TCL_RETURN	TCL_OK		(no return)
 		session against another session, the BSD people.  Furthermore,
 		they called my paper an application, when it is no more so than
 		any other shell or language.  Better I should be in "lessons
-		learned".  Mashey said take a hike, i.e., it was too late to
-		change the schedule.  On top of that, our session has four
-		people in it, so I'll have very little time to speak.  Grrrr.
+		learned".  But it was too late to change the schedule.  On top
+		of that, our session has four people in it, so I'll have very
+		little time to speak.  Grrrr.
 
 3/13/90	1.6	Added "stty", because without it you can't do things like
 		turning off echo to accept a password.
