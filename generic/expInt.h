@@ -1,17 +1,29 @@
-/*
+/* ----------------------------------------------------------------------------
  * expInt.h --
  *
  *	Declarations of things used internally by Expect.
  *
- * Written by: Don Libes, libes@cme.nist.gov, NIST, 12/3/90
+ * ----------------------------------------------------------------------------
  *
+ * Written by: Don Libes, libes@cme.nist.gov, NIST, 12/3/90
+ * 
  * Design and implementation of this program was paid for by U.S. tax
  * dollars.  Therefore it is public domain.  However, the author and NIST
  * would appreciate credit if this program or parts of it are used.
+ * 
+ * Copyright (c) 1997 Mitel Corporation
+ *	work by Gordon Chaffee <chaffee@bmrc.berkeley.edu> for the WinNT port.
  *
- * Modified in October, 2001 by David Gravereaux for windows.
+ * Copyright (c) 2001 Telindustrie, LLC
+ *	work by David Gravereaux <davygrvy@pobox.com> for any Win32 OS.
  *
- * RCS: @(#) $Id: expInt.h,v 1.1.2.4 2001/10/29 06:40:29 davygrvy Exp $
+ * ----------------------------------------------------------------------------
+ * URLs:    http://expect.nist.gov/
+ *	    http://expect.sf.net/
+ *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
+ * ----------------------------------------------------------------------------
+ * RCS: @(#) $Id: exp.h,v 1.1.2.5 2001/10/29 06:40:29 davygrvy Exp $
+ * ----------------------------------------------------------------------------
  */
 
 #ifndef _EXPINT
@@ -27,7 +39,9 @@
 
 
 #undef TCL_STORAGE_CLASS
-#ifdef BUILD_exp
+#if defined(BUILD_spawndriver)
+#   define TCL_STORAGE_CLASS
+#elif defined(BUILD_exp)
 #   define TCL_STORAGE_CLASS DLLEXPORT
 #else
 #   ifdef USE_EXP_STUBS
@@ -35,6 +49,14 @@
 #   else
 #	define TCL_STORAGE_CLASS DLLIMPORT
 #   endif
+#endif
+
+/*
+ * This is a convenience macro used to initialize a thread local storage ptr.
+ * Stolen from tclInt.h
+ */
+#ifndef TCL_TSD_INIT
+#define TCL_TSD_INIT(keyPtr)	(ThreadSpecificData *)Tcl_GetThreadData((keyPtr), sizeof(ThreadSpecificData))
 #endif
 
 
@@ -460,32 +482,6 @@ TCL_EXTERN(int)		ExpPlatformSpawnInput _ANSI_ARGS_((
 /* unsure if this should be here */
 TCL_EXTERN(void)	exp_ecmd_remove_state_direct_and_indirect _ANSI_ARGS_((
 			    Tcl_Interp *interp, ExpState *esPtr));
-
-Tcl_ObjCmdProc Exp_CloseObjCmd;
-Tcl_CmdProc Exp_ExpInternalCmd;
-Tcl_CmdProc Exp_DisconnectCmd;
-Tcl_CmdProc Exp_ExitCmd;
-Tcl_CmdProc Exp_ExpContinueCmd;
-Tcl_CmdProc Exp_ForkCmd;
-Tcl_CmdProc Exp_ExpPidCmd;
-Tcl_CmdProc Exp_GetpidDeprecatedCmd;
-Tcl_ObjCmdProc Exp_InterpreterObjCmd;
-Tcl_CmdProc Exp_LogFileCmd;
-Tcl_CmdProc Exp_LogUserCmd;
-Tcl_CmdProc Exp_OpenCmd;
-Tcl_CmdProc Exp_OverlayCmd;
-Tcl_ObjCmdProc Exp_InterReturnObjCmd;
-Tcl_ObjCmdProc Exp_SendObjCmd;
-Tcl_CmdProc Exp_SendLogCmd;
-Tcl_CmdProc Exp_SleepCmd;
-Tcl_CmdProc Exp_SpawnCmd;
-Tcl_CmdProc Exp_StraceCmd;
-Tcl_CmdProc Exp_WaitCmd;
-
-Tcl_CmdProc Exp_ExpVersionCmd;
-Tcl_CmdProc Exp_Prompt1Cmd;
-Tcl_CmdProc Exp_Prompt2Cmd;
-
 
 /*
  *----------------------------------------------------------------

@@ -4,7 +4,7 @@
  *	Declarations of functions in the platform independent public
  *	Expect API.
  *
- * RCS: $Id: expDecls.h,v 1.1.2.4 2001/10/29 06:40:29 davygrvy Exp $
+ * RCS: $Id: expDecls.h,v 1.1.2.5 2001/10/29 20:55:52 davygrvy Exp $
  */
 
 #ifndef _EXPDECLS
@@ -27,27 +27,112 @@ TCL_EXTERN(int)		Expect_Init _ANSI_ARGS_((Tcl_Interp * interp));
 /* 1 */
 TCL_EXTERN(int)		Expect_SafeInit _ANSI_ARGS_((Tcl_Interp * interp));
 /* 2 */
+TCL_EXTERN(int)		Exp_CloseObjCmd _ANSI_ARGS_((ClientData clientData, 
+				Tcl_Interp * interp, int argc, char * argv[]));
+/* 3 */
+TCL_EXTERN(int)		Exp_ExpInternalCmd _ANSI_ARGS_((
+				ClientData clientData, Tcl_Interp * interp, 
+				int argc, char * argv[]));
+/* 4 */
+TCL_EXTERN(int)		Exp_DisconnectCmd _ANSI_ARGS_((ClientData clientData, 
+				Tcl_Interp * interp, int argc, char * argv[]));
+/* 5 */
+TCL_EXTERN(int)		Exp_ExitCmd _ANSI_ARGS_((ClientData clientData, 
+				Tcl_Interp * interp, int argc, char * argv[]));
+/* 6 */
+TCL_EXTERN(int)		Exp_ExpContinueCmd _ANSI_ARGS_((
+				ClientData clientData, Tcl_Interp * interp, 
+				int argc, char * argv[]));
+/* 7 */
+TCL_EXTERN(int)		Exp_ForkCmd _ANSI_ARGS_((ClientData clientData, 
+				Tcl_Interp * interp, int argc, char * argv[]));
+/* 8 */
+TCL_EXTERN(int)		Exp_ExpPidCmd _ANSI_ARGS_((ClientData clientData, 
+				Tcl_Interp * interp, int argc, char * argv[]));
+/* 9 */
+TCL_EXTERN(int)		Exp_GetpidDeprecatedCmd _ANSI_ARGS_((
+				ClientData clientData, Tcl_Interp * interp, 
+				int argc, char * argv[]));
+/* 10 */
+TCL_EXTERN(int)		Exp_InterpreterObjCmd _ANSI_ARGS_((
+				ClientData clientData, Tcl_Interp * interp, 
+				int objc, struct Tcl_Obj * CONST objv[]));
+/* 11 */
+TCL_EXTERN(int)		Exp_LogFileCmd _ANSI_ARGS_((ClientData clientData, 
+				Tcl_Interp * interp, int argc, char * argv[]));
+/* 12 */
+TCL_EXTERN(int)		Exp_LogUserCmd _ANSI_ARGS_((ClientData clientData, 
+				Tcl_Interp * interp, int argc, char * argv[]));
+/* 13 */
+TCL_EXTERN(int)		Exp_OpenCmd _ANSI_ARGS_((ClientData clientData, 
+				Tcl_Interp * interp, int argc, char * argv[]));
+/* 14 */
+TCL_EXTERN(int)		Exp_OverlayCmd _ANSI_ARGS_((ClientData clientData, 
+				Tcl_Interp * interp, int argc, char * argv[]));
+/* 15 */
+TCL_EXTERN(int)		Exp_InterReturnObjCmd _ANSI_ARGS_((
+				ClientData clientData, Tcl_Interp * interp, 
+				int objc, struct Tcl_Obj * CONST objv[]));
+/* 16 */
+TCL_EXTERN(int)		Exp_SendObjCmd _ANSI_ARGS_((ClientData clientData, 
+				Tcl_Interp * interp, int objc, 
+				struct Tcl_Obj * CONST objv[]));
+/* 17 */
+TCL_EXTERN(int)		Exp_SendLogCmd _ANSI_ARGS_((ClientData clientData, 
+				Tcl_Interp * interp, int argc, char * argv[]));
+/* 18 */
+TCL_EXTERN(int)		Exp_SleepCmd _ANSI_ARGS_((ClientData clientData, 
+				Tcl_Interp * interp, int argc, char * argv[]));
+/* 19 */
+TCL_EXTERN(int)		Exp_SpawnCmd _ANSI_ARGS_((ClientData clientData, 
+				Tcl_Interp * interp, int argc, char * argv[]));
+/* 20 */
+TCL_EXTERN(int)		Exp_StraceCmd _ANSI_ARGS_((ClientData clientData, 
+				Tcl_Interp * interp, int argc, char * argv[]));
+/* 21 */
+TCL_EXTERN(int)		Exp_WaitCmd _ANSI_ARGS_((ClientData clientData, 
+				Tcl_Interp * interp, int argc, char * argv[]));
+/* 22 */
+TCL_EXTERN(int)		Exp_ExpVersionCmd _ANSI_ARGS_((ClientData clientData, 
+				Tcl_Interp * interp, int argc, char * argv[]));
+/* 23 */
+TCL_EXTERN(int)		Exp_Prompt1Cmd _ANSI_ARGS_((ClientData clientData, 
+				Tcl_Interp * interp, int argc, char * argv[]));
+/* 24 */
+TCL_EXTERN(int)		Exp_Prompt2Cmd _ANSI_ARGS_((ClientData clientData, 
+				Tcl_Interp * interp, int argc, char * argv[]));
+/* 25 */
+TCL_EXTERN(int)		Exp_TrapCmd _ANSI_ARGS_((ClientData clientData, 
+				Tcl_Interp * interp, int argc, char * argv[]));
+/* 26 */
+TCL_EXTERN(char *)	exp_printify _ANSI_ARGS_((char * s));
+/* Slot 27 is reserved */
+/* Slot 28 is reserved */
+/* Slot 29 is reserved */
+/* Slot 30 is reserved */
+/* Slot 31 is reserved */
+/* 32 */
 TCL_EXTERN(void)	exp_parse_argv _ANSI_ARGS_((Tcl_Interp * interp, 
 				int argc, char ** argv));
-/* 3 */
+/* 33 */
 TCL_EXTERN(int)		exp_interpreter _ANSI_ARGS_((Tcl_Interp * interp, 
 				Tcl_Obj * eofObj));
-/* 4 */
+/* 34 */
 TCL_EXTERN(int)		exp_interpret_cmdfile _ANSI_ARGS_((
 				Tcl_Interp * interp, Tcl_Channel file));
-/* 5 */
+/* 35 */
 TCL_EXTERN(int)		exp_interpret_cmdfilename _ANSI_ARGS_((
 				Tcl_Interp * interp, char * filename));
-/* 6 */
+/* 36 */
 TCL_EXTERN(void)	exp_interpret_rcfiles _ANSI_ARGS_((
 				Tcl_Interp * interp, int my_rc, int sys_rc));
-/* 7 */
+/* 37 */
 TCL_EXTERN(char *)	exp_cook _ANSI_ARGS_((char * s, int * len));
-/* 8 */
+/* 38 */
 TCL_EXTERN(void)	expCloseOnExec _ANSI_ARGS_((int fd));
-/* 9 */
+/* 39 */
 TCL_EXTERN(int)		exp_getpidproc _ANSI_ARGS_((void));
-/* 10 */
+/* 40 */
 TCL_EXTERN(Tcl_Channel)	 ExpCreateSpawnChannel _ANSI_ARGS_((
 				Tcl_Interp * interp, Tcl_Channel chan));
 
@@ -63,15 +148,45 @@ typedef struct ExpStubs {
 
     int (*expect_Init) _ANSI_ARGS_((Tcl_Interp * interp)); /* 0 */
     int (*expect_SafeInit) _ANSI_ARGS_((Tcl_Interp * interp)); /* 1 */
-    void (*exp_parse_argv) _ANSI_ARGS_((Tcl_Interp * interp, int argc, char ** argv)); /* 2 */
-    int (*exp_interpreter) _ANSI_ARGS_((Tcl_Interp * interp, Tcl_Obj * eofObj)); /* 3 */
-    int (*exp_interpret_cmdfile) _ANSI_ARGS_((Tcl_Interp * interp, Tcl_Channel file)); /* 4 */
-    int (*exp_interpret_cmdfilename) _ANSI_ARGS_((Tcl_Interp * interp, char * filename)); /* 5 */
-    void (*exp_interpret_rcfiles) _ANSI_ARGS_((Tcl_Interp * interp, int my_rc, int sys_rc)); /* 6 */
-    char * (*exp_cook) _ANSI_ARGS_((char * s, int * len)); /* 7 */
-    void (*expCloseOnExec) _ANSI_ARGS_((int fd)); /* 8 */
-    int (*exp_getpidproc) _ANSI_ARGS_((void)); /* 9 */
-    Tcl_Channel (*expCreateSpawnChannel) _ANSI_ARGS_((Tcl_Interp * interp, Tcl_Channel chan)); /* 10 */
+    int (*exp_CloseObjCmd) _ANSI_ARGS_((ClientData clientData, Tcl_Interp * interp, int argc, char * argv[])); /* 2 */
+    int (*exp_ExpInternalCmd) _ANSI_ARGS_((ClientData clientData, Tcl_Interp * interp, int argc, char * argv[])); /* 3 */
+    int (*exp_DisconnectCmd) _ANSI_ARGS_((ClientData clientData, Tcl_Interp * interp, int argc, char * argv[])); /* 4 */
+    int (*exp_ExitCmd) _ANSI_ARGS_((ClientData clientData, Tcl_Interp * interp, int argc, char * argv[])); /* 5 */
+    int (*exp_ExpContinueCmd) _ANSI_ARGS_((ClientData clientData, Tcl_Interp * interp, int argc, char * argv[])); /* 6 */
+    int (*exp_ForkCmd) _ANSI_ARGS_((ClientData clientData, Tcl_Interp * interp, int argc, char * argv[])); /* 7 */
+    int (*exp_ExpPidCmd) _ANSI_ARGS_((ClientData clientData, Tcl_Interp * interp, int argc, char * argv[])); /* 8 */
+    int (*exp_GetpidDeprecatedCmd) _ANSI_ARGS_((ClientData clientData, Tcl_Interp * interp, int argc, char * argv[])); /* 9 */
+    int (*exp_InterpreterObjCmd) _ANSI_ARGS_((ClientData clientData, Tcl_Interp * interp, int objc, struct Tcl_Obj * CONST objv[])); /* 10 */
+    int (*exp_LogFileCmd) _ANSI_ARGS_((ClientData clientData, Tcl_Interp * interp, int argc, char * argv[])); /* 11 */
+    int (*exp_LogUserCmd) _ANSI_ARGS_((ClientData clientData, Tcl_Interp * interp, int argc, char * argv[])); /* 12 */
+    int (*exp_OpenCmd) _ANSI_ARGS_((ClientData clientData, Tcl_Interp * interp, int argc, char * argv[])); /* 13 */
+    int (*exp_OverlayCmd) _ANSI_ARGS_((ClientData clientData, Tcl_Interp * interp, int argc, char * argv[])); /* 14 */
+    int (*exp_InterReturnObjCmd) _ANSI_ARGS_((ClientData clientData, Tcl_Interp * interp, int objc, struct Tcl_Obj * CONST objv[])); /* 15 */
+    int (*exp_SendObjCmd) _ANSI_ARGS_((ClientData clientData, Tcl_Interp * interp, int objc, struct Tcl_Obj * CONST objv[])); /* 16 */
+    int (*exp_SendLogCmd) _ANSI_ARGS_((ClientData clientData, Tcl_Interp * interp, int argc, char * argv[])); /* 17 */
+    int (*exp_SleepCmd) _ANSI_ARGS_((ClientData clientData, Tcl_Interp * interp, int argc, char * argv[])); /* 18 */
+    int (*exp_SpawnCmd) _ANSI_ARGS_((ClientData clientData, Tcl_Interp * interp, int argc, char * argv[])); /* 19 */
+    int (*exp_StraceCmd) _ANSI_ARGS_((ClientData clientData, Tcl_Interp * interp, int argc, char * argv[])); /* 20 */
+    int (*exp_WaitCmd) _ANSI_ARGS_((ClientData clientData, Tcl_Interp * interp, int argc, char * argv[])); /* 21 */
+    int (*exp_ExpVersionCmd) _ANSI_ARGS_((ClientData clientData, Tcl_Interp * interp, int argc, char * argv[])); /* 22 */
+    int (*exp_Prompt1Cmd) _ANSI_ARGS_((ClientData clientData, Tcl_Interp * interp, int argc, char * argv[])); /* 23 */
+    int (*exp_Prompt2Cmd) _ANSI_ARGS_((ClientData clientData, Tcl_Interp * interp, int argc, char * argv[])); /* 24 */
+    int (*exp_TrapCmd) _ANSI_ARGS_((ClientData clientData, Tcl_Interp * interp, int argc, char * argv[])); /* 25 */
+    char * (*exp_printify) _ANSI_ARGS_((char * s)); /* 26 */
+    void *reserved27;
+    void *reserved28;
+    void *reserved29;
+    void *reserved30;
+    void *reserved31;
+    void (*exp_parse_argv) _ANSI_ARGS_((Tcl_Interp * interp, int argc, char ** argv)); /* 32 */
+    int (*exp_interpreter) _ANSI_ARGS_((Tcl_Interp * interp, Tcl_Obj * eofObj)); /* 33 */
+    int (*exp_interpret_cmdfile) _ANSI_ARGS_((Tcl_Interp * interp, Tcl_Channel file)); /* 34 */
+    int (*exp_interpret_cmdfilename) _ANSI_ARGS_((Tcl_Interp * interp, char * filename)); /* 35 */
+    void (*exp_interpret_rcfiles) _ANSI_ARGS_((Tcl_Interp * interp, int my_rc, int sys_rc)); /* 36 */
+    char * (*exp_cook) _ANSI_ARGS_((char * s, int * len)); /* 37 */
+    void (*expCloseOnExec) _ANSI_ARGS_((int fd)); /* 38 */
+    int (*exp_getpidproc) _ANSI_ARGS_((void)); /* 39 */
+    Tcl_Channel (*expCreateSpawnChannel) _ANSI_ARGS_((Tcl_Interp * interp, Tcl_Channel chan)); /* 40 */
 } ExpStubs;
 
 #ifdef __cplusplus
@@ -96,41 +211,146 @@ extern ExpStubs *expStubsPtr;
 #define Expect_SafeInit \
 	(expStubsPtr->expect_SafeInit) /* 1 */
 #endif
+#ifndef Exp_CloseObjCmd
+#define Exp_CloseObjCmd \
+	(expStubsPtr->exp_CloseObjCmd) /* 2 */
+#endif
+#ifndef Exp_ExpInternalCmd
+#define Exp_ExpInternalCmd \
+	(expStubsPtr->exp_ExpInternalCmd) /* 3 */
+#endif
+#ifndef Exp_DisconnectCmd
+#define Exp_DisconnectCmd \
+	(expStubsPtr->exp_DisconnectCmd) /* 4 */
+#endif
+#ifndef Exp_ExitCmd
+#define Exp_ExitCmd \
+	(expStubsPtr->exp_ExitCmd) /* 5 */
+#endif
+#ifndef Exp_ExpContinueCmd
+#define Exp_ExpContinueCmd \
+	(expStubsPtr->exp_ExpContinueCmd) /* 6 */
+#endif
+#ifndef Exp_ForkCmd
+#define Exp_ForkCmd \
+	(expStubsPtr->exp_ForkCmd) /* 7 */
+#endif
+#ifndef Exp_ExpPidCmd
+#define Exp_ExpPidCmd \
+	(expStubsPtr->exp_ExpPidCmd) /* 8 */
+#endif
+#ifndef Exp_GetpidDeprecatedCmd
+#define Exp_GetpidDeprecatedCmd \
+	(expStubsPtr->exp_GetpidDeprecatedCmd) /* 9 */
+#endif
+#ifndef Exp_InterpreterObjCmd
+#define Exp_InterpreterObjCmd \
+	(expStubsPtr->exp_InterpreterObjCmd) /* 10 */
+#endif
+#ifndef Exp_LogFileCmd
+#define Exp_LogFileCmd \
+	(expStubsPtr->exp_LogFileCmd) /* 11 */
+#endif
+#ifndef Exp_LogUserCmd
+#define Exp_LogUserCmd \
+	(expStubsPtr->exp_LogUserCmd) /* 12 */
+#endif
+#ifndef Exp_OpenCmd
+#define Exp_OpenCmd \
+	(expStubsPtr->exp_OpenCmd) /* 13 */
+#endif
+#ifndef Exp_OverlayCmd
+#define Exp_OverlayCmd \
+	(expStubsPtr->exp_OverlayCmd) /* 14 */
+#endif
+#ifndef Exp_InterReturnObjCmd
+#define Exp_InterReturnObjCmd \
+	(expStubsPtr->exp_InterReturnObjCmd) /* 15 */
+#endif
+#ifndef Exp_SendObjCmd
+#define Exp_SendObjCmd \
+	(expStubsPtr->exp_SendObjCmd) /* 16 */
+#endif
+#ifndef Exp_SendLogCmd
+#define Exp_SendLogCmd \
+	(expStubsPtr->exp_SendLogCmd) /* 17 */
+#endif
+#ifndef Exp_SleepCmd
+#define Exp_SleepCmd \
+	(expStubsPtr->exp_SleepCmd) /* 18 */
+#endif
+#ifndef Exp_SpawnCmd
+#define Exp_SpawnCmd \
+	(expStubsPtr->exp_SpawnCmd) /* 19 */
+#endif
+#ifndef Exp_StraceCmd
+#define Exp_StraceCmd \
+	(expStubsPtr->exp_StraceCmd) /* 20 */
+#endif
+#ifndef Exp_WaitCmd
+#define Exp_WaitCmd \
+	(expStubsPtr->exp_WaitCmd) /* 21 */
+#endif
+#ifndef Exp_ExpVersionCmd
+#define Exp_ExpVersionCmd \
+	(expStubsPtr->exp_ExpVersionCmd) /* 22 */
+#endif
+#ifndef Exp_Prompt1Cmd
+#define Exp_Prompt1Cmd \
+	(expStubsPtr->exp_Prompt1Cmd) /* 23 */
+#endif
+#ifndef Exp_Prompt2Cmd
+#define Exp_Prompt2Cmd \
+	(expStubsPtr->exp_Prompt2Cmd) /* 24 */
+#endif
+#ifndef Exp_TrapCmd
+#define Exp_TrapCmd \
+	(expStubsPtr->exp_TrapCmd) /* 25 */
+#endif
+#ifndef exp_printify
+#define exp_printify \
+	(expStubsPtr->exp_printify) /* 26 */
+#endif
+/* Slot 27 is reserved */
+/* Slot 28 is reserved */
+/* Slot 29 is reserved */
+/* Slot 30 is reserved */
+/* Slot 31 is reserved */
 #ifndef exp_parse_argv
 #define exp_parse_argv \
-	(expStubsPtr->exp_parse_argv) /* 2 */
+	(expStubsPtr->exp_parse_argv) /* 32 */
 #endif
 #ifndef exp_interpreter
 #define exp_interpreter \
-	(expStubsPtr->exp_interpreter) /* 3 */
+	(expStubsPtr->exp_interpreter) /* 33 */
 #endif
 #ifndef exp_interpret_cmdfile
 #define exp_interpret_cmdfile \
-	(expStubsPtr->exp_interpret_cmdfile) /* 4 */
+	(expStubsPtr->exp_interpret_cmdfile) /* 34 */
 #endif
 #ifndef exp_interpret_cmdfilename
 #define exp_interpret_cmdfilename \
-	(expStubsPtr->exp_interpret_cmdfilename) /* 5 */
+	(expStubsPtr->exp_interpret_cmdfilename) /* 35 */
 #endif
 #ifndef exp_interpret_rcfiles
 #define exp_interpret_rcfiles \
-	(expStubsPtr->exp_interpret_rcfiles) /* 6 */
+	(expStubsPtr->exp_interpret_rcfiles) /* 36 */
 #endif
 #ifndef exp_cook
 #define exp_cook \
-	(expStubsPtr->exp_cook) /* 7 */
+	(expStubsPtr->exp_cook) /* 37 */
 #endif
 #ifndef expCloseOnExec
 #define expCloseOnExec \
-	(expStubsPtr->expCloseOnExec) /* 8 */
+	(expStubsPtr->expCloseOnExec) /* 38 */
 #endif
 #ifndef exp_getpidproc
 #define exp_getpidproc \
-	(expStubsPtr->exp_getpidproc) /* 9 */
+	(expStubsPtr->exp_getpidproc) /* 39 */
 #endif
 #ifndef ExpCreateSpawnChannel
 #define ExpCreateSpawnChannel \
-	(expStubsPtr->expCreateSpawnChannel) /* 10 */
+	(expStubsPtr->expCreateSpawnChannel) /* 40 */
 #endif
 
 #endif /* defined(USE_EXP_STUBS) && !defined(USE_EXP_STUB_PROCS) */

@@ -1,29 +1,34 @@
-/*
+/* ----------------------------------------------------------------------------
  * expPlatIntDecls.h --
  *
  *	Declarations of platform specific Expect APIs.
  *
- * RCS: @(#) $Id: expPlatIntDecls.h,v 1.1.2.1 2001/10/29 20:40:19 davygrvy Exp $
+ * ----------------------------------------------------------------------------
+ *
+ * Written by: Don Libes, libes@cme.nist.gov, NIST, 12/3/90
+ * 
+ * Design and implementation of this program was paid for by U.S. tax
+ * dollars.  Therefore it is public domain.  However, the author and NIST
+ * would appreciate credit if this program or parts of it are used.
+ * 
+ * Copyright (c) 1997 Mitel Corporation
+ *	work by Gordon Chaffee <chaffee@bmrc.berkeley.edu> for the WinNT port.
+ *
+ * Copyright (c) 2001 Telindustrie, LLC
+ *	work by David Gravereaux <davygrvy@pobox.com> for any Win32 OS.
+ *
+ * ----------------------------------------------------------------------------
+ * URLs:    http://expect.nist.gov/
+ *	    http://expect.sf.net/
+ *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
+ * ----------------------------------------------------------------------------
+ * RCS: @(#) $Id: exp.h,v 1.1.2.5 2001/10/29 06:40:29 davygrvy Exp $
+ * ----------------------------------------------------------------------------
  */
 
 #ifndef _EXPPLATINTDECLS
 #define _EXPPLATINTDECLS
 
-/*
- *  Pull in the definition of TCHAR.  Hopefully the compile flags
- *  of the core are matching against your project build for these
- *  public functions.  BE AWARE.
- */
-#ifdef __WIN32__
-#   ifndef _TCHAR_DEFINED
-#	include <tchar.h>
-#	ifndef _TCHAR_DEFINED
-	    /* Borland seems to forget to set this. */
-	    typedef _TCHAR TCHAR;
-#	    define _TCHAR_DEFINED
-#	endif
-#   endif
-#endif
 
 /* !BEGIN!: Do not edit below this line. */
 
@@ -51,6 +56,8 @@ TCL_EXTERN(Tcl_Pid)	Exp_WaitPid _ANSI_ARGS_((Tcl_Pid pid, int * statPtr,
 				int options));
 /* 5 */
 TCL_EXTERN(void)	Exp_KillProcess _ANSI_ARGS_((Tcl_Pid pid));
+/* 6 */
+TCL_EXTERN(void)	ExpWinInit _ANSI_ARGS_((void));
 #endif /* __WIN32__ */
 
 typedef struct ExpIntPlatStubs {
@@ -64,6 +71,7 @@ typedef struct ExpIntPlatStubs {
     TCHAR* (*expSyslogGetSysMsg) _ANSI_ARGS_((DWORD errId)); /* 3 */
     Tcl_Pid (*exp_WaitPid) _ANSI_ARGS_((Tcl_Pid pid, int * statPtr, int options)); /* 4 */
     void (*exp_KillProcess) _ANSI_ARGS_((Tcl_Pid pid)); /* 5 */
+    void (*expWinInit) _ANSI_ARGS_((void)); /* 6 */
 #endif /* __WIN32__ */
 } ExpIntPlatStubs;
 
@@ -105,6 +113,10 @@ extern ExpIntPlatStubs *expIntPlatStubsPtr;
 #ifndef Exp_KillProcess
 #define Exp_KillProcess \
 	(expIntPlatStubsPtr->exp_KillProcess) /* 5 */
+#endif
+#ifndef ExpWinInit
+#define ExpWinInit \
+	(expIntPlatStubsPtr->expWinInit) /* 6 */
 #endif
 #endif /* __WIN32__ */
 

@@ -1,17 +1,29 @@
-/*
+/* ----------------------------------------------------------------------------
  * exp.h --
  *
  *	Public include file for using the Expect extension.
  * 
+ * ----------------------------------------------------------------------------
+ *
  * Written by: Don Libes, libes@cme.nist.gov, NIST, 12/3/90
  * 
  * Design and implementation of this program was paid for by U.S. tax
  * dollars.  Therefore it is public domain.  However, the author and NIST
  * would appreciate credit if this program or parts of it are used.
  * 
- * Modified in October, 2001 by David Gravereaux for windows.
+ * Copyright (c) 1997 Mitel Corporation
+ *	work by Gordon Chaffee <chaffee@bmrc.berkeley.edu> for the WinNT port.
  *
- * RCS: @(#) $Id: exp.h,v 1.1.2.4 2001/10/29 03:21:09 davygrvy Exp $
+ * Copyright (c) 2001 Telindustrie, LLC
+ *	work by David Gravereaux <davygrvy@pobox.com> for any Win32 OS.
+ *
+ * ----------------------------------------------------------------------------
+ * URLs:    http://expect.nist.gov/
+ *	    http://expect.sf.net/
+ *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
+ * ----------------------------------------------------------------------------
+ * RCS: @(#) $Id: exp.h,v 1.1.2.5 2001/10/29 06:40:29 davygrvy Exp $
+ * ----------------------------------------------------------------------------
  */
 
 #ifndef _EXP
@@ -65,7 +77,9 @@
 
 
 #undef TCL_STORAGE_CLASS
-#ifdef BUILD_exp
+#if defined(BUILD_spawndriver)
+#   define TCL_STORAGE_CLASS
+#elif defined(BUILD_exp)
 #   define TCL_STORAGE_CLASS DLLEXPORT
 #else
 #   ifdef USE_EXP_STUBS
@@ -77,8 +91,7 @@
 
 
 /*
- * Fix the Borland bug that's been in Tcl since when dinosaurs roamed the
- * earth.
+ * Fix the Borland bug that's in Tcl.
  */
 #ifndef TCL_EXTERN
 #   undef DLLIMPORT
@@ -159,9 +172,9 @@
 
 /* from expect_tcl.h */
 TCL_EXTERN(void)	exp_parse_argv _ANSI_ARGS_((Tcl_Interp *,int argc,char **argv));
-TCL_EXTERN(int)	exp_interpreter _ANSI_ARGS_((Tcl_Interp *,Tcl_Obj *));
-TCL_EXTERN(int)	exp_interpret_cmdfile _ANSI_ARGS_((Tcl_Interp *,Tcl_Channel));
-TCL_EXTERN(int)	exp_interpret_cmdfilename _ANSI_ARGS_((Tcl_Interp *,char *));
+TCL_EXTERN(int)		exp_interpreter _ANSI_ARGS_((Tcl_Interp *,Tcl_Obj *));
+TCL_EXTERN(int)		exp_interpret_cmdfile _ANSI_ARGS_((Tcl_Interp *,Tcl_Channel));
+TCL_EXTERN(int)		exp_interpret_cmdfilename _ANSI_ARGS_((Tcl_Interp *,char *));
 TCL_EXTERN(void)	exp_interpret_rcfiles _ANSI_ARGS_((Tcl_Interp *,int my_rc,int sys_rc));
 
 TCL_EXTERN(char *)	exp_cook _ANSI_ARGS_((char *s,int *len));
@@ -172,7 +185,6 @@ TCL_EXTERN(void)	expCloseOnExec _ANSI_ARGS_((int));
 TCL_EXTERN(void)	exp_exit_handlers _ANSI_ARGS_((ClientData));
 TCL_EXTERN(void)	exp_error _ANSI_ARGS_(TCL_VARARGS(Tcl_Interp *,interp));
 TCL_EXTERN(int)		exp_getpidproc _ANSI_ARGS_((void));
-
 
 
 /*
