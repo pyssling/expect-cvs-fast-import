@@ -45,7 +45,7 @@ typedef struct ThreadSpecificData {
      * List of all exp channels currently open.  This is per thread and is
      * used to match up fd's to channels, which rarely occurs.
      */
-    int ready_esPtr;
+    ExpState *ready_esPtr;
     int ready_mask;
     int rr;		/* round robin ptr */
 } ThreadSpecificData;
@@ -55,18 +55,19 @@ static Tcl_ThreadDataKey dataKey;
 static int default_mask = TCL_READABLE | TCL_EXCEPTION;
 
 void
-exp_event_disarm(esPtr)
+exp_event_disarm(esPtr,proc)
 ExpState *esPtr;
+Tcl_FileProc *proc;
 {
-    Tcl_DeleteChannelHandler(esPtr->channel);
+    Tcl_DeleteChannelHandler(esPtr->channel,proc,(ClientData)esPtr);
 
     /* remember that ChannelHandler has been disabled so that */
     /* it can be turned on for fg expect's as well as bg */
-    esPtr->fg.armed = FALSE;
+    esPtr->fg_armed = FALSE;
 }
 
 static void
-exp_arm_background_channelhandler_force(esPtr);
+exp_arm_background_channelhandler_force(esPtr)
 ExpState *esPtr;
 {
     Tcl_CreateChannelHandler(esPtr->channel,
@@ -105,7 +106,7 @@ ExpState *esPtr;
 	    break;
 	case armed:
 	    esPtr->bg_status = unarmed;
-	    exp_event_disarm(esPtr);
+	    exp_event_disarm(esPtr,exp_background_channelhandler);
 	    break;
 	case disarm_req_while_blocked:
 	case unarmed:
@@ -126,7 +127,7 @@ ExpState *esPtr;
 	case disarm_req_while_blocked:
 	case armed:
 	    esPtr->bg_status = unarmed;
-	    exp_event_disarm(esPtr);
+	    exp_event_disarm(esPtr,exp_background_channelhandler);
 	    break;
 	case unarmed:
 	    /* do nothing */
@@ -177,9 +178,9 @@ int mask;
 
     /* if input appears, record the fd on which it appeared */
 
-    tsdPtr->ready_esPtr = *(ExpState *)clientData;
+    tsdPtr->ready_esPtr = (ExpState *)clientData;
     tsdPtr->ready_mask = mask;
-    exp_event_disarm(tsdPtr->ready_fd,exp_channelhandler);
+    exp_event_disarm(tsdPtr->ready_esPtr,exp_channelhandler);
 }
 
 /* returns status, one of EOF, TIMEOUT, ERROR or DATA */
@@ -212,17 +213,17 @@ int key;
 	/* an event has been received */
 
 	for (i=0;i<n;i++) {
-	    rr++;
-	    if (rr >= n) rr = 0;
+	    tsdPtr->rr++;
+	    if (tsdPtr->rr >= n) tsdPtr->rr = 0;
 
-	    esPtr = esPtrs[rr];
+	    esPtr = esPtrs[tsdPtr->rr];
 
 	    if (esPtr->key != key) {
 		esPtr->key = key;
 		esPtr->force_read = FALSE;
 		*esPtrOut = esPtr;
 		return(EXP_DATA_OLD);
-	    } else if ((!esPtr->force_read) && (esPtr->size != 0)) {
+	    } else if ((!esPtr->force_read) && (!expSizeZero(esPtr))) {
 		*esPtrOut = esPtr;
 		return(EXP_DATA_OLD);
 	    }
@@ -275,7 +276,7 @@ int key;
 	    }
 
 	    /* not found */
-	    exp_event_disarm(esPtr,exp_channelhandler);
+	    exp_event_disarm(esPtr);
 	    tsdPtr->ready_esPtr = 0;
 	    continue;
 	    found:
@@ -369,8 +370,8 @@ double sec;
 
 	if (!tsdPtr->ready_esPtr) continue;
 
-	exp_event_disarm(tsd->ready_esPtr,exp_channelhandler);
-	tsd->ready_esPtr = EXP_SPAWN_ID_BAD;
+	exp_event_disarm(tsdPtr->ready_esPtr);
+	tsdPtr->ready_esPtr = EXP_SPAWN_ID_BAD;
     }
 }
 

@@ -65,6 +65,14 @@ typedef struct ThreadSpecificData {
 
 static Tcl_ThreadDataKey dataKey;
 
+/*
+ * addr of these placeholders appear as clientData in ExpectCmd * when called
+ * as expect_user and expect_tty.  It would be nicer * to invoked
+ * expDevttyGet() but C doesn't allow this in an array initialization, sigh.
+ */
+static ExpState StdinoutPlaceholder;
+static ExpState DevttyPlaceholder;
+
 /* 1 ecase struct is reserved for each case in the expect command.  Note that
 eof/timeout don't use any of theirs, but the algorithm is simpler this way. */
 
@@ -1780,10 +1788,13 @@ int save_flags;
 char *array_name;
 char *caller_name;
 {
-    Tcl_UniChar *ustr;
-    int first_half, second_half, length;
     char *str;
-    char *first_half_bytes;
+    char *middleGuess;
+    char *p;
+    char *end;
+    int length, newlen;
+    int skiplen;
+    char lostByte;
 
     /*
      * allow user to see data we are discarding
@@ -1805,17 +1816,33 @@ char *caller_name;
 	panic("exp_buffer_shuffle called with shared buffer object");
     }
 
-    str = Tcl_GetString(esPtr->buffer);
-    ustr = Tcl_GetUnicode(esPtr->buffer);
-    length = Tcl_GetCharLength(esPtr->buffer);
+    str = Tcl_GetStringFromObj(esPtr->buffer,&length);
 
-    first_half = length/2;
-    second_half = length - first_half;
+    /* guess at the middle */
+    middleGuess = str + length/2;
 
-    first_half_bytes = Tcl_UtfAtIndex(str, first_half) - str;
+    /* crawl our way into the middle of the string
+     * to make sure we are at a UTF char boundary
+     */
+    for (p=str;*p;p = Tcl_UtfNext(p)) {
+	if (p > middleGuess) break;   /* ok, that's enough */
+    }
 
-    memcpy(ustr, ustr+first_half, second_half);
-    Tcl_SetUnicodeLength(esPtr->buffer, first_half);
+    /*
+     * p is now at the beginning of a UTF char
+     */
+
+
+    /*
+     * before doing move, show user data we are discarding
+     */
+    end = strchr(p,'\0');
+    length = end - p;
+    
+    skiplen = p-str;
+    lostByte = *p;
+    /* temporarily stick null in middle of string */
+    Tcl_SetObjLength(esPtr->buffer,skiplen);
 
     expDiagLog("%s: set %s(buffer) \"",caller_name,array_name);
     expDiagLogU(expPrintify(Tcl_GetString(esPtr->buffer)));
@@ -1823,7 +1850,21 @@ char *caller_name;
     Tcl_SetVar2(interp,array_name,"buffer",Tcl_GetString(esPtr->buffer),
 	    save_flags);
 
-    esPtr->printed -= first_half_bytes;
+    /*
+     * restore damage
+     */
+    *p = lostByte;
+
+    /*
+     * move 2nd half of string down to 1st half
+     */
+
+    newlen = length - skiplen;
+    memmove(str,p, newlen);
+
+    Tcl_SetObjLength(esPtr->buffer,newlen);
+
+    esPtr->printed -= skiplen;
     if (esPtr->printed < 0) esPtr->printed = 0;
 }
 
@@ -2033,7 +2074,7 @@ struct exp_i *exp_i;
 
 int
 expMatchProcess(interp, eo, cc, bg, detail)
-    Tcl_Interp interp;
+    Tcl_Interp *interp;
     struct eval_out *eo;	/* final case of interest */
     int cc;			/* EOF, TIMEOUT, etc... */
     int bg;			/* 1 if called from background handler, */
@@ -2054,7 +2095,7 @@ expMatchProcess(interp, eo, cc, bg, detail)
  expDiagLog("%s: set %s(%s) \"",detail,EXPECT_OUT,indexName); \
  expDiagLogU(expPrintify(value)); \
  expDiagLogU("\"\r\n"); \
- Tcl_SetVar2(interp, EXPECT_OUT,index,value,(bg ? TCL_GLOBAL_ONLY : 0);
+ Tcl_SetVar2(interp, EXPECT_OUT,indexName,value,(bg ? TCL_GLOBAL_ONLY : 0));
 
     if (eo->e) {
 	e = eo->e;
@@ -2158,6 +2199,7 @@ expMatchProcess(interp, eo, cc, bg, detail)
     if (eo->esPtr) {
 	char spawn_id[10];	/* enough for a %d */
 	char *str;
+	int length;
 
 	out("spawn_id",esPtr->name);
 
@@ -2190,9 +2232,10 @@ expMatchProcess(interp, eo, cc, bg, detail)
 
     if (body) {
 	if (!bg) {
-	    result = Tcl_EvalObj(interp,body);
+/*SCOTT - is DIRECT correct? */
+	    result = Tcl_EvalObjEx(interp,body,TCL_EVAL_DIRECT);
 	} else {
-	    result = Tcl_GlobalEvalObj(interp,body);
+	    result = Tcl_EvalObjEx(interp,body,TCL_EVAL_DIRECT|TCL_EVAL_GLOBAL);
 	    if (result != TCL_OK) Tcl_BackgroundError(interp);
 	}
 	if (cc == EXP_EOF) Tcl_DecrRefCount(body);
@@ -2219,7 +2262,7 @@ int mask;
     int length;
 
     /* restore our environment */
-    esPtr = *(ExpState *)clientData;
+    esPtr = (ExpState *)clientData;
     interp = esPtr->bg_interp;
 
     /* temporarily prevent this handler from being invoked again */
@@ -2295,15 +2338,22 @@ do_more_data:
      * pending but it has already arrived.  bg_status will be
      * "blocked" only if armed.
      */
-    if (esPtr->valid && (esPtr->bg_status == blocked)) {
+
+    /*
+     * Connection could have been closed on us.  In this case,
+     * exitWhenBgStatusUnblocked will be 1 and we should disable the channel
+     * handler and release the esPtr.
+     */
+
+    if ((!esPtr->freeWhenBgHandlerUnblocked) && (esPtr->bg_status == blocked)) {
 	if (0 != (cc = expSizeGet(esPtr))) {
 	    goto do_more_data;
 	}
     }
  finish:
-    /* fd could have gone away, so check before using */
-    if (esPtr->valid)
-	exp_unblock_background_channelhandler(esPtr);
+    exp_unblock_background_channelhandler(esPtr);
+    if (esPtr->freeWhenBgHandlerUnblocked)
+	expStateFree(esPtr);
 }
 
 /*ARGSUSED*/
@@ -2350,7 +2400,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 
     if ((objc == 2) && exp_one_arg_braced(objv[1])) {
 	return(exp_eval_with_one_arg(clientData,interp,objv));
-    } else if ((objc == 3) && streq(argv[1],"-brace")) {
+    } else if ((objc == 3) && streq(Tcl_GetString(objv[1]),"-brace")) {
 	Tcl_Obj *new_objv[2];
 	new_objv[0] = objv[0];
 	new_objv[1] = objv[2];
@@ -2361,6 +2411,12 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
     start_time = start_time_total;
     reset_timer = TRUE;
     
+    if (&StdinoutPlaceholder == (ExpState *)clientData) {
+	clientData = (ClientData) expStdinoutGet();
+    } else if (&DevttyPlaceholder == (ExpState *)clientData) {
+	clientData = (ClientData) expDevttyGet();
+    }
+	
     /* make arg list for processing cases */
     /* do it dynamically, since expect can be called recursively */
 
@@ -2639,6 +2695,11 @@ char **argv;
 	} else break;
     }
 
+    if (Default && chanName) {
+	exp_error(interp,"cannot do -d and -i at the same time");
+	return(TCL_ERROR);
+    }
+
     if (!Default) {
 	if (!chanName) {
 	    if (!(esPtr = expStateCurrent(interp,0,0,0))) {
@@ -2649,37 +2710,37 @@ char **argv;
 	    if (!(esPtr = expStateFromChannelName(interp,chanName,0,0,0,"match_max")))
 		return(TCL_ERROR);
 	}
-    } else if (m != -1) {
-	exp_error(interp,"cannot do -d and -i at the same time");
+    }
+
+    if (argc == 0) {
+	if (Default) {
+	    size = exp_default_match_max;
+	} else {
+	    size = esPtr->umsize;
+	}
+	sprintf(interp->result,"%d",size);
+	return(TCL_OK);
+    }
+
+    if (argc > 1) {
+	exp_error(interp,"too many arguments");
+	return(TCL_OK);
+    }
+    
+    /*
+     * All that's left is to set the size
+     */
+
+    size = atoi(argv[0]);
+    if (size <= 0) {
+	exp_error(interp,"must be positive");
 	return(TCL_ERROR);
     }
 
-	if (argc == 0) {
-		if (Default) {
-			size = exp_default_match_max;
-		} else {
-			size = esPtr->umsize;
-		}
-		sprintf(interp->result,"%d",size);
-		return(TCL_OK);
-	}
+    if (Default) exp_default_match_max = size;
+    else esPtr->umsize = size;
 
-	if (argc > 1) {
-		exp_error(interp,"too many arguments");
-		return(TCL_OK);
-	}
-
-	/* all that's left is to set the size */
-	size = atoi(argv[0]);
-	if (size <= 0) {
-		exp_error(interp,"must be positive");
-		return(TCL_ERROR);
-	}
-
-	if (Default) exp_default_match_max = size;
-	else esPtr->umsize = size;
-
-	return(TCL_OK);
+    return(TCL_OK);
 }
 
 /*ARGSUSED*/
@@ -2692,7 +2753,7 @@ char **argv;
 {
     int value = -1;
     ExpState *esPtr = 0;
-    chanName = 0;
+    char *chanName = 0;
     int Default = FALSE;
 
     argc--; argv++;
@@ -2710,6 +2771,11 @@ char **argv;
 	} else break;
     }
 
+    if (Default && chanName) {
+	exp_error(interp,"cannot do -d and -i at the same time");
+	return(TCL_ERROR);
+    }
+
     if (!Default) {
 	if (!chanName) {
 	    if (!(esPtr = expStateCurrent(interp,0,0,0)))
@@ -2718,9 +2784,6 @@ char **argv;
 	    if (!(esPtr = expStateFromChannelName(interp,chanName,0,0,0,"remove_nulls")))
 		return(TCL_ERROR);
 	}
-    } else if (m != -1) {
-	exp_error(interp,"cannot do -d and -i at the same time");
-	return(TCL_ERROR);
     }
 
     if (argc == 0) {
@@ -2779,6 +2842,11 @@ char **argv;
 	} else break;
     }
 
+    if (Default && chanName) {
+	exp_error(interp,"cannot do -d and -i at the same time");
+	return(TCL_ERROR);
+    }
+
     if (!Default) {
 	if (!chanName) {
 	    if (!(esPtr = expStateCurrent(interp,0,0,0))) {
@@ -2789,9 +2857,6 @@ char **argv;
 		return(TCL_ERROR);
 	    }
 	}
-    } else if (chanName) {
-	exp_error(interp,"cannot do -d and -i at the same time");
-	return(TCL_ERROR);
     }
 
     if (argc == 0) {
@@ -2905,21 +2970,17 @@ expExpectVarsInit()
     tsdPtr->timeout = INIT_EXPECT_TIMEOUT;
 }
 
-/* need address for passing into cmdExpect */
-static int spawn_id_bad = EXP_SPAWN_ID_BAD;
-static int spawn_id_user = EXP_SPAWN_ID_USER;
-
 static struct exp_cmd_data
 cmd_data[]  = {
-{"expect",	exp_proc(Exp_ExpectCmd),	(ClientData)&spawn_id_bad,	0},
+{"expect",	exp_proc(Exp_ExpectCmd),	(ClientData)0,	0},
 {"expect_after",exp_proc(Exp_ExpectGlobalCmd),(ClientData)&exp_cmds[EXP_CMD_AFTER],0},
 {"expect_before",exp_proc(Exp_ExpectGlobalCmd),(ClientData)&exp_cmds[EXP_CMD_BEFORE],0},
-{"expect_user",	exp_proc(Exp_ExpectCmd),	(ClientData)&spawn_id_user,	0},
-{"expect_tty",	exp_proc(Exp_ExpectCmd),	(ClientData)&exp_dev_tty,	0},
+{"expect_user",	exp_proc(Exp_ExpectCmd),	(ClientData)&StdinoutPlaceholder,0},
+{"expect_tty",	exp_proc(Exp_ExpectCmd),	(ClientData)&DevttyPlaceholder,0},
 {"expect_background",exp_proc(Exp_ExpectGlobalCmd),(ClientData)&exp_cmds[EXP_CMD_BG],0},
 {"match_max",	exp_proc(Exp_MatchMaxCmd),	0,	0},
 {"remove_nulls",exp_proc(Exp_RemoveNullsCmd),	0,	0},
-{"parity",	exp_proc(Exp_ParityCmd),		0,	0},
+{"parity",	exp_proc(Exp_ParityCmd),	0,	0},
 {"timestamp",	exp_proc(Exp_TimestampCmd),	0,	0},
 {0}};
 
@@ -2928,6 +2989,8 @@ exp_init_expect_cmds(interp)
 Tcl_Interp *interp;
 {
 	exp_create_commands(interp,cmd_data);
+
+
 
 	Tcl_SetVar(interp,EXPECT_TIMEOUT,INIT_EXPECT_TIMEOUT_LIT,0);
 

@@ -169,6 +169,7 @@ static int rest = 0;
 int my_rc = 1;
 int sys_rc = 1;
 int optcmd_eval();
+int optcmd_diagToStderr();
 #ifdef TCL_DEBUGGER
 int optcmd_debug();
 #endif
@@ -407,9 +408,15 @@ char **argv;
 }
 
 static void
-optcmd_diagToStderr()
+optcmd_diagToStderr(dst,interp,key,argc,argv)
+    char *dst;
+    Tcl_Interp *interp;
+    char *key;
+    int argc;
+    char **argv;
 {
     expDiagToStderr(TRUE);
+    return --argc;  /* what the heck is the convention here!! */
 }
 
 #ifdef TCL_DEBUGGER

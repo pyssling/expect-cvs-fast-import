@@ -1,3 +1,5 @@
+#if 0 /*WHOLE FILE*/
+
 /*
  * regcomp and regexec -- regsub and regerror are elsewhere
  *
@@ -1260,3 +1262,4 @@ char *s2;
 	return(count);
 }
 #endif
+#endif /* 0 WHOLE FILE */

@@ -203,6 +203,23 @@ typedef struct ExpState {
 				/* we will see at that time that it should */
 				/* instead be disarmed */
     } bg_status;
+
+    /*
+     * If the channel is freed while in the middle of a bg event handler,
+     * remember that and defer freeing of the ExpState structure until
+     * it is safe.
+     */
+    int freeWhenBgHandlerUnblocked;
+
+    /* 
+     * stdinout and stderr never go away so that our internal refs to them
+     * don't have to be invalidated.  Having to worry about invalidating them
+     * would be a major pain.  */
+    int keepForever;
+
+    /*  Remember that "reserved" esPtrs are no longer in use. */
+    int valid;
+    
     struct ExpState *nextPtr;	/* Pointer to next file in list of all
 				 * file channels. */
 } ExpState;
@@ -328,6 +345,7 @@ EXTERN void		exp_init_tty_cmds();
 
 EXTERN ExpState *       expStateCurrent _ANSI_ARGS_((Tcl_Interp *,int,int,int));
 EXTERN ExpState *       expStateFromChannelName _ANSI_ARGS_((Tcl_Interp *,char *,int,int,int,char *));
+EXTERN void		expStateFree _ANSI_ARGS_((ExpState *));
 
 EXTERN ExpState *	expCreateChannel _ANSI_ARGS_((int,int,int));
 EXTERN ExpState *	expWaitOnAny _ANSI_ARGS_((Tcl_Interp *));

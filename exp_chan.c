@@ -156,9 +156,9 @@ ExpCloseProc(instanceData, interp)
 {
     ExpState *esPtr = (ExpState *) instanceData;
     ExpState **nextPtrPtr;
-    int errorCode = 0;
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
 
+#if 0
     /*
       Really should check that we created one first.  Since we're sharing fds
       with Tcl, perhaps a filehandler was created with a plain tcl file - we
@@ -167,6 +167,7 @@ ExpCloseProc(instanceData, interp)
     */
 
     Tcl_DeleteFileHandler(esPtr->fdin);
+#endif /*0*/
 
     Tcl_DecrRefCount(esPtr->buffer);
 
@@ -176,10 +177,10 @@ ExpCloseProc(instanceData, interp)
     /*
      * Conceivably, the process may not yet have been waited for.  If this
      * becomes a requirement, we'll have to revisit this code.  But for now, if
-     * it's just Tcl exiting, * the processes will exit on their own soon
+     * it's just Tcl exiting, the processes will exit on their own soon
      * anyway.
      */
-    
+
     for (nextPtrPtr = &(tsdPtr->firstExpPtr); (*nextPtrPtr) != NULL;
 	 nextPtrPtr = &((*nextPtrPtr)->nextPtr)) {
 	if ((*nextPtrPtr) == esPtr) {
@@ -188,8 +189,19 @@ ExpCloseProc(instanceData, interp)
 	}
     }
     tsdPtr->channelCount--;
-    ckfree((char *) esPtr);
-    return errorCode;
+
+    if (esPtr->bg_status == blocked ||
+	    esPtr->bg_status == disarm_req_while_blocked) {
+	esPtr->freeWhenBgHandlerUnblocked = 1;
+	/*
+	 * If we're in the middle of a bg event handler, then the event
+	 * handler will have to take care of freeing esPtr.
+	 */
+    } else {
+	expStateFree(esPtr);
+	ckfree((char *) esPtr);
+    }
+    return 0;
 }
 
 /*
@@ -271,13 +283,6 @@ ExpGetHandleProc(instanceData, direction, handlePtr)
     return TCL_OK;
 }
 
-/* close all connections
-The kernel would actually do this by default, however Tcl is going to
-come along later and try to reap its exec'd processes.  If we have
-inherited any via spawn -open, Tcl can hang if we don't close the
-connections first.
-*/
-
 int
 expSizeGet(esPtr)
     ExpState *esPtr;
@@ -296,8 +301,23 @@ expSizeZero(esPtr)
     return (len == 0);
 }
 
+void
+expStateFree(esPtr)
+    ExpState *esPtr;
+{
+    esPtr->valid = FALSE;
+    
+    if (!esPtr->keepForever) {
+	ckfree((char *)esPtr);
+    }
+}
 
-
+/* close all connections
+ * 
+ * The kernel would actually do this by default, however Tcl is going to come
+ * along later and try to reap its exec'd processes.  If we have inherited any
+ * via spawn -open, Tcl can hang if we don't close the connections first.
+ */
 void
 exp_close_all(interp)
 Tcl_Interp *interp;
@@ -437,7 +457,9 @@ expCreateChannel(fdin,fdout,pid)
     esPtr->bg_interp = 0;
     esPtr->bg_status = unarmed;
     esPtr->bg_ecount = 0;
-
+    esPtr->freeWhenBgHandlerUnblocked = FALSE;
+    esPtr->keepForever = FALSE;
+    esPtr->valid = TRUE;
     tsdPtr->channelCount++;
 
     return esPtr;

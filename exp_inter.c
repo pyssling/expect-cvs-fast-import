@@ -45,8 +45,10 @@ would appreciate credit if this program or parts of it are used.
 #include "exp_log.h"
 #include "exp_tstamp.h"	/* remove when timestamp stuff is gone */
 
+#if OBSOLETE
 #include "tclRegexp.h"
 #include "exp_regexp.h"
+#endif /* OBSOLETE */
 
 extern char *TclGetRegError();
 extern void TclRegError();
@@ -91,7 +93,7 @@ struct action {
 
 struct keymap {
 	Tcl_Obj *keys;	/* original pattern provided by user */
-	regexp *re;
+	Tcl_RegExp *re;
 	int null;	/* true if looking to match 0 byte */
 	int case_sensitive;
 	int echo;	/* if keystrokes should be echoed */
@@ -129,7 +131,7 @@ expStateToInput(hash,esPtr)
     ExpState *esPtr;
     Tcl_HashTable *hash;
 {
-    Tcl_HashEntry *entry = Tcl_FindHashEntry(hash,esPtr);
+    Tcl_HashEntry *entry = Tcl_FindHashEntry(hash,(char *)esPtr);
 
     if (!entry) {
 	/* should never happen */
@@ -145,9 +147,9 @@ expCreateStateToInput(hash,esPtr,inp)
     struct input *inp;
 {
     Tcl_HashEntry *entry;
-    int newptr;
+    int newPtr;
 
-    entry = Tcl_CreateHashEntry(hash,esPtr,&newPtr);
+    entry = Tcl_CreateHashEntry(hash,(char *)esPtr,&newPtr);
     Tcl_SetHashValue(entry,(ClientData)inp);
 }
 
@@ -194,7 +196,6 @@ in_keymap(esPtr,keymap,km_match,match_length,skip)
     int *match_length;		/* # of chars that matched */
     int *skip;			/* # of chars to skip */
 {
-    char *string;
     struct keymap *km;
     char *ks;		/* string from a keymap */
     char *start_search;	/* where in the string to start searching */
@@ -273,7 +274,7 @@ in_keymap(esPtr,keymap,km_match,match_length,skip)
 	    } else {
 		/* regexp */
 		int r;	/* regtry status */
-		regexp *prog = km->re;
+		Tcl_RegExp *prog = km->re;
 
 		/* if anchored, but we're not at beginning, skip pattern */
 		if (prog->reganch) {
@@ -339,17 +340,29 @@ expEcho(esPtr,km,skipBytes,matchBytes)
 {
     int seenBytes;	/* either printed or echoed */
     ExpState *echo;
+    int echoBytes;
+    int echoChars;
+    char *string;
+    char *p;
 
     if ((km == 0) || (km->echo == 0)) return;
 
     /* write is unlikely to fail, since we just read from same descriptor */
     seenBytes = esPtr->printed + esPtr->echoed;
     if (skipBytes >= seenBytes) {
-	Tcl_Write(esPtr, Tcl_GetString(esPtr->buffer)+skipBytes, matchBytes);
-    } else if ((match_length + skipBytes - seenBytes) > 0) {
-	Tcl_Write(esPtr, Tcl_GetString(esPtr->buffer)+seenBytes,
-		matchBytes+skipBytes-seenBytes);
+	echoBytes = matchBytes;
+    } else if ((matchBytes + skipBytes - seenBytes) > 0) {
+	echoBytes = matchBytes+skipBytes-seenBytes;
     }
+
+    string = Tcl_GetString(esPtr->buffer)+skipBytes;
+    echoChars = 0;
+    for (p=string;*p;p=Tcl_UtfNext(p)) {
+	if (p-string == echoBytes) break;
+	echoChars++;
+    }
+
+    Tcl_WriteChars(esPtr->channel, Tcl_GetString(esPtr->buffer)+skipBytes, echoChars);
     esPtr->echoed = matchBytes + skipBytes - esPtr->printed;
 }
 
@@ -510,7 +523,7 @@ update_interact_fds(interp,esPtrCount,esPtrToInput,esPtrs,input_base,
 			do_indirect,config_count,real_tty_caller)
 Tcl_Interp *interp;
 int *esPtrCount;
-Tcl_InitHashTable **esPtrToInput;	/* map from ExpStates to "struct inputs" */
+Tcl_HashTable **esPtrToInput;	/* map from ExpStates to "struct inputs" */
 ExpState *((*esPtrs)[]);
 struct input *input_base;
 int do_indirect;		/* if true do indirects */
@@ -571,7 +584,7 @@ int *real_tty_caller;
 	} else {
 	    /* if hash table already exists, delete it and start over */
 	    Tcl_DeleteHashTable(*esPtrToInput);
-	    *esPtrs = (ExpState **)ckrealloc((char *)*fd_list,count * sizeof(ExpState *));
+	    *esPtrs = (ExpState **)ckrealloc((char *)*esPtrs,count * sizeof(ExpState *));
 	}
 	Tcl_InitHashTable(*esPtrToInput,TCL_ONE_WORD_KEYS);
 
@@ -579,7 +592,7 @@ int *real_tty_caller;
 	for (inp = input_base;inp;inp=inp->next) {
 	    for (fdp = inp->i_list->state_list;fdp;fdp=fdp->next) {
 		/* build map to translate from spawn_id to struct input */
-		expCreateStateToInput(*esPtrToInput,esPtr,inp);
+		expCreateStateToInput(*esPtrToInput,fdp->esPtr,inp);
 
 		/* build input to ready() */
 		(*esPtrs)[count] = fdp->esPtr;
@@ -685,7 +698,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 
     if ((objc == 2) && exp_one_arg_braced(objv[1])) {
 	return(exp_eval_with_one_arg(clientData,interp,objv));
-    } else if ((objc == 3) && streq(argv[1],"-brace")) {
+    } else if ((objc == 3) && streq(Tcl_GetString(objv[1]),"-brace")) {
 	Tcl_Obj *new_objv[2];
 	new_objv[0] = objv[0];
 	new_objv[1] = objv[2];

@@ -270,19 +270,16 @@ exp_state_prep_for_invalidation(interp,esPtr)
 Tcl_Interp *interp;
 ExpState *esPtr;
 {
-	exp_ecmd_remove_state_direct_and_indirect(interp,esPtr);
+    exp_ecmd_remove_state_direct_and_indirect(interp,esPtr);
 
-	exp_configure_count++;
+    exp_configure_count++;
 
-	
-	if (esPtr->buffer) {
-		Tcl_DecrRefCount(esPtr->buffer);
-		if (esPtr->fg_armed) {
-			exp_event_disarm(esPtr);
-			esPtr->fg_armed = FALSE;
-		}
-	}
+    Tcl_DecrRefCount(esPtr->buffer);
+
+    if (esPtr->fg_armed) {
+	exp_event_disarm(esPtr);
 	esPtr->fg_armed = FALSE;
+    }
 }
 
 /*ARGSUSED*/
@@ -454,11 +451,14 @@ exp_init_spawn_ids()
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
 
     tsdPtr->stdinout = expCreateChannel(0,1,isatty(0)?exp_getpid:EXP_NOPID);
+    tsdPtr->stdinout->keepForever = 1;
     /* hmm, now here's an example of a output-only descriptor!! */
     tsdPtr->stderrX = expCreateChannel(2,2,isatty(2)?exp_getpid:EXP_NOPID);
+    tsdPtr->stderrX->keepForever = 1;
 
     if (exp_dev_tty != -1) {
 	tsdPtr->devtty = expCreateChannel(exp_dev_tty,exp_dev_tty,exp_getpid);
+	tsdPtr->devtty->keepForever = 1;
     }
 
     /* set up a dummy channel to give us something when we need to find out if
@@ -2740,12 +2740,14 @@ char **argv;
 	open("/dev/null",0);
 	open("/dev/null",1);
 	tsdPtr->stdinout = expCreateChannel(0,1,EXP_NOPID);
+	tsdPtr->stdinout->keepForever = 1;
 	}
     if (isatty(2)) {
 	/* reopen stderr saves error checking in error/log routines. */
 	exp_close(interp,expDevttyGet());
 	open("/dev/null",1);
 	tsdPtr->devtty = expCreateChannel(2,2,EXP_NOPID);
+	tsdPtr->devtty->keepForever = 1;
     }
 
     Tcl_UnsetVar(interp,"tty_spawn_id",TCL_GLOBAL_ONLY);

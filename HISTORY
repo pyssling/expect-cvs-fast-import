@@ -3,6 +3,8 @@ support are in ChangeLog. - Don
 
 Date	Version	Description
 -------	-------	------------------------------------------------------
+		match_max command controls by bytes, not chars.
+
 		In order to do threads, changed exp_is_debugging to a function.
 		This means I'll probably have to change the interface for the
 		C library which uses that symbol too.  Probably need to
