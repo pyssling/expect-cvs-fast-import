@@ -18,18 +18,6 @@
  *
  */
 
-//#include <math.h>
-//#include "tclInt.h"
-//#include "tclPort.h"
-//#include "exp_port.h"
-//#include "expect_tcl.h"
-//#include "exp_command.h"
-//#include "exp_rename.h"
-//#include "exp_log.h"
-//#include "exp_event.h"
-//#include "exp_prog.h"
-//#include "exp_tty.h"
-
 #include <math.h>		/* for log/pow computation in send -h */
 #include "expInt.h"
 
@@ -106,7 +94,9 @@ struct slow_arg {
 };
 
 
-/* Local prototypes for functions used only here that are not shared. */
+/*
+ * Local prototypes for functions used only in this file and are not shared.
+ */
 static void	exp_wait_zero _ANSI_ARGS_((WAIT_STATUS_TYPE *status));
 static void	expBusy _ANSI_ARGS_((ExpState *esPtr));
 static int	exact_write _ANSI_ARGS_((ExpState *esPtr,char *buffer,int rembytes));
@@ -121,13 +111,6 @@ static void	tcl_tracer _ANSI_ARGS_((ClientData clientData,
 			    Tcl_Interp *interp, int level, char *command,
 			    Tcl_CmdProc *cmdProc, ClientData cmdClientData,
 			    int argc, char *argv[]));
-
-
-
-static void	exp_i_add_f _ANSI_ARGS_((struct exp_i *,
-			    struct exp_f *fs));
-static void	exp_f_closed _ANSI_ARGS_((struct exp_f *));
-
 
 /*
  *----------------------------------------------------------------------
@@ -678,7 +661,6 @@ Exp_ExpPidCmd(clientData,interp,argc,argv)
     return TCL_ERROR;
 }
 
-#if 0
 /*
  *----------------------------------------------------------------------
  *
@@ -707,11 +689,10 @@ Exp_GetpidDeprecatedCmd(clientData, interp, argc, argv)
     int argc;
     char **argv;
 {
-    debuglog("getpid is deprecated, use pid\r\n");
-    sprintf(interp->result,"%d",exp_getpidproc());
+    expDiagLog("getpid is deprecated, use pid\r\n");
+    sprintf(interp->result,"%d",getpid());
     return(TCL_OK);
 }
-#endif
 
 /*
  *----------------------------------------------------------------------
@@ -2068,10 +2049,10 @@ int pid;
 /*ARGSUSED*/
 static int
 Exp_WaitCmd(clientData, interp, argc, argv)
-ClientData clientData;
-Tcl_Interp *interp;
-int argc;
-char **argv;
+    ClientData clientData;
+    Tcl_Interp *interp;
+    int argc;
+    char **argv;
 {
     char *chanName = 0;
     struct ExpState *esPtr;
@@ -2251,7 +2232,7 @@ Exp_ForkCmd(clientData, interp, argc, argv)
 		return(TCL_ERROR);
 	}
 
-	rc = fork();
+//	rc = fork();
 	if (rc == -1) {
 		exp_error(interp,"fork: %s",Tcl_PosixError(interp));
 		return TCL_ERROR;
@@ -2274,10 +2255,10 @@ Exp_ForkCmd(clientData, interp, argc, argv)
 /*ARGSUSED*/
 static int
 Exp_DisconnectCmd(clientData, interp, argc, argv)
-ClientData clientData;
-Tcl_Interp *interp;
-int argc;
-char **argv;
+    ClientData clientData;
+    Tcl_Interp *interp;
+    int argc;
+    char **argv;
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
     
@@ -2383,59 +2364,59 @@ char **argv;
 /*ARGSUSED*/
 static int
 Exp_OverlayCmd(clientData, interp, argc, argv)
-ClientData clientData;
-Tcl_Interp *interp;
-int argc;
-char **argv;
+    ClientData clientData;
+    Tcl_Interp *interp;
+    int argc;
+    char **argv;
 {
-	int newfd, oldfd;
-	int dash_name = 0;
-	char *command;
+    int newfd, oldfd;
+    int dash_name = 0;
+    char *command;
 
+    argc--; argv++;
+    while (argc) {
+	if (*argv[0] != '-') break;	/* not a flag */
+	if (streq(*argv,"-")) {		/* - by itself */
+	    argc--; argv++;
+	    dash_name = 1;
+	    continue;
+	}
+	newfd = atoi(argv[0]+1);
 	argc--; argv++;
-	while (argc) {
-		if (*argv[0] != '-') break;	/* not a flag */
-		if (streq(*argv,"-")) {		/* - by itself */
-			argc--; argv++;
-			dash_name = 1;
-			continue;
-		}
-		newfd = atoi(argv[0]+1);
-		argc--; argv++;
-		if (argc == 0) {
-			exp_error(interp,"overlay -# requires additional argument");
-			return(TCL_ERROR);
-		}
-		oldfd = atoi(argv[0]);
-		argc--; argv++;
-		expDiagLog("overlay: mapping fd %d to %d\r\n",oldfd,newfd);
-		if (oldfd != newfd) (void) dup2(oldfd,newfd);
-		else expDiagLog("warning: overlay: old fd == new fd (%d)\r\n",oldfd);
-	}
 	if (argc == 0) {
-		exp_error(interp,"need program name");
-		return(TCL_ERROR);
+	    exp_error(interp,"overlay -# requires additional argument");
+	    return(TCL_ERROR);
 	}
-	command = argv[0];
-	if (dash_name) {
-		argv[0] = ckalloc(1+strlen(command));
-		sprintf(argv[0],"-%s",command);
-	}
-
-	signal(SIGINT, SIG_DFL);
-//	signal(SIGQUIT, SIG_DFL);
-        (void) execvp(command,argv);
-	exp_error(interp,"execvp(%s): %s\r\n",argv[0],Tcl_PosixError(interp));
+	oldfd = atoi(argv[0]);
+	argc--; argv++;
+	expDiagLog("overlay: mapping fd %d to %d\r\n",oldfd,newfd);
+	if (oldfd != newfd) (void) dup2(oldfd,newfd);
+	else expDiagLog("warning: overlay: old fd == new fd (%d)\r\n",oldfd);
+    }
+    if (argc == 0) {
+	exp_error(interp,"need program name");
 	return(TCL_ERROR);
+    }
+    command = argv[0];
+    if (dash_name) {
+	argv[0] = ckalloc(1+strlen(command));
+	sprintf(argv[0],"-%s",command);
+    }
+
+    signal(SIGINT, SIG_DFL);
+//	signal(SIGQUIT, SIG_DFL);
+    execvp(command,argv);
+    exp_error(interp,"execvp(%s): %s\r\n",argv[0],Tcl_PosixError(interp));
+    return(TCL_ERROR);
 }
 
 /*ARGSUSED*/
 int
 Exp_InterpreterObjCmd(clientData, interp, objc, objv)
-ClientData clientData;
-Tcl_Interp *interp;
-int objc;
-Tcl_Obj *CONST objv[];		/* Argument objects. */
+    ClientData clientData;
+    Tcl_Interp *interp;
+    int objc;
+    Tcl_Obj *CONST objv[];		/* Argument objects. */
 {
     Tcl_Obj *eofObj = 0;
     int i;
@@ -2478,10 +2459,10 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 /*ARGSUSED*/
 int
 Exp_ExpContinueCmd(clientData, interp, argc, argv)
-ClientData clientData;
-Tcl_Interp *interp;
-int argc;
-char **argv;
+    ClientData clientData;
+    Tcl_Interp *interp;
+    int argc;
+    char **argv;
 {
     if (argc == 1) {
 	return EXP_CONTINUE;
@@ -2497,10 +2478,10 @@ char **argv;
 /*ARGSUSED*/
 int
 Exp_InterReturnObjCmd(clientData, interp, objc, objv)
-ClientData clientData;
-Tcl_Interp *interp;
-int objc;
-Tcl_Obj *CONST objv[];
+    ClientData clientData;
+    Tcl_Interp *interp;
+    int objc;
+    Tcl_Obj *CONST objv[];
 {
     /* let Tcl's return command worry about args */
     /* if successful (i.e., TCL_RETURN is returned) */
@@ -2515,10 +2496,10 @@ Tcl_Obj *CONST objv[];
 /*ARGSUSED*/
 int
 Exp_OpenCmd(clientData, interp, argc, argv)
-ClientData clientData;
-Tcl_Interp *interp;
-int argc;
-char **argv;
+    ClientData clientData;
+    Tcl_Interp *interp;
+    int argc;
+    char **argv;
 {
     ExpState *esPtr;
     char *chanName = 0;
@@ -2546,7 +2527,7 @@ char **argv;
 	if (!(esPtr = expStateCurrent(interp,1,0,0))) return TCL_ERROR;
     } else {
 	if (!(esPtr = expStateFromChannelName(interp,chanName,1,0,0,"exp_open")))
-return TCL_ERROR;
+	    return TCL_ERROR;
     }
 
     /* make a new copy of file descriptor */
@@ -2584,86 +2565,86 @@ return TCL_ERROR;
 /* this version is the code used by the macro that everyone calls */
 int
 exp_flageq_code(flag,string,minlen)
-char *flag;
-char *string;
-int minlen;		/* at least this many chars must match */
+    char *flag;
+    char *string;
+    int minlen;		/* at least this many chars must match */
 {
-	for (;*flag;flag++,string++,minlen--) {
-		if (*string == '\0') break;
-		if (*string != *flag) return 0;
-	}
-	if (*string == '\0' && minlen <= 0) return 1;
-	return 0;
+    for (;*flag;flag++,string++,minlen--) {
+	if (*string == '\0') break;
+	if (*string != *flag) return 0;
+    }
+    if (*string == '\0' && minlen <= 0) return 1;
+    return 0;
 }
 
 void
 exp_create_commands(interp,c)
-Tcl_Interp *interp;
-struct exp_cmd_data *c;
+    Tcl_Interp *interp;
+    struct exp_cmd_data *c;
 {
-	Namespace *globalNsPtr = (Namespace *) Tcl_GetGlobalNamespace(interp);
-	Namespace *currNsPtr   = (Namespace *) Tcl_GetCurrentNamespace(interp);
-	char cmdnamebuf[80];
+    Namespace *globalNsPtr = (Namespace *) Tcl_GetGlobalNamespace(interp);
+    Namespace *currNsPtr   = (Namespace *) Tcl_GetCurrentNamespace(interp);
+    char cmdnamebuf[80];
 
-	for (;c->name;c++) {
-		/* if already defined, don't redefine */
-		if ((c->flags & EXP_REDEFINE) ||
-		    !(Tcl_FindHashEntry(&globalNsPtr->cmdTable,c->name) ||
-		      Tcl_FindHashEntry(&currNsPtr->cmdTable,c->name))) {
-			if (c->objproc)
-				Tcl_CreateObjCommand(interp,c->name,
-						     c->objproc,c->data,exp_deleteObjProc);
-			else
-				Tcl_CreateCommand(interp,c->name,c->proc,
-						  c->data,exp_deleteProc);
-		}
-		if (!(c->name[0] == 'e' &&
-		      c->name[1] == 'x' &&
-		      c->name[2] == 'p')
-		    && !(c->flags & EXP_NOPREFIX)) {
-			sprintf(cmdnamebuf,"exp_%s",c->name);
-			if (c->objproc)
-				Tcl_CreateObjCommand(interp,cmdnamebuf,c->objproc,c->data,
-						     exp_deleteObjProc);
-			else
-				Tcl_CreateCommand(interp,cmdnamebuf,c->proc,
-						  c->data,exp_deleteProc);
-		}
+    for (;c->name;c++) {
+	/* if already defined, don't redefine */
+	if ((c->flags & EXP_REDEFINE) ||
+		!(Tcl_FindHashEntry(&globalNsPtr->cmdTable,c->name) ||
+		Tcl_FindHashEntry(&currNsPtr->cmdTable,c->name))) {
+	    if (c->objproc)
+		Tcl_CreateObjCommand(interp,c->name,
+			c->objproc,c->data,exp_deleteObjProc);
+	    else
+		Tcl_CreateCommand(interp,c->name,c->proc,
+			c->data,exp_deleteProc);
 	}
+	if (!(c->name[0] == 'e' &&
+		c->name[1] == 'x' &&
+		c->name[2] == 'p')
+		&& !(c->flags & EXP_NOPREFIX)) {
+	    sprintf(cmdnamebuf,"exp_%s",c->name);
+	    if (c->objproc)
+		Tcl_CreateObjCommand(interp,cmdnamebuf,c->objproc,c->data,
+			exp_deleteObjProc);
+	    else
+		Tcl_CreateCommand(interp,cmdnamebuf,c->proc,
+			c->data,exp_deleteProc);
+	}
+    }
 }
 
 static struct exp_cmd_data cmd_data[]  = {
-{"close",	Exp_CloseObjCmd,	0,	0,	EXP_REDEFINE},
+    {"close",	Exp_CloseObjCmd,	0,	0,	EXP_REDEFINE},
 #ifdef TCL_DEBUGGER
-{"debug",	exp_proc(Exp_DebugCmd),	0,	0},
+    {"debug",	exp_proc(Exp_DebugCmd),	0,	0},
 #endif
-{"exp_internal",exp_proc(Exp_ExpInternalCmd),	0,	0},
-{"disconnect",	exp_proc(Exp_DisconnectCmd),	0,	0},
-{"exit",	exp_proc(Exp_ExitCmd),	0,	EXP_REDEFINE},
-{"exp_continue",exp_proc(Exp_ExpContinueCmd),0,	0},
-{"fork",	exp_proc(Exp_ForkCmd),	0,	0},
-{"exp_pid",	exp_proc(Exp_ExpPidCmd),	0,	0},
-{"getpid",	exp_proc(Exp_GetpidDeprecatedCmd),0,	0},
-{"interpreter",	Exp_InterpreterObjCmd,	0,	0,	0},
-{"log_file",	exp_proc(Exp_LogFileCmd),	0,	0},
-{"log_user",	exp_proc(Exp_LogUserCmd),	0,	0},
-{"exp_open",	exp_proc(Exp_OpenCmd),	0,	0},
-{"overlay",	exp_proc(Exp_OverlayCmd),	0,	0},
-{"inter_return",Exp_InterReturnObjCmd,	0,	0,	0},
-{"send",	Exp_SendObjCmd,		0,	(ClientData)&sendCD_proc,0},
-{"send_error",	Exp_SendObjCmd,		0,	(ClientData)&sendCD_error,0},
-{"send_log",	exp_proc(Exp_SendLogCmd),	0,	0},
-{"send_tty",	Exp_SendObjCmd,		0,	(ClientData)&sendCD_tty,0},
-{"send_user",	Exp_SendObjCmd,		0,	(ClientData)&sendCD_user,0},
-{"sleep",	exp_proc(Exp_SleepCmd),	0,	0},
-{"spawn",	exp_proc(Exp_SpawnCmd),	0,	0},
-{"strace",	exp_proc(Exp_StraceCmd),	0,	0},
-{"wait",	exp_proc(Exp_WaitCmd),	0,	0},
-{0}};
+    {"exp_internal",exp_proc(Exp_ExpInternalCmd),	0,	0},
+    {"disconnect",	exp_proc(Exp_DisconnectCmd),	0,	0},
+    {"exit",	exp_proc(Exp_ExitCmd),	0,	EXP_REDEFINE},
+    {"exp_continue",exp_proc(Exp_ExpContinueCmd),0,	0},
+    {"fork",	exp_proc(Exp_ForkCmd),	0,	0},
+    {"exp_pid",	exp_proc(Exp_ExpPidCmd),	0,	0},
+    {"getpid",	exp_proc(Exp_GetpidDeprecatedCmd),0,	0},
+    {"interpreter",	Exp_InterpreterObjCmd,	0,	0,	0},
+    {"log_file",	exp_proc(Exp_LogFileCmd),	0,	0},
+    {"log_user",	exp_proc(Exp_LogUserCmd),	0,	0},
+    {"exp_open",	exp_proc(Exp_OpenCmd),	0,	0},
+    {"overlay",	exp_proc(Exp_OverlayCmd),	0,	0},
+    {"inter_return",Exp_InterReturnObjCmd,	0,	0,	0},
+    {"send",	Exp_SendObjCmd,		0,	(ClientData)&sendCD_proc,0},
+    {"send_error",	Exp_SendObjCmd,		0,	(ClientData)&sendCD_error,0},
+    {"send_log",	exp_proc(Exp_SendLogCmd),	0,	0},
+    {"send_tty",	Exp_SendObjCmd,		0,	(ClientData)&sendCD_tty,0},
+    {"send_user",	Exp_SendObjCmd,		0,	(ClientData)&sendCD_user,0},
+    {"sleep",	exp_proc(Exp_SleepCmd),	0,	0},
+    {"spawn",	exp_proc(Exp_SpawnCmd),	0,	0},
+    {"strace",	exp_proc(Exp_StraceCmd),	0,	0},
+    {"wait",	exp_proc(Exp_WaitCmd),	0,	0},
+    {0}};
 
 void
 exp_init_most_cmds(interp)
-Tcl_Interp *interp;
+    Tcl_Interp *interp;
 {
     exp_create_commands(interp,cmd_data);
 
