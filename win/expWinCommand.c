@@ -24,8 +24,6 @@
 #include "exp_prog.h"
 #include "exp_tty.h"
 
-#include <winbase.h>
-
 #ifdef TCL_DEBUGGER
 #include "Dbg.h"
 #endif
@@ -416,8 +414,8 @@ Exp_SpawnCmd(ClientData clientData,Tcl_Interp *interp,int argc,char **argv)
 	    OutputDebugString(buf);
 	}
 	OutputDebugString("\n");
-	slaveDrvPid = 0;
-	globalPid = 1;
+//	slaveDrvPid = 0;
+//	globalPid = 1;
     }
 
     hide = !debug;
@@ -717,5 +715,3 @@ ExpSockAcceptProc(callbackData, chan, address, port)
     *ptr = chan;
     return;
 }
-
-
