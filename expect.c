@@ -2128,7 +2128,7 @@ expMatchProcess(interp, eo, cc, bg, detail)
 	    re = Tcl_GetRegExpFromObj(interp, e->pat, flags);
 	    Tcl_RegExpGetInfo(re, &info);
 
-	    for (i=0;i<info.nsub;i++) {
+	    for (i=0;i<info.nsubs;i++) {
 		int offset, start, end;
 		Tcl_Obj *val;
 

@@ -208,9 +208,9 @@ in_keymap(esPtr,keymap,km_match,match_length,skip)
     char *ks;		/* string from a keymap */
     char *start_search;	/* where in the string to start searching */
     char *string_end;
-    char *string;
-    int stringLen, bytesThisChar;
+    int stringBytes, bytesThisChar;
     int rm_nulls;		/* skip nulls if true */
+    Tcl_UniChar ch;
 
     string = Tcl_GetStringFromObj(esPtr->buffer,&stringBytes);
 
@@ -227,9 +227,6 @@ in_keymap(esPtr,keymap,km_match,match_length,skip)
     rm_nulls = esPtr->rm_nulls;
 
     string_end = string + stringBytes;
-
-    /* Mark beginning of line for ^ . */
-    regbol = string;
 
     /*
      * Maintain both a character index and a string pointer so we
@@ -259,12 +256,13 @@ in_keymap(esPtr,keymap,km_match,match_length,skip)
 		    return(EXP_MATCH);
 	        }
 	    } else if (!km->re) {
-		char *slen, *kslen;
+		int slen, kslen;
 		Tcl_UniChar sch, ksch;
 		
 		/* fixed string */
-		
-		for (s = start_search,ks = km->keys ;;s+=slen,ks+=kslen) {
+
+		ks = Tcl_GetString(km->keys);
+		for (s = start_search;; s += slen, ks += kslen) {
 		    /* if we hit the end of this map, must've matched! */
 		    if (*ks == 0) {
 			*skip = start_search-string;
@@ -302,7 +300,8 @@ in_keymap(esPtr,keymap,km_match,match_length,skip)
 		int flags;
 		int result;
 
-		re = Tcl_GetRegExpFromObj(NULL, km->keys, TCL_REG_ADVANCED);
+		re = Tcl_GetRegExpFromObj(NULL, km->keys,
+			TCL_REG_ADVANCED|TCL_REG_BOSONLY);
 		flags = (offset > 0) ? TCL_REG_NOTBOL : 0;
 
 		result = Tcl_RegExpMatchObj(NULL, re, esPtr->buffer, offset,
@@ -843,7 +842,8 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 		     * use it.
 		     */
 
-		    if (!(Tcl_GetRegExpFromObj(interp, objv, REG_ADVANCED))) {
+		    if (!(Tcl_GetRegExpFromObj(interp, *objv,
+			    TCL_REG_ADVANCED|TCL_REG_BOSONLY))) {
 			return TCL_ERROR;
 		    }
 		    goto pattern;
@@ -1397,11 +1397,13 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 	    Tcl_RegExpInfo info;
 	    Tcl_RegExp re;
 
-	    re = Tcl_GetRegExpFromObj(interp, km->keys, TCL_REG_ADVANCED);
+	    re = Tcl_GetRegExpFromObj(interp, km->keys,
+		    TCL_REG_ADVANCED|TCL_REG_BOSONLY);
 	    Tcl_RegExpGetInfo(re, &info);
 
 	    for (i=0;i<info.nsubs;i++) {
 		int start, end;
+		Tcl_Obj *val;
 
 		start = info.matches[i].start;
 		if (start == -1) continue;
@@ -1421,7 +1423,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 
 				/* string itself */
 		sprintf(name,"%d,string",i);
-		val = Tcl_GetRange(buffer, start, end);
+		val = Tcl_GetRange(esPtr->buffer, start, end);
 		expDiagLog("expect_background: set %s(%s) \"",INTER_OUT,name);
 		expDiagLogU(expPrintifyObj(val));
 		expDiagLogU("\"\r\n");
