@@ -122,6 +122,10 @@ SOURCE=..\generic\expPlatDecls.h
 
 SOURCE=..\generic\exp.decls
 
+!IF  "$(CFG)" == "expect - Win32 Release"
+
+!ELSEIF  "$(CFG)" == "expect - Win32 Debug"
+
 # Begin Custom Build - Rebuilding the Stubs table...
 InputDir=\expect_wslive\expect_win32_take2\generic
 InputPath=..\generic\exp.decls
@@ -144,6 +148,9 @@ BuildCmds= \
 "..\generic\expStubInit.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
    $(BuildCmds)
 # End Custom Build
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
@@ -214,10 +221,6 @@ SOURCE=..\generic\getopt.c
 # PROP Default_Filter ""
 # Begin Source File
 
-SOURCE=.\expWin.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\expWinInt.h
 # End Source File
 # Begin Source File
@@ -251,7 +254,7 @@ SOURCE=.\expWinCommand.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\ExpWinInit.c
+SOURCE=.\expWinInit.c
 # End Source File
 # Begin Source File
 
