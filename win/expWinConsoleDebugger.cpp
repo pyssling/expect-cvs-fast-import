@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinConsoleDebugger.cpp,v 1.1.2.20 2002/06/21 22:04:24 davygrvy Exp $
+ * RCS: @(#) $Id: expWinConsoleDebugger.cpp,v 1.1.2.21 2002/06/22 02:50:09 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -45,9 +45,11 @@
 
 
 //  Constructor.
-ConsoleDebugger::ConsoleDebugger (int _argc, char * const *_argv, CMclQueue<Message *> &_mQ)
-    : argc(_argc), argv(_argv), ProcessList(0L), CursorKnown(FALSE), ConsoleOutputCP(0),
-    ConsoleCP(0), mQ(_mQ), pStartAddress(0L), originalExeEntryPointOpcode(0), pInjectorStub(0)
+ConsoleDebugger::ConsoleDebugger
+(int _argc, char * const *_argv, CMclQueue<Message *> &_mQ)
+    : argc(_argc), argv(_argv), ProcessList(0L), CursorKnown(FALSE),
+    ConsoleOutputCP(0), ConsoleCP(0), mQ(_mQ), pStartAddress(0L),
+    originalExeEntryPointOpcode(0), pInjectorStub(0), injectorIPC(0L)
 {
     OSVERSIONINFO osvi;
     DWORD n, i;
@@ -558,8 +560,9 @@ ConsoleDebugger::OnXSecondBreakpoint(Process *proc, LPDEBUG_EVENT pDebEvent)
 void
 ConsoleDebugger::OnXThirdBreakpoint(Process *proc, LPDEBUG_EVENT pDebEvent)
 {
-    CONTEXT now;
     ThreadInfo *tinfo;
+    CHAR boxName[50];
+    DWORD err;
 #   define RETBUF_SIZE 2048
     BYTE retbuf[RETBUF_SIZE];
     BreakInfo *binfo;
@@ -571,20 +574,37 @@ ConsoleDebugger::OnXThirdBreakpoint(Process *proc, LPDEBUG_EVENT pDebEvent)
 	}
     }
 
-    now.ContextFlags = CONTEXT_FULL;
-    GetThreadContext(tinfo->hThread, &now);
-    
-    // Eax should not be zero, if the injector loaded.
-    // It should be the handle of the injector dll.
+    // Create the IPC connection to our loaded injector.dll
+    //
+    wsprintf(boxName, "ExpectInjector_pid%d", proc->pid);
+    injectorIPC = new CMclMailbox(boxName);
+    // Check status.
+    if ((err = injectorIPC->Status()) != NO_ERROR) {
+	char *error = new char [512];
+	strcpy(error, "IPC connection to injector.dll could not be made: ");
+	strcat(error, GetSysMsg(err));
+	strcat(error, "\n");
+	WriteMasterError(error, strlen(error));
+	delete injectorIPC;
+	injectorIPC = 0L;
+    }
 
+    // Set our thread to run the entry point, now, starting the
+    // application once we return from this breakpoint.
     preStubContext.Eip -= sizeof(BYTE);
     SetThreadContext(tinfo->hThread, &preStubContext);
 
+
     // We should now remove the memory allocated in the sub process for
-    // our injector stub.
+    // our injector stub.  The dll is already loaded and there's no sense
+    // hogging a virtual memory page.
     //
     RemoveSubprocessMemory(proc, pInjectorStub);
 
+
+    /////////////////////////////////////////////////////////////////////
+    // Now create our breakpoints on all calls to the OS console API.
+    /////////////////////////////////////////////////////////////////////
 
 
     // Set up the memory that will serve as the place for our
@@ -1811,3 +1831,8 @@ ConsoleDebugger::NotifyDone()
     mQ.Put(msg);
 }
 
+void
+ConsoleDebugger::Write (Message *msg)
+{
+    delete msg;
+}
