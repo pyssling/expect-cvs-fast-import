@@ -341,10 +341,10 @@ expDiagLogPtrStrStr(fmt,str1,str2)
 static char *		(*expErrnoMsgVal) _ANSI_ARGS_((int));
 
 char *
-expErrnoMsg(errno)
-int errno;
+expErrnoMsg(errorNo)
+int errorNo;
 {
-  return (*expErrnoMsgVal)(errno);
+  return (*expErrnoMsgVal)(errorNo);
 }
 
 void
