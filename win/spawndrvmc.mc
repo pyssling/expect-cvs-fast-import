@@ -44,10 +44,12 @@ LanguageNames=(English=0x409:MSG00409)
 
 MessageId=0x1
 Severity=Error
-Facility=WinSock
-SymbolicName=MSG_BAD_COMMAND
+Facility=Stubs
+SymbolicName=STUBS_TCLDLL_CANTFIND
 Language=English
-You have chosen an incorrect command.
+Tcl is not available.  The Tcl Dll as specified in the envar EXP_TCLDLL as
+"%1" could not be loaded by LoadLibrary().  Ensure EXP_TCLDLL has the correct
+core and is the fullpath.
 .
 
 MessageId=0x2

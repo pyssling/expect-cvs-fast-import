@@ -1,6 +1,7 @@
-// RCS: @(#) $Id: spawndrv.rc,v 1.1.2.2 2001/10/12 01:26:09 davygrvy Exp $
+// RCS: @(#) $Id: spawndrv.rc,v 1.1.2.3 2001/10/12 19:59:09 davygrvy Exp $
 
 #include <winver.h>
+#define RESOURCE_INCLUDED   /* needed by tcl.h because it doesn't use RC_INVOKED */
 #include "tcl.h"
 #include "exp_version.h"
 
