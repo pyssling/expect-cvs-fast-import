@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinInt.h,v 1.1.4.4 2002/03/06 01:51:53 davygrvy Exp $
+ * RCS: @(#) $Id: expWinInt.h,v 1.1.4.5 2002/03/09 01:17:29 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 #ifndef _EXPWININT
@@ -53,7 +53,7 @@
 #   ifdef _DEBUG
 #	include "MsvcDbgControl.h"
 #   endif
-/*#   include "spawndrvmc.h"*/
+#   include "slavedrvmc.h"
 #elif defined(BUILD_exp)
 #   define TCL_STORAGE_CLASS DLLEXPORT
 #else
@@ -78,8 +78,15 @@
 #define EXP_KILL_CTRL_C     0x2
 #define EXP_KILL_CTRL_BREAK 0x4
 
-#define EXP_LOG(format, args) \
-    ExpSyslog("Expect SlaveDriver (%s: %d): " format, __FILE__, __LINE__, args)
+//#define EXP_LOG(format, args) \
+//    ExpSyslog("Expect SlaveDriver (%s: %d): " format, __FILE__, __LINE__, args)
+
+/*
+ * Errors and logging
+ */
+#define EXP_LOG0(errCode)		ExpWinSyslog(errCode, __FILE__, (int)__LINE__, 0)
+#define EXP_LOG1(errCode, arg1)		ExpWinSyslog(errCode, __FILE__, (int)__LINE__, arg1, 0)
+#define EXP_LOG2(errCode, arg1, arg2)	ExpWinSyslog(errCode, __FILE__, (int)__LINE__, arg1, arg2, 0)
 
 /*
  * The following defines identify the various types of applications that 

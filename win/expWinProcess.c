@@ -23,7 +23,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinProcess.c,v 1.1.2.1.2.6 2002/02/10 12:03:30 davygrvy Exp $
+ * RCS: @(#) $Id: expWinProcess.c,v 1.1.2.1.2.7 2002/03/08 23:31:18 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -764,7 +764,7 @@ ExpWinCreateProcess(
 	DuplicateHandle(hProcess, inputHandle, hProcess, &startInfo.hStdInput,
 			0, TRUE, DUPLICATE_SAME_ACCESS);
 	if (startInfo.hStdInput == INVALID_HANDLE_VALUE) {
-	    EXP_LOG("couldn't duplicate input handle: 0x%x", GetLastError());
+//	    EXP_LOG("couldn't duplicate input handle: 0x%x", GetLastError());
 	    result = GetLastError();
 	    goto end;
 	}
@@ -793,7 +793,7 @@ ExpWinCreateProcess(
 	DuplicateHandle(hProcess, outputHandle, hProcess,
 			&startInfo.hStdOutput, 0, TRUE, DUPLICATE_SAME_ACCESS);
 	if (startInfo.hStdOutput == INVALID_HANDLE_VALUE) {
-	    EXP_LOG("couldn't duplicate output handle: 0x%x", GetLastError());
+//	    EXP_LOG("couldn't duplicate output handle: 0x%x", GetLastError());
 	    result = GetLastError();
 	    goto end;
 	}
@@ -811,7 +811,7 @@ ExpWinCreateProcess(
 	DuplicateHandle(hProcess, errorHandle, hProcess,
 			&startInfo.hStdError, 0, TRUE, DUPLICATE_SAME_ACCESS);
 	if (startInfo.hStdError == INVALID_HANDLE_VALUE) {
-	    EXP_LOG("couldn't duplicate error handle: 0x%x", GetLastError());
+//	    EXP_LOG("couldn't duplicate error handle: 0x%x", GetLastError());
 	    result = GetLastError();
 	    goto end;
 	}
@@ -955,7 +955,7 @@ ExpWinCreateProcess(
     if ((*expWinProcs->createProcessProc)(NULL, 
 	    (TCHAR *) Tcl_DStringValue(&cmdLine), NULL, NULL, TRUE, 
 	    (DWORD) createFlags, NULL, NULL, &startInfo, &procInfo) == 0) {
-	EXP_LOG("couldn't CreateProcess(): 0x%x", (result = GetLastError()));
+//	EXP_LOG("couldn't CreateProcess(): 0x%x", (result = GetLastError()));
 	goto end;
     }
 

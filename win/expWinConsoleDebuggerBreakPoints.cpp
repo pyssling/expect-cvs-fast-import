@@ -24,7 +24,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinConsoleDebuggerBreakPoints.cpp,v 1.1.2.5 2002/03/09 01:51:29 davygrvy Exp $
+ * RCS: @(#) $Id: expWinConsoleDebuggerBreakPoints.cpp,v 1.1.2.6 2002/03/09 03:10:31 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -256,12 +256,9 @@ ConsoleDebugger::OnFillConsoleOutputCharacter(Process *proc,
 	}
     }
     if (GetConsoleScreenBufferInfo(MasterHConsole, &info) == FALSE) {
-//	char errbuf[200];
-//	wsprintfA(errbuf, "handle=0x%08x", HConsole);
-//	EXP_LOG2(MSG_DT_SCREENBUF, errbuf, ExpSyslogGetSysMsg(GetLastError()));
 	char errbuf[200];
-	wsprintfA(errbuf, "Call to GetConsoleScreenBufferInfo failed: handle=0x%08x, err=0x%08x", MasterHConsole, GetLastError());
-//	EXP_LOG("%s", errbuf);
+	wsprintfA(errbuf, "handle=0x%08x", MasterHConsole);
+	EXP_LOG2(MSG_DT_SCREENBUF, errbuf, ExpSyslogGetSysMsg(GetLastError()));
     } else {
 	CursorPosition = info.dwCursorPosition;
 	wsprintfA(&buf[bufpos], "\033[%d;%dH",

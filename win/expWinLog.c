@@ -24,18 +24,25 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: exp.h,v 1.1.4.4 2002/02/10 10:17:04 davygrvy Exp $
+ * RCS: @(#) $Id: expWinLog.c,v 1.1.2.1.2.2 2002/02/10 12:03:30 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
 #include "expWinInt.h"
 
-static HANDLE hSyslog = NULL;
+static char sysMsgSpace[1024];
+
+/* local protos */
+static TCHAR *Exp95Log (DWORD errCode, char *errData[], int cnt);
+
+#define GETSEVERITY(code)   (UCHAR)((code >> 30) & 0x3) 
+#define GETFACILITY(code)   (WORD)((code >> 16) & 0x0FFF)
+#define GETCODE(code)	    (WORD)(code & 0xFFFF)
 
 /*
  *----------------------------------------------------------------------
  *
- * ExpSyslog --
+ * ExpWinSyslog --
  *
  *	Logs error messages to the system application event log.
  *	It is normally called through the macro EXP_LOG() when
@@ -49,22 +56,124 @@ static HANDLE hSyslog = NULL;
  */
 
 void
-ExpSyslog TCL_VARARGS_DEF(char *,arg1)
+ExpWinSyslog TCL_VARARGS_DEF(DWORD,arg1)
 {
-    char *fmt;
+    DWORD errCode;
     va_list args;
-    char buf[16384];
-    char *strings[1];
+    char *errData[10];
+    int cnt = 0;
+    TCHAR *errMsg;
+    static char codeBuf[33];
+    DWORD dwWritten;
+    char *file;
+    int line;
+    static char fileInfo[MAX_PATH];
 
-    fmt = TCL_VARARGS_START(char *,arg1,args);
-    
-    if (hSyslog == NULL) {
-	hSyslog = OpenEventLog(NULL, "ExpectSlaveDrv");
+    /* Get the error code */
+    errCode = TCL_VARARGS_START(DWORD,arg1,args);
+
+    /* Get the file info */
+    file = va_arg(args, char *);
+    line = va_arg(args, int);
+    wsprintfA(fileInfo, "%s(%d)", file, line);
+    errData[cnt++] = fileInfo;
+
+    /* Set the textual severity */
+    switch(GETSEVERITY(errCode)) {
+	case STATUS_SEVERITY_WARNING:
+	    errData[cnt++] = "Warning"; break;
+	case STATUS_SEVERITY_SUCCESS:
+	    errData[cnt++] = "Success"; break;
+	case STATUS_SEVERITY_INFORMATIONAL:
+	    errData[cnt++] = "Info"; break;
+	case STATUS_SEVERITY_FATAL:
+	    errData[cnt++] = "Fatal"; break;
     }
-    vsprintf(buf, fmt, args);
+
+    /* Set the textual Facility */
+    switch(GETFACILITY(errCode)) {
+	case FACILITY_WINSOCK:
+	    errData[cnt++] = "Winsock IPC"; break;
+	case FACILITY_SYSTEM:
+	    errData[cnt++] = "System"; break;
+	case FACILITY_STUBS:
+	    errData[cnt++] = "Stubs"; break;
+	case FACILITY_NAMEDPIPE:
+	    errData[cnt++] = "NamedPipe IPC"; break;
+	case FACILITY_MSPROTO:
+	    errData[cnt++] = "Master/Slave Protocol"; break;
+	case FACILITY_MAILBOX:
+	    errData[cnt++] = "MailBoxing IPC"; break;
+	case FACILITY_IO:
+	    errData[cnt++] = "I/O general"; break;
+	case FACILITY_DBGTRAP:
+	    errData[cnt++] = "Debug/Trap"; break;
+    }
+    /* Set the textual Code */
+    errData[cnt++] = codeBuf;
+    wsprintfA(codeBuf, "0x%04X", GETCODE(errCode));
+
+    /* set everyone else */
+    while ((errData[cnt] = va_arg(args, char *)) != NULL) cnt++;
     va_end(args);
 
-    strings[0] = buf;
-    ReportEvent(hSyslog, EVENTLOG_ERROR_TYPE, 0, 0, NULL, 1, 0,
-		strings, NULL);
+    /* format this error according to the message catalog contained in the exe. */
+    errMsg = Exp95Log(errCode, errData, cnt);
+    OutputDebugString(errMsg);
+
+    /* If running under NT, also save this error in the event log. */
+    /* TODO: add platform test */
+//    ExpNTLog(errCode, errData, cnt);
+
+    if (GETSEVERITY(errCode) & STATUS_SEVERITY_FATAL) {
+	/* I could have used printf() and fflush(), but chose the direct
+	 * route instead */
+	WriteFile(GetStdHandle(STD_OUTPUT_HANDLE), errMsg, _tcslen(errMsg),
+		&dwWritten, NULL);
+
+	/* Stop the world, I want to get off. */
+	//DebugBreak();
+
+	Sleep(5000);
+	ExitProcess(255);
+    }
+
+    LocalFree(errMsg);
+}
+
+char *ExpSyslogGetSysMsg (DWORD id)
+{
+    int chars;
+
+    chars = wsprintfA(sysMsgSpace, "[%d] ", id);
+
+    FormatMessage(
+	    FORMAT_MESSAGE_FROM_SYSTEM |
+	    FORMAT_MESSAGE_MAX_WIDTH_MASK,
+	    NULL,
+	    id,
+	    0,
+	    (LPVOID) &sysMsgSpace[chars],
+	    (1024-chars),
+	    0);
+
+    return sysMsgSpace;
+}
+
+TCHAR *Exp95Log(DWORD errCode, char *errData[], int cnt)
+{
+    TCHAR *msg;
+
+    FormatMessage(
+	    FORMAT_MESSAGE_FROM_HMODULE |
+	    FORMAT_MESSAGE_ALLOCATE_BUFFER |
+	    FORMAT_MESSAGE_ARGUMENT_ARRAY,
+	    GetModuleHandle(NULL),
+	    errCode,
+	    0,
+	    (LPVOID) &msg,
+	    0,
+	    errData);
+
+    return msg;
 }

@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinConsoleDebugger.cpp,v 1.1.2.4 2002/03/09 01:51:29 davygrvy Exp $
+ * RCS: @(#) $Id: expWinConsoleDebugger.cpp,v 1.1.2.5 2002/03/09 03:10:31 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -404,14 +404,14 @@ ConsoleDebugger::CommonDebugger()
 	    wsprintfA(buf, "%d/%d (%d)", 
 		    debEvent.dwProcessId, debEvent.dwThreadId,
 		    debEvent.dwDebugEventCode);
-//	    EXP_LOG1(MSG_DT_UNEXPECTEDDBGEVENT, buf);
-	    EXP_LOG("Unexpected debug event for %s", buf);
+	    EXP_LOG1(MSG_DT_UNEXPECTEDDBGEVENT, buf);
+//	    EXP_LOG("Unexpected debug event for %s", buf);
 	    if (debEvent.dwDebugEventCode == EXCEPTION_DEBUG_EVENT) {
-//		char buf[50];
-//		wsprintfA(buf, "0x%08x", debEvent.u.Exception.ExceptionRecord.ExceptionCode);
-//		EXP_LOG1(MSG_DT_EXCEPTIONDBGEVENT, buf);
-		EXP_LOG("ExceptionCode: 0x%08x",
-			debEvent.u.Exception.ExceptionRecord.ExceptionCode);
+		char buf[50];
+		wsprintfA(buf, "0x%08x", debEvent.u.Exception.ExceptionRecord.ExceptionCode);
+		EXP_LOG1(MSG_DT_EXCEPTIONDBGEVENT, buf);
+//		EXP_LOG("ExceptionCode: 0x%08x",
+//			debEvent.u.Exception.ExceptionRecord.ExceptionCode);
 		dwContinueStatus = DBG_EXCEPTION_NOT_HANDLED;
 	    }
 	    goto skip;
@@ -587,8 +587,7 @@ ConsoleDebugger::OnXFirstBreakpoint(Process *proc, LPDEBUG_EVENT pDebEvent)
 	tclEntry = Tcl_FindHashEntry(proc->funcTable, "VirtualAlloc");
 	if (tclEntry == 0L) {
 	    proc->nBreakCount++;	/* Don't stop at second breakpoint */
-//	    EXP_LOG0(MSG_DT_NOVIRT);
-	    EXP_LOG("Unable to find entry for VirtualAlloc", 0L);
+	    EXP_LOG0(MSG_DT_NOVIRT);
 	    return;
 	}
 	addr = (DWORD) Tcl_GetHashValue(tclEntry);
@@ -607,12 +606,10 @@ ConsoleDebugger::OnXFirstBreakpoint(Process *proc, LPDEBUG_EVENT pDebEvent)
 
 	base = FirstContext.Eip;
 	if (!ReadSubprocessMemory(proc, (PVOID) base, FirstPage, sizeof(InjectCode))) {
-//	    EXP_LOG0(MSG_DT_CANTREADSPMEM);
-	    EXP_LOG("Error reading subprocess memory", 0L);
+	    EXP_LOG0(MSG_DT_CANTREADSPMEM);
 	}
 	if (!WriteSubprocessMemory(proc, (PVOID) base, &code, sizeof(InjectCode))) {
-//	    EXP_LOG0(MSG_DT_CANTWRITESPMEM);
-    	    EXP_LOG("Error writing subprocess memory", 0L);
+	    EXP_LOG0(MSG_DT_CANTWRITESPMEM);
 	}
     }
     return;
@@ -639,7 +636,7 @@ void
 ConsoleDebugger::OnXSecondBreakpoint(Process *proc, LPDEBUG_EVENT pDebEvent)
 {
     CONTEXT context;
-    UCHAR retbuf[2048];
+    BYTE retbuf[2048];
     DWORD base;
     LPEXCEPTION_DEBUG_INFO exceptInfo;
     BreakInfo *info;
@@ -651,20 +648,18 @@ ConsoleDebugger::OnXSecondBreakpoint(Process *proc, LPDEBUG_EVENT pDebEvent)
     GetThreadContext(FirstThread, &context);
     proc->pSubprocessMemory = context.Eax;
 
-    memset(retbuf, 0xcc, sizeof(retbuf));	/* All breakpoints */
+    memset(retbuf, 0xcc, sizeof(retbuf));	// All breakpoints
     WriteSubprocessMemory(proc, (PVOID) proc->pSubprocessMemory,
 			  retbuf, sizeof(retbuf));
 
     base = FirstContext.Eip;
     if (!WriteSubprocessMemory(proc, (PVOID) base, FirstPage, sizeof(InjectCode))) {
-//	EXP_LOG0(MSG_DT_CANTWRITESPMEM);
-//	EXP_LOG("Error writing subprocess memory", 0L);
+	EXP_LOG0(MSG_DT_CANTWRITESPMEM);
     }
     SetThreadContext(FirstThread, &FirstContext);
 
-    /*
-     * Set all breakpoints
-     */
+    // Set all breakpoints
+    //
     for (i = 0; BreakPoints[i].dllName; i++) {
 	for (info = BreakPoints[i].breakInfo; info->funcName; info++) {
 	    SetBreakpoint(proc, info);
@@ -785,9 +780,8 @@ ConsoleDebugger::OnXSecondChanceException(Process *proc,
     frame.Reserved[2] = 0;
     /* frame.KdHelp.* is not set */
 
-    /*
-     * Iterate through the loaded modules and load symbols for each one.
-     */
+    //  Iterate through the loaded modules and load symbols for each one.
+    //
     tclEntry = Tcl_FirstHashEntry(proc->moduleTable, &tclSearch);
     while (tclEntry) {
 	modPtr = (Module *) Tcl_GetHashValue(tclEntry);
@@ -810,9 +804,9 @@ ConsoleDebugger::OnXSecondChanceException(Process *proc,
     } else {
 	s = "";
     }
-    fprintf(stderr, "Backtrace for %s\n", s);
-    fprintf(stderr, "-------------------------------------\n");
-    //EXP_LOG("Backtrace for %s", s);
+//    fprintf(stderr, "Backtrace for %s\n", s);
+//    fprintf(stderr, "-------------------------------------\n");
+//    EXP_LOG("Backtrace for %s", s);
     while (1) {
         pSymbol->SizeOfStruct = sizeof(symbolBuffer);
         pSymbol->MaxNameLength = 512;
@@ -840,14 +834,14 @@ ConsoleDebugger::OnXSecondChanceException(Process *proc,
 	    } else {
 		s = "";
 	    }
-            fprintf(stderr, "%.20s %08x\t%s+%X\n", s, frame.AddrPC.Offset,
-		pSymbol->Name, displacement);
+//            fprintf(stderr, "%.20s %08x\t%s+%X\n", s, frame.AddrPC.Offset,
+//		pSymbol->Name, displacement);
 	    sprintf(buf, "%.20s %08x\t%s+%X", s, frame.AddrPC.Offset,
 		pSymbol->Name, displacement);
-	    //EXP_LOG("%s", buf);
+//	    EXP_LOG("%s", buf);
 	} else {
-	    fprintf(stderr, "%08x\n", frame.AddrPC.Offset);
-	    //EXP_LOG("%08x\t", frame.AddrPC.Offset);
+//	    fprintf(stderr, "%08x\n", frame.AddrPC.Offset);
+//	    EXP_LOG("%08x\t", frame.AddrPC.Offset);
 	}
     }
 #else

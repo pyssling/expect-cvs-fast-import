@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinSlaveMain.cpp,v 1.1.4.2 2002/03/08 23:29:47 davygrvy Exp $
+ * RCS: @(#) $Id: expWinSlaveMain.cpp,v 1.1.4.3 2002/03/09 01:17:29 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -76,7 +76,7 @@ main (void)
     SetArgv(&argc, &argv);
 
     if (argc < 4) {
-	return 3;
+	EXP_LOG0(MSG_IO_ARGSWRONG);
     }
 
     //  Open the client side of our IPC transport that connects us back

@@ -22,7 +22,7 @@
  *	    http://expect.nist.gov/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinDynloadTclStubs.c,v 1.1.4.1 2001/12/22 05:22:01 davygrvy Exp $
+ * RCS: @(#) $Id: expWinDynloadTclStubs.c,v 1.1.4.2 2002/02/10 06:25:50 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -41,23 +41,23 @@ ExpDynloadTclStubs (void)
     if (GetEnvironmentVariable("EXP_TCLDLL", TclDLLPath, MAX_PATH)) {
 	/* Load it */
 	if (!(hTclMod = LoadLibrary(TclDLLPath))) {
-	    //EXP_LOG1(MSG_STUBS_TCLDLLCANTFIND, TclDLLPath);
+	    EXP_LOG1(MSG_STUBS_TCLDLLCANTFIND, TclDLLPath);
 	}
 
 	/* LoadLibrary() loaded the module correctly.
 	 * Get the location of Tcl_CreateInterp. */
 	
 	if ((createInterpProc = (LPFN_createInterpProc) GetProcAddress(hTclMod,
-	    "Tcl_CreateInterp")) == NULL) {
-	    //EXP_LOG1(MSG_STUBS_NOCREATEINTERP, TclDLLPath);
+	    "Tcl_CreateInterp")) == 0L) {
+	    EXP_LOG1(MSG_STUBS_NOCREATEINTERP, TclDLLPath);
 	}
 	interp = createInterpProc();
-	if (Tcl_InitStubs(interp, "8.1", 0) == NULL) {
-	    //EXP_LOG1(MSG_STUBS_INITSTUBS, interp->result);
+	if (Tcl_InitStubs(interp, "8.1", 0) == 0L) {
+	    EXP_LOG1(MSG_STUBS_INITSTUBS, interp->result);
 	}
 
 	/* Discover the calling application. */
-	GetModuleFileName(NULL, appname, MAX_PATH);
+	GetModuleFileName(0L, appname, MAX_PATH);
 	Tcl_FindExecutable(appname);
 
 	/* we're done initializing the core, and now don't need this
@@ -65,6 +65,6 @@ ExpDynloadTclStubs (void)
 	Tcl_DeleteInterp(interp);
     } else {
 	/* envar not found */
-	//EXP_LOG0(MSG_STUBS_ENVARNOTSET);
+	EXP_LOG0(MSG_STUBS_ENVARNOTSET);
     }
 }
