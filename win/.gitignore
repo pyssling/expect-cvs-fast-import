@@ -2,4 +2,6 @@
 *.opt
 *.plg
 Debug
+DebugU
 Release
+ReleaseU

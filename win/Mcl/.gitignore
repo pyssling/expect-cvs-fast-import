@@ -1,8 +1,11 @@
 ReleaseA
+ReleaseAS
 ReleaseU
 DebugA
+DebugAS
 DebugU
 .#*
 Mcl.plg
 Mcl.opt
 Mcl.ncb
+lib
