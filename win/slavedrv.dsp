@@ -94,6 +94,10 @@ SOURCE=.\expWinSlave.hpp
 # End Group
 # Begin Source File
 
+SOURCE=.\expWinClientTransport.hpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\expWinConsoleDebugger.cpp
 # End Source File
 # Begin Source File
@@ -103,6 +107,10 @@ SOURCE=.\expWinConsoleDebugger.hpp
 # Begin Source File
 
 SOURCE=.\expWinConsoleDebuggerBreakPoints.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\expWinConsoleKeyMap.cpp
 # End Source File
 # Begin Source File
 
@@ -127,10 +135,6 @@ SOURCE=.\expWinSlaveTrap.hpp
 # Begin Source File
 
 SOURCE=.\expWinSlaveTrapDbg.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=.\expWinSpawnClient.hpp
 # End Source File
 # Begin Source File
 
