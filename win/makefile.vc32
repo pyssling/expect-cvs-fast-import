@@ -10,7 +10,8 @@ APPVER = 4.0
 !include .\win\mkfiles.d
 !endif
 
-expect : setup $(EXPLIB)
+all :	   setup $(EXPLIB) $(SLAVEDRV)
+expect :   setup $(EXPLIB)
 slavedrv : setup $(SLAVEDRV)
 
 setup :
@@ -42,9 +43,21 @@ mkfiles.d :
 $(EXPLIB_OBJs)
 <<
 
+#
+# Regenerate the stubs files.
+#
+
+!if $(ISTCLINSTALL)
+genstubs :
+	@echo Need the Tcl source for the tools\genStubs.tcl script!
+!else
+genstubs :
+	$(TCLSH_PROG) $(TCLROOT)\tools\genStubs.tcl $(GENERICDIR) \
+		$(GENERICDIR)\exp.decls
+!endif
 
 expcflags   = -DBUILD_exp -DTCL_THREADS -DUSE_TCL_STUBS -I$(GENERICDIR) -I$(WINDIR) \
-	-I$(TMP_DIR) $(TCL_INCLUDES) -Fo$(TMP_DIR)^\ -Fp$(TMP_DIR)^\
+	-I$(TMP_DIR) $(TCL_INCLUDES) -Fo$(TMP_DIR)^\ -Fp$(TMP_DIR)^\ -Fd$(TMP_DIR)^\
 
 {$(COMPATDIR)}.c{$(TMP_DIR)}.obj ::
     $(cc32) $(cflags) -MD$(DBGX) $(cdebug) $(expcflags) @<<
