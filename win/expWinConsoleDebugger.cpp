@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinConsoleDebugger.cpp,v 1.1.2.5 2002/03/09 03:10:31 davygrvy Exp $
+ * RCS: @(#) $Id: expWinConsoleDebugger.cpp,v 1.1.2.6 2002/03/09 05:48:50 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -34,9 +34,9 @@
 #endif
 
 //  Constructor.
-ConsoleDebugger::ConsoleDebugger (int argc, char * const *argv)
+ConsoleDebugger::ConsoleDebugger (int argc, char * const *argv, CMclQueue<Message> &_mQ)
     : _argc(argc), _argv(argv), ProcessList(0L), CursorKnown(FALSE),
-    ShowExceptionBacktraces(FALSE)
+    ShowExceptionBacktraces(FALSE), mQ(_mQ)
 {
     //  Until further notice, assume this.
     //
@@ -171,6 +171,11 @@ ConsoleDebugger::ConsoleDebugger (int argc, char * const *argv)
 
     BreakPoints[2].dllName = 0L;
     BreakPoints[2].breakInfo = 0L;
+}
+
+ConsoleDebugger::~ConsoleDebugger()
+{
+    delete [] SymbolPath;
 }
 
 unsigned
@@ -379,20 +384,17 @@ ConsoleDebugger::CommonDebugger()
     for(;;) {
 	dwContinueStatus = DBG_CONTINUE;
 
-	/*
-	 * Wait for a debugging event to occur. The second parameter
-	 * indicates that the function does not return until
-	 * a debugging event occurs.
-	 */
-
+	// Wait for a debugging event to occur. The second parameter
+	// indicates that the function does not return until
+	// a debugging event occurs.
+	//
 	if (WaitForDebugEvent(&debEvent, INFINITE) == FALSE) {
 	    err = GetLastError();
 	    *((char *) 0L) = 0;   // cause an exception.
 	}
 
-	/*
-	 * Find the process that is responsible for this event.
-	 */
+	// Find the process that is responsible for this event.
+	//
 	for (proc = ProcessList; proc; proc = proc->nextPtr) {
 	    if (proc->hPid == debEvent.dwProcessId) {
 		break;
@@ -401,33 +403,28 @@ ConsoleDebugger::CommonDebugger()
 
 	if (!proc && debEvent.dwDebugEventCode != CREATE_PROCESS_DEBUG_EVENT) {
 	    char buf[50];
-	    wsprintfA(buf, "%d/%d (%d)", 
+	    wsprintf(buf, "%d/%d (%d)", 
 		    debEvent.dwProcessId, debEvent.dwThreadId,
 		    debEvent.dwDebugEventCode);
 	    EXP_LOG1(MSG_DT_UNEXPECTEDDBGEVENT, buf);
-//	    EXP_LOG("Unexpected debug event for %s", buf);
 	    if (debEvent.dwDebugEventCode == EXCEPTION_DEBUG_EVENT) {
 		char buf[50];
-		wsprintfA(buf, "0x%08x", debEvent.u.Exception.ExceptionRecord.ExceptionCode);
+		wsprintf(buf, "0x%08x", debEvent.u.Exception.ExceptionRecord.ExceptionCode);
 		EXP_LOG1(MSG_DT_EXCEPTIONDBGEVENT, buf);
-//		EXP_LOG("ExceptionCode: 0x%08x",
-//			debEvent.u.Exception.ExceptionRecord.ExceptionCode);
 		dwContinueStatus = DBG_EXCEPTION_NOT_HANDLED;
 	    }
 	    goto skip;
 	}
 
-	/* Process the debugging event code. */
-
+	// Process the debugging event code.
+	//
 	switch (debEvent.dwDebugEventCode) {
 	case EXCEPTION_DEBUG_EVENT:
-	    /*
-	     * Process the exception code. When handling
-	     * exceptions, remember to set the continuation
-	     * status parameter (dwContinueStatus). This value
-	     * is used by the ContinueDebugEvent function.
-	     */
-
+	    // Process the exception code. When handling
+	    // exceptions, remember to set the continuation
+	    // status parameter (dwContinueStatus). This value
+	    // is used by the ContinueDebugEvent function.
+	    //
 	    switch (debEvent.u.Exception.ExceptionRecord.ExceptionCode) {
 	    case EXCEPTION_BREAKPOINT:
 	    {
@@ -481,13 +478,11 @@ ConsoleDebugger::CommonDebugger()
 	    break;
 
 	case EXIT_PROCESS_DEBUG_EVENT:
-	    /*
-	     * XXX: This is really screwed up, but we get breakpoints
-	     * for processes that are already dead.  So we cannot remove
-	     * and cleanup a process until some later (How much later?)
-	     * point.  This really, really sucks....
-	     */
-//	    CloseHandle(proc->overlapped.hEvent);
+	    // XXX: This is really screwed up, but we get breakpoints
+	    // for processes that are already dead.  So we cannot remove
+	    // and cleanup a process until some later (How much later?)
+	    // point.  This really, really sucks....
+	    //
 #if 0 /* This gets closed in WaitQueueThread */
 	    CloseHandle(proc->hProcess);
 #endif
@@ -570,10 +565,8 @@ ConsoleDebugger::OnXFirstBreakpoint(Process *proc, LPDEBUG_EVENT pDebEvent)
 	}
     }
 
-    /*
-     * Set up the memory that will serve as the place for our
-     * intercepted function return points.
-     */
+    // Set up the memory that will serve as the place for our
+    // intercepted function return points.
 
     {
 	InjectCode code;
@@ -586,7 +579,7 @@ ConsoleDebugger::OnXFirstBreakpoint(Process *proc, LPDEBUG_EVENT pDebEvent)
 
 	tclEntry = Tcl_FindHashEntry(proc->funcTable, "VirtualAlloc");
 	if (tclEntry == 0L) {
-	    proc->nBreakCount++;	/* Don't stop at second breakpoint */
+	    proc->nBreakCount++;	// Don't stop at second breakpoint
 	    EXP_LOG0(MSG_DT_NOVIRT);
 	    return;
 	}
@@ -685,9 +678,9 @@ void
 ConsoleDebugger::OnXSingleStep(Process *proc, LPDEBUG_EVENT pDebEvent)
 {
     BYTE code;
-    /*
-     * Now, we need to restore the breakpoint that we had removed.
-     */
+
+    // Now, we need to restore the breakpoint that we had removed.
+    //
     code = 0xcc;
     WriteSubprocessMemory(proc, proc->lastBrkpt->codePtr, &code, sizeof(BYTE));
 }
@@ -732,18 +725,16 @@ ConsoleDebugger::OnXSecondChanceException(Process *proc,
     context.ContextFlags = CONTEXT_FULL;
     GetThreadContext(tinfo->hThread, &context);
 
-    /*
-     * XXX: From what I can tell, SymInitialize is broken on Windows NT 4.0
-     * if you try to have it iterate the modules in a process.  It always
-     * returns an object mismatch error.  Instead, initialize without iterating
-     * the modules.  Contrary to what MSDN documentation says,
-     * Microsoft debuggers do not exclusively use the imagehlp API.  In
-     * fact, the only thing VC 5.0 uses is the StackWalk function.
-     * Windbg uses a few more functions, but it doesn't use SymInitialize.
-     * We will then do the hard work of finding all the
-     * modules and doing the right thing.
-     */
-
+    // XXX: From what I can tell, SymInitialize is broken on Windows NT 4.0
+    // if you try to have it iterate the modules in a process.  It always
+    // returns an object mismatch error.  Instead, initialize without iterating
+    // the modules.  Contrary to what MSDN documentation says,
+    // Microsoft debuggers do not exclusively use the imagehlp API.  In
+    // fact, the only thing VC 5.0 uses is the StackWalk function.
+    // Windbg uses a few more functions, but it doesn't use SymInitialize.
+    // We will then do the hard work of finding all the
+    // modules and doing the right thing.
+    //
     if (! SymInitialize(proc->hProcess, SymbolPath, FALSE)){
 	fprintf(stderr, "Unable to get backtrace (Debug 1): 0x%08x\n",
 	    GetLastError());
@@ -758,7 +749,7 @@ ConsoleDebugger::OnXSecondChanceException(Process *proc,
 
     frame.AddrReturn.Mode = AddrModeFlat;
     frame.AddrReturn.Segment = 0;
-    frame.AddrReturn.Offset = context.Ebp; /* I think this is correct */
+    frame.AddrReturn.Offset = context.Ebp; // I think this is correct
 
     frame.AddrFrame.Mode = AddrModeFlat;
     frame.AddrFrame.Segment = 0;
@@ -866,12 +857,11 @@ ConsoleDebugger::OnXSecondChanceException(Process *proc,
 void
 ConsoleDebugger::OnXCreateThread(Process *proc, LPDEBUG_EVENT pDebEvent)
 {
-    /*
-     * As needed, examine or change the thread's registers
-     * with the GetThreadContext and SetThreadContext functions;
-     * and suspend and resume thread execution with the
-     * SuspendThread and ResumeThread functions.
-     */
+    // As needed, examine or change the thread's registers
+    // with the GetThreadContext and SetThreadContext functions;
+    // and suspend and resume thread execution with the
+    // SuspendThread and ResumeThread functions.
+    //
     ThreadInfo *threadInfo;
 
     threadInfo = new ThreadInfo;
@@ -899,12 +889,11 @@ ConsoleDebugger::OnXCreateThread(Process *proc, LPDEBUG_EVENT pDebEvent)
 void
 ConsoleDebugger::OnXDeleteThread(Process *proc, LPDEBUG_EVENT pDebEvent)
 {
-    /*
-     * As needed, examine or change the thread's registers
-     * with the GetThreadContext and SetThreadContext functions;
-     * and suspend and resume thread execution with the
-     * SuspendThread and ResumeThread functions.
-     */
+    // As needed, examine or change the thread's registers
+    // with the GetThreadContext and SetThreadContext functions;
+    // and suspend and resume thread execution with the
+    // SuspendThread and ResumeThread functions.
+    //
     ThreadInfo *threadInfo;
     ThreadInfo *prev;
 
@@ -967,16 +956,14 @@ ConsoleDebugger::OnXCreateProcess(Process *proc, LPDEBUG_EVENT pDebEvent)
 		info->fUnicode, info->lpBaseOfImage,
 		info->dwDebugInfoFileOffset);
 
-    /*
-     * As needed, examine or change the registers of the
-     * process's initial thread with the GetThreadContext and
-     * SetThreadContext functions; read from and write to the
-     * process's virtual memory with the ReadProcessMemory and
-     * WriteProcessMemory functions; and suspend and resume
-     * thread execution with the SuspendThread and ResumeThread
-     * functions.
-     */
-
+    // As needed, examine or change the registers of the
+    // process's initial thread with the GetThreadContext and
+    // SetThreadContext functions; read from and write to the
+    // process's virtual memory with the ReadProcessMemory and
+    // WriteProcessMemory functions; and suspend and resume
+    // thread execution with the SuspendThread and ResumeThread
+    // functions.
+    //
     threadInfo = new ThreadInfo;
     threadInfo->dwThreadId = pDebEvent->dwThreadId;
     threadInfo->hThread = info->hThread;
@@ -1030,15 +1017,13 @@ ConsoleDebugger::OnXLoadDll(Process *proc, LPDEBUG_EVENT pDebEvent)
 
     base = (DWORD) info->lpBaseOfDll;
 
-    /*
-     * Check for the DOS signature
-     */
+    // Check for the DOS signature
+    //
     ReadSubprocessMemory(proc, info->lpBaseOfDll, &w, sizeof(WORD));
     if (w != IMAGE_DOS_SIGNATURE) return;
     
-    /*
-     * Skip over the DOS signature and check the NT signature
-     */
+    // Skip over the DOS signature and check the PE signature
+    //
     p = base;
     p += 15 * sizeof(DWORD);
     ptr = (PVOID) p;
@@ -1057,51 +1042,36 @@ ConsoleDebugger::OnXLoadDll(Process *proc, LPDEBUG_EVENT pDebEvent)
     ptr = &pfh->SizeOfOptionalHeader;
     ReadSubprocessMemory(proc, ptr, &w, sizeof(WORD));
 
-    /*
-     * We want to find the exports section.  It can be found in the
-     * data directory that is part of the IMAGE_OPTIONAL_HEADER
-     */
+    // We want to find the exports section.  It can be found in the
+    // data directory that is part of the IMAGE_OPTIONAL_HEADER
+    //
     if (!w) return;
     p += sizeof(IMAGE_FILE_HEADER);
     poh = (PIMAGE_OPTIONAL_HEADER) p;
 
-    /*
-     * Find the number of entries in the data directory
-     */
+    // Find the number of entries in the data directory
+    //
     ptr = &poh->NumberOfRvaAndSizes;
     ReadSubprocessMemory(proc, ptr, &dw, sizeof(DWORD));
     if (dw == 0) return;
 
-    /*
-     * Read the export data directory
-     */
+    // Read the export data directory
+    //
     ptr = &poh->DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT];
     ReadSubprocessMemory(proc, ptr, &dataDir, sizeof(IMAGE_DATA_DIRECTORY));
 
-    /*
-     * This points us to the exports section
-     */
+    // This points us to the exports section
+    //
     ptr = (PVOID) (base + dataDir.VirtualAddress);
     ped = (PIMAGE_EXPORT_DIRECTORY) ptr;
     ReadSubprocessMemory(proc, ptr, &exportDir, sizeof(IMAGE_EXPORT_DIRECTORY));
 
-    /*
-     * See if this is a DLL we are interested in
-     */
+    // See if this is a DLL we are interested in
+    //
     ptr = &ped->Name;
     ReadSubprocessMemory(proc, ptr, &dw, sizeof(DWORD));
     ptr = (PVOID) (base + dw);
     ReadSubprocessStringA(proc, ptr, dllname, sizeof(dllname));
-
-#if 0 /* Debugging purposes */
-    /*
-     * We now have the DLL name, even if it was unknown.
-     */
-    if (unknown) {
-	printf("0x%08x: Loaded %s\n", info->lpBaseOfDll, dllname);
-    }
-#endif
-
 
     bFound = FALSE;
     for (n = 0; BreakPoints[n].dllName; n++) {
@@ -1118,17 +1088,14 @@ ConsoleDebugger::OnXLoadDll(Process *proc, LPDEBUG_EVENT pDebEvent)
     for (n = 0; n < exportDir.NumberOfNames; n++) {
 	ReadSubprocessMemory(proc, ptr, &dw, sizeof(DWORD));
 	namePtr = (PVOID) (base + dw);
-	/*
-	 * Now, we should hopefully have a pointer to the name of the
-	 * function, so lets get it.
-	 */
+
+	// Now, we should hopefully have a pointer to the name of the
+	// function, so lets get it.
+	//
 	ReadSubprocessStringA(proc, namePtr, funcName, sizeof(funcName));
-	/* printf("%s\n", funcName); */
 
-	/*
-	 * Keep a list of all function names in a hash table
-	 */
-
+	// Keep a list of all function names in a hash table
+	//
 	funcPtr = (PVOID) (base + n*sizeof(DWORD) +
 	    (DWORD) exportDir.AddressOfFunctions);
 	ReadSubprocessMemory(proc, funcPtr, &dw, sizeof(DWORD));
@@ -1140,10 +1107,9 @@ ConsoleDebugger::OnXLoadDll(Process *proc, LPDEBUG_EVENT pDebEvent)
 	ptr = (PVOID) (sizeof(DWORD) + (ULONG) ptr);
     }
 
-    /*
-     * The IMAGE_SECTION_HEADER comes after the IMAGE_OPTIONAL_HEADER
-     * (if the IMAGE_OPTIONAL_HEADER exists)
-     */
+    // The IMAGE_SECTION_HEADER comes after the IMAGE_OPTIONAL_HEADER
+    // (if the IMAGE_OPTIONAL_HEADER exists)
+    //
     p += w;
 
     psh = (PIMAGE_SECTION_HEADER) p;
@@ -1171,14 +1137,6 @@ ConsoleDebugger::OnXUnloadDll(Process *proc, LPDEBUG_EVENT pDebEvent)
     Tcl_HashEntry *tclEntry;
     Module *modPtr;
 
-    /*
-     * Display a message that the DLL has
-     * been unloaded.
-     */
-#if 0
-    fprintf(stderr, "0x%08x: Unloading\n", pDebEvent->u.UnloadDll.lpBaseOfDll);
-#endif
-    
     tclEntry = Tcl_FindHashEntry(proc->moduleTable,
 	(const char *) pDebEvent->u.UnloadDll.lpBaseOfDll);
 
@@ -1223,13 +1181,9 @@ ConsoleDebugger::SetBreakpoint(Process *proc, BreakInfo *info)
 	return FALSE;
     }
 
-#if 0
-    fprintf(stderr, "%s: ", info->funcName);
-#endif
-    /*
-     * Set a breakpoint at the function start in the subprocess and
-     * save the original code at the function start.
-     */
+    // Set a breakpoint at the function start in the subprocess and
+    // save the original code at the function start.
+    //
     funcPtr = Tcl_GetHashValue(tclEntry);
     SetBreakpointAtAddr(proc, info, funcPtr);
     return TRUE;
@@ -1252,11 +1206,8 @@ ConsoleDebugger::Breakpoint *
 ConsoleDebugger::SetBreakpointAtAddr(Process *proc, BreakInfo *info, PVOID funcPtr)
 {
     Breakpoint *bpt;
-    UCHAR code;
+    BYTE code;
 
-#if 0
-    fprintf(stderr, "SetBreakpointAtAddr: addr=0x%08x\n", funcPtr);
-#endif
     bpt = new Breakpoint;
     bpt->returning = FALSE;
     bpt->codePtr = funcPtr;
@@ -1268,14 +1219,14 @@ ConsoleDebugger::SetBreakpointAtAddr(Process *proc, BreakInfo *info, PVOID funcP
     bpt->nextPtr = proc->brkptList;
     proc->brkptList = bpt;
 
-    ReadSubprocessMemory(proc, funcPtr, &bpt->code, sizeof(UCHAR));
+    ReadSubprocessMemory(proc, funcPtr, &bpt->code, sizeof(BYTE));
 #ifdef _M_IX86
     // Breakpoint opcode on i386
     code = 0xcc;
 #else
 #   error "need breakpoint opcode for this hardware"
 #endif
-    WriteSubprocessMemory(proc, funcPtr, &code, sizeof(UCHAR));
+    WriteSubprocessMemory(proc, funcPtr, &code, sizeof(BYTE));
     return bpt;
 }
 
@@ -1373,14 +1324,14 @@ ConsoleDebugger::ReadSubprocessMemory(Process *proc, LPVOID addr, LPVOID buf, DW
     BOOL ret;
     LONG error;
 
-    /* if not committed memory abort */
+    // if not committed memory abort
     if (!VirtualQueryEx(proc->hProcess, addr, &mbi, sizeof(mbi)) ||
 	mbi.State != MEM_COMMIT)
     {
 	return FALSE;
     }
     
-    /* if guarded memory, change protection temporarily */
+    // if guarded memory, change protection temporarily
     if (!(mbi.Protect & PAGE_READONLY) && !(mbi.Protect & PAGE_READWRITE)) {
 	VirtualProtectEx(proc->hProcess, addr, len, PAGE_READONLY, &oldProtection);
     }
@@ -1390,7 +1341,7 @@ ConsoleDebugger::ReadSubprocessMemory(Process *proc, LPVOID addr, LPVOID buf, DW
 	error = GetLastError();
     }
     
-    /* reset protection if changed */
+    // reset protection if changed
     if (oldProtection) {
 	VirtualProtectEx(proc->hProcess, addr, len, oldProtection, &oldProtection);
 	SetLastError(error);
@@ -1424,19 +1375,19 @@ ConsoleDebugger::WriteSubprocessMemory(Process *proc, LPVOID addr, LPVOID buf, D
 
     hProcess = proc->hProcess;
 
-    /* Flush the read cache */
+    // Flush the read cache.
     proc->pMemoryCacheBase = 0;
 
-    /* if not committed memory abort */
+    // if not committed memory abort
     if (!VirtualQueryEx(hProcess, addr, &mbi, sizeof(mbi)) ||
 	mbi.State != MEM_COMMIT)
     {
 	ret = FALSE;
-	/* assert(ret != FALSE); */
+	// assert(ret != FALSE);
 	return ret;
     }
     
-    /* if guarded memory, change protection temporarily */
+    // if guarded memory, change protection temporarily.
     if (!(mbi.Protect & PAGE_READWRITE)) {
 	if (!VirtualProtectEx(hProcess, addr, len, PAGE_READWRITE,
 			      &oldProtection)) {
@@ -1449,15 +1400,10 @@ ConsoleDebugger::WriteSubprocessMemory(Process *proc, LPVOID addr, LPVOID buf, D
 	err = GetLastError();
     }
     
-    /* reset protection if changed */
+    // reset protection if changed
     if (oldProtection) {
 	VirtualProtectEx(hProcess, addr, len, oldProtection, &oldProtection);
     }
-#if 0 /* Debugging purposes only */
-    if (ret == FALSE) {
-	assert(ret != FALSE); 
-    }
-#endif
     return ret;
 }
 
@@ -1494,9 +1440,6 @@ ConsoleDebugger::OnXBreakpoint(Process *proc, LPDEBUG_EVENT pDebEvent)
     assert(tinfo != 0L);
 
     exceptInfo = &pDebEvent->u.Exception;
-#if 0
-    fprintf(stderr, "OnXBreakpoint: proc=0x%x, count=%d, addr=0x%08x\n", proc, proc->nBreakCount, exceptInfo->ExceptionRecord.ExceptionAddress);
-#endif
 
     pbrkpt = 0L;
     for (brkpt = proc->brkptList; brkpt != 0L;
@@ -1510,22 +1453,14 @@ ConsoleDebugger::OnXBreakpoint(Process *proc, LPDEBUG_EVENT pDebEvent)
 	    }
 	}
     }
-#if 0 /* Allow user breakpoints to be hit when we are not debugging */
-    if (brkpt == 0L) {
-	fprintf(stderr, "OnXBreakpoint: proc=0x%x, count=%d, addr=0x%08x\n", proc, proc->nBreakCount, exceptInfo->ExceptionRecord.ExceptionAddress);
-    }
-    assert(brkpt != 0L);
-#endif
 
     context.ContextFlags = CONTEXT_FULL;
     GetThreadContext(tinfo->hThread, &context);
 
     if (! brkpt->returning) {
 	Breakpoint *bpt;
-	/*
-	 * Get the arguments to the function and store them in the thread
-	 * specific data structure.
-	 */
+	// Get the arguments to the function and store them in the thread
+	// specific data structure.
 	for (pdw = tinfo->args, i=0; i < brkpt->breakInfo->nargs; i++, pdw++) {
 	    ReadSubprocessMemory(proc, (PVOID) (context.Esp+(4*(i+1))),
 				 pdw, sizeof(DWORD));
@@ -1537,10 +1472,8 @@ ConsoleDebugger::OnXBreakpoint(Process *proc, LPDEBUG_EVENT pDebEvent)
 	    ((this)->*(brkpt->breakInfo->breakProc))(proc, tinfo, brkpt, &context.Eax, BREAK_IN);
 	}
 
-	/*
-	 * Only set a return breakpoint if something is interested
-	 * in the return value
-	 */
+	// Only set a return breakpoint if something is interested
+	// in the return value
 	if (brkpt->breakInfo->dwFlags & BREAK_OUT) {
 	    bpt = new Breakpoint;
 	    ReadSubprocessMemory(proc, (PVOID) context.Esp,
@@ -1550,7 +1483,7 @@ ConsoleDebugger::OnXBreakpoint(Process *proc, LPDEBUG_EVENT pDebEvent)
 		&dw, sizeof(DWORD));
 	    bpt->codePtr = brkpt->codeReturnPtr;
 	    bpt->returning = TRUE;
-	    bpt->codeReturnPtr = 0L;	/* Doesn't matter */
+	    bpt->codeReturnPtr = 0L;	// Doesn't matter
 	    bpt->breakInfo = brkpt->breakInfo;
 	    bpt->threadInfo = tinfo;
 	    bpt->nextPtr = proc->brkptList;
@@ -1558,21 +1491,18 @@ ConsoleDebugger::OnXBreakpoint(Process *proc, LPDEBUG_EVENT pDebEvent)
 
 	}
 
-	/*
-	 * Now, we need to restore the original code for this breakpoint.
-	 * Put the program counter back, then do a single-step and put
-	 * the breakpoint back again.
-	 */
-	WriteSubprocessMemory(proc, brkpt->codePtr, &brkpt->code, sizeof(UCHAR));
+	// Now, we need to restore the original code for this breakpoint.
+	// Put the program counter back, then do a single-step and put
+	// the breakpoint back again.
+	//
+	WriteSubprocessMemory(proc, brkpt->codePtr, &brkpt->code, sizeof(BYTE));
 
 	context.EFlags |= SINGLE_STEP_BIT;
 	context.Eip--;
 
 	proc->lastBrkpt = brkpt;
     } else {
-	/*
-	 * Make the callback with the params and the return value
-	 */
+	// Make the callback with the params and the return value
 	if (brkpt->breakInfo->dwFlags & BREAK_OUT) {
 	    ((this)->*(brkpt->breakInfo->breakProc))(proc, tinfo, brkpt, &context.Eax, BREAK_OUT);
 	}
@@ -1675,12 +1605,6 @@ int
 ConsoleDebugger::LoadedModule(Process *proc, HANDLE hFile, LPVOID modname,
     int isUnicode, LPVOID baseAddr, DWORD debugOffset)
 {
-#undef PRINTF
-#if 0
-#define PRINTF(x) printf x
-#else
-#define PRINTF(x)
-#endif
     int known = 1;
     PVOID ptr;
     Tcl_HashEntry *tclEntry;
@@ -1690,33 +1614,22 @@ ConsoleDebugger::LoadedModule(Process *proc, HANDLE hFile, LPVOID modname,
     Module *modPtr;
 
     if (modname) {
-
-	/*
-	 * This modname is a pointer to the name of the
-	 * DLL in the process space of the subprocess
-	 */
+	// This modname is a pointer to the name of the
+	// DLL in the process space of the subprocess
+	//
 	if (ReadSubprocessMemory(proc, modname, &ptr, sizeof(PVOID)) && ptr) {
 	    if (isUnicode) {
 		WCHAR name[512];
 		ReadSubprocessStringW(proc, ptr, name, 512);
-		PRINTF(("0x%08x: Loaded %S\n", baseAddr, name));
 		wcstombs(mbstr, name, sizeof(mbstr));
 	    } else {
 		ReadSubprocessStringA(proc, ptr, mbstr, sizeof(mbstr));
-		PRINTF(("0x%08x: Loaded %s\n", baseAddr, mbstr));
 	    }
 	    s = strdup(mbstr);
 
 	} else {
-	    PRINTF(("0x%08x: Loaded module, but couldn't read subprocess' memory, error=0x%08x\n", baseAddr, GetLastError()));
 	    known = 0;
 	}
-	if (debugOffset) {
-	    PRINTF((" with debugging info at offset 0x%08x\n",
-		   debugOffset));
-	}
-    } else {
-	PRINTF(("0x%08x: Loaded module with no known name\n", baseAddr));
     }
     tclEntry = Tcl_CreateHashEntry(proc->moduleTable, (const char *)baseAddr, &isNew);
 
@@ -1733,5 +1646,4 @@ ConsoleDebugger::LoadedModule(Process *proc, HANDLE hFile, LPVOID modname,
     Tcl_SetHashValue(tclEntry, modPtr);
 
     return known;
-#undef PRINTF
 }

@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinSlaveMain.cpp,v 1.1.4.3 2002/03/09 01:17:29 davygrvy Exp $
+ * RCS: @(#) $Id: expWinSlaveMain.cpp,v 1.1.4.4 2002/03/09 05:48:51 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -48,8 +48,10 @@
 
 // local protos
 static ExpSpawnClientTransport *ExpWinSpawnOpenClientTransport(const char *name);
-static ExpSlaveTrap *ExpWinSlaveOpenTrap(const char *meth, int argc, char * const argv[]);
-static int ExpWinMasterDoEvents(ExpSpawnClientTransport *transport, ExpSlaveTrap *masterCtrl);
+static ExpSlaveTrap *ExpWinSlaveOpenTrap(const char *meth, int argc,
+	char * const argv[], CMclQueue<Message> &mQ);
+static int ExpWinMasterDoEvents(ExpSpawnClientTransport *transport,
+	ExpSlaveTrap *masterCtrl, CMclQueue<Message> &mQ);
 static void SetArgv(int *argcPtr, char ***argvPtr);
 
 
@@ -60,7 +62,7 @@ main (void)
     char **argv;			// Values of command-line arguments.
     ExpSpawnClientTransport *tclient;	// class pointer of transport client.
     ExpSlaveTrap *slaveCtrl;		// trap method class pointer.
-
+    CMclQueue<Message> messageQ;	// Our message Queue we hand off.
 
     //  We use a few APIs from Tcl, dynamically load it now.
     //
@@ -87,14 +89,14 @@ main (void)
     //  Create the process to be intercepted within the trap method requested
     //  on the commandline.
     //
-    slaveCtrl = ExpWinSlaveOpenTrap(argv[2], argc-3, &argv[3]);
+    slaveCtrl = ExpWinSlaveOpenTrap(argv[2], argc-3, &argv[3], messageQ);
 
     //  Process events until the slave closes.
     //
     //  We block on input/events coming from the slave and
     //  input from the IPC coming from expect.
     //
-    return ExpWinMasterDoEvents(tclient, slaveCtrl);
+    return ExpWinMasterDoEvents(tclient, slaveCtrl, messageQ);
 }
 
 /*
@@ -140,10 +142,11 @@ ExpWinSpawnOpenClientTransport(const char *name)
  */
 
 ExpSlaveTrap *
-ExpWinSlaveOpenTrap(const char *meth, int argc, char * const argv[])
+ExpWinSlaveOpenTrap(const char *meth, int argc, char * const argv[],
+    CMclQueue<Message> &mQ)
 {
     if (!strcmp(meth, "dbg")) {
-	return new ExpSlaveTrapDbg(argc, argv);
+	return new ExpSlaveTrapDbg(argc, argv, mQ);
     }
     /* TODO: a simple pipe trap would be good.
 	[spawn -open <chanID>] does the same, though.
@@ -167,7 +170,8 @@ ExpWinSlaveOpenTrap(const char *meth, int argc, char * const argv[])
  */
 
 int
-ExpWinMasterDoEvents(ExpSpawnClientTransport *transport, ExpSlaveTrap *masterCtrl)
+ExpWinMasterDoEvents(ExpSpawnClientTransport *transport,
+    ExpSlaveTrap *masterCtrl, CMclQueue<Message> &mQ)
 {
     CMclWaitableCollection stuff;
     return 0;
@@ -222,24 +226,20 @@ SetArgv(
 	//  cp1251 != utf-8, though.
 	//
 	Tcl_DStringAppend(&cmdLine, MsvcDbg_GetCommandLine(), -1);
-
 #   else
 #	error "Need Debugger control for this IDE"
 #   endif
     } else {
 #endif
-
 	// Always get the unicode commandline because *ALL* Win32 platforms
 	// support it.
 	//
 	cmdLineUni = GetCommandLineW();
 	// calculate the size needed.
-	size = WideCharToMultiByte(CP_UTF8, 0, cmdLineUni, -1, 0, 0, NULL,
-		NULL);
+	size = WideCharToMultiByte(CP_UTF8, 0, cmdLineUni, -1, 0, 0, 0L, 0L);
 	Tcl_DStringSetLength(&cmdLine, size);
 	WideCharToMultiByte(CP_UTF8, 0, cmdLineUni, -1,
-		Tcl_DStringValue(&cmdLine), size, NULL, NULL);
-
+		Tcl_DStringValue(&cmdLine), size, 0L, 0L);
 #ifdef _DEBUG
     }
 #endif
@@ -261,8 +261,7 @@ SetArgv(
 	    }
 	}
     }
-    argSpace = (char *) ckalloc(
-	    (unsigned) (size * sizeof(char *) + Tcl_DStringLength(&cmdLine) + 1));
+    argSpace = new char [size + Tcl_DStringLength(&cmdLine) + 1];
     argv = (char **) argSpace;
     argSpace += size * sizeof(char *);
     size--;

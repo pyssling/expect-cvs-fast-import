@@ -23,7 +23,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinSlave.hpp,v 1.1.4.1 2002/03/06 01:51:53 davygrvy Exp $
+ * RCS: @(#) $Id: expWinSlave.hpp,v 1.1.4.2 2002/03/08 23:37:16 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 #ifndef _EXPWINSLAVE_HPP
@@ -119,6 +119,11 @@ extern TCL_CPP void ExpDynloadTclStubs (void);
 #ifdef __cplusplus
 #include "./Mcl/include/CMcl.h"
 
+class Message
+{
+    char *lala;
+};
+
 class ExpSpawnClientTransport
 {
 public:
@@ -152,17 +157,15 @@ class ExpSlaveTrap {
 };
 class ExpSlaveTrapPipe : public ExpSlaveTrap {
 public:
-    ExpSlaveTrapPipe(int argc, char * const argv[]);
+    ExpSlaveTrapPipe(int argc, char * const argv[], CMclQueue<Message> &mQ);
 };
 
 class ExpSlaveTrapDbg : public ExpSlaveTrap {
 public:
-    ExpSlaveTrapDbg(int argc, char * const argv[]);
+    ExpSlaveTrapDbg(int argc, char * const argv[], CMclQueue<Message> &mQ);
 private:
     CMclThreadAutoPtr debuggerThread;
 };
-
-extern int ExpWinSlaveDoEvents(ExpSpawnClientTransport *transport, ExpSlaveTrap *trap);
 #endif /* __cplusplus */
 
 #endif /* _EXPWINSLAVE_HPP */

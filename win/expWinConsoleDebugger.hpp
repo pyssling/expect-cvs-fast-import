@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinConsoleDebugger.hpp,v 1.1.2.6 2002/03/09 01:17:29 davygrvy Exp $
+ * RCS: @(#) $Id: expWinConsoleDebugger.hpp,v 1.1.2.7 2002/03/09 03:10:31 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -45,12 +45,14 @@
 #define PAGEMASK (PAGESIZE-1)
 
 
+
 //  This is our debugger.  We run it in a thread. 
 //
 class ConsoleDebugger : public CMclThreadHandler
 {
 public:
-    ConsoleDebugger(int argc, char * const *argv);
+    ConsoleDebugger(int argc, char * const *argv, CMclQueue<Message> &_mQ);
+    ~ConsoleDebugger();
 
 private:
     virtual unsigned ThreadHandlerProc(void);
@@ -116,7 +118,7 @@ private:
     class Breakpoint {
 	friend class ConsoleDebugger;
 	BOOL	    returning;	    // Is this a returning breakpoint?
-	UCHAR	    code;	    // Original code.
+	BYTE	    code;	    // Original code.
 	PVOID	    codePtr;	    // Address of original code.
 	PVOID	    codeReturnPtr;  // Address of return breakpoint.
 	DWORD	    origRetAddr;    // Original return address.
@@ -176,29 +178,29 @@ private:
 
     //  Our breakpoint handlers (indirect).  Called from OnXBreakpoint().
     //
-    void OnBeep			    (Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnBeep			(Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
     void OnFillConsoleOutputCharacter (Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
-    void OnGetStdHandle		    (Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
-    void OnIsWindowVisible	    (Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
-    void OnOpenConsoleW		    (Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
-    void OnReadConsoleInput	    (Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnGetStdHandle		(Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnIsWindowVisible	(Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnOpenConsoleW		(Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnReadConsoleInput	(Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
     void OnSetConsoleActiveScreenBuffer	(Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
     void OnSetConsoleCursorPosition (Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
-    void OnSetConsoleMode	    (Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
-    void OnSetConsoleWindowInfo	    (Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnSetConsoleMode	(Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnSetConsoleWindowInfo	(Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
     void OnScrollConsoleScreenBuffer (Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
-    void OnWriteConsoleA	    (Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
-    void OnWriteConsoleW	    (Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
-    void OnWriteConsoleOutputA	    (Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
-    void OnWriteConsoleOutputW	    (Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnWriteConsoleA	(Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnWriteConsoleW	(Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnWriteConsoleOutputA	(Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnWriteConsoleOutputW	(Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
     void OnWriteConsoleOutputCharacterA	(Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
     void OnWriteConsoleOutputCharacterW	(Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
-    void OnExpGetExecutablePathA    (Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
-    void OnExpGetExecutablePathW    (Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
-    void OnSearchPathW		    (Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
-    void OnlstrcpynW		    (Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
-    void OnlstrrchrW		    (Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
-    void OnGetFileAttributesW	    (Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnExpGetExecutablePathA (Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnExpGetExecutablePathW (Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnSearchPathW		(Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnlstrcpynW		(Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnlstrrchrW		(Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnGetFileAttributesW	(Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
 
     // Internal utilities
     //
@@ -224,14 +226,17 @@ private:
     //
     Process	*ProcessList;   // Top of linked list of Process instances.
     HANDLE	MasterHConsole;	// Master console handle (us).
-    DWORD	MasterConsoleInputMode; // Current flags for the master console.
+    DWORD	MasterConsoleInputMode;// Current flags for the master console.
     COORD	ConsoleSize;    // Size of the console in the slave.
     COORD	CursorPosition; // Coordinates of the cursor in the slave.
     BOOL	CursorKnown;    // Do we know where the slave's cursor is?
     char	*SymbolPath;    // Storage for setting OS kernel symbols path.
-    BOOL	ShowExceptionBacktraces; // prints expection info from slave.
+    BOOL	ShowExceptionBacktraces;// print exception info from debuggee?
     int		_argc;		// Debugee process commandline count
     char * const * _argv;	// Debugee process commandline args
+
+    // Thread-safe message queue used for communication back to Expect.
+    CMclQueue<Message> &mQ;
 };
 
 #endif // INC_expWinConsoleDebugger_hpp__
