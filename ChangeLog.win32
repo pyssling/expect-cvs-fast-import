@@ -1,3 +1,17 @@
+2002-03-16  davygrvy
+	* win/expWinConsoleDebugger.cpp:
+	* win/expWinConsoleDebugger.hpp:
+	* win/expWinMessage.cpp:
+	* win/expWinMessage.hpp:
+	* win/expWinSlaveMain.cpp:
+	* win/expWinUtils.cpp:
+	* win/expWinUtils.hpp:
+	* win/slavedrv.dsp:
+		fixed a nasty bug in the SetArgv() function that was all my
+		fault.
+
+	-=[ TAGGED as 'win32-jump-point-1' ]=-
+
 2002-03-15  davygrvy
 	* win/expWinConsoleDebugger.cpp:
 	* win/expWinConsoleDebugger.hpp:
@@ -13,8 +27,6 @@
 		OnFillConsoleOutputCharacter() where the master console handle
 		was null.  I successfully logged into panix.com with Win2k's
 		telnet.exe and trapped it all!
-
-	-=[ TAGGED as 'win32-jump-point-1' ]=-
 
 2002-03-13  davygrvy
 	* win/expWinConsoleDebugger.cpp:
