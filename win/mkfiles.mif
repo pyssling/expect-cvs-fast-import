@@ -31,10 +31,9 @@ EXPLIB_OBJs = \
 #	$(TMP_DIR)\expTrap.obj
 
 SLAVEDRV_OBJs = \
-#	$(TMP_DIR)\expCommand.obj \
 	$(TMP_DIR)\expWinSlaveDrv.obj \
 	$(TMP_DIR)\expWinSlaveKey.obj \
 	$(TMP_DIR)\expWinSlaveDbg.obj \
-#	$(TMP_DIR)\expWinSlaveDbgW.obj \
+	$(TMP_DIR)\expWinDynloadTclStubs.obj \
 	$(TMP_DIR)\expWinProcess.obj \
 	$(TMP_DIR)\expWinLog.obj

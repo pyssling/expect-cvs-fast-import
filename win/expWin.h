@@ -45,7 +45,6 @@ typedef struct {
 
 extern DWORD		ExpApplicationType(const char *originalName,
 			    char *fullPath);
-/* should be TclpCreateProcess */
 extern DWORD		ExpCreateProcess(int argc, char **argv,
 			    HANDLE inputHandle, HANDLE outputHandle,
 			    HANDLE errorHandle, int allocConsole,
@@ -55,3 +54,6 @@ extern Tcl_Channel	ExpCreateSpawnChannel (Tcl_Interp *, Tcl_Channel chan);
 extern void		ExpSyslog TCL_VARARGS(char *,fmt);
 extern Tcl_Pid		Exp_WaitPid(Tcl_Pid pid, int *statPtr, int options);
 extern void		Exp_KillProcess(Tcl_Pid pid);
+extern void		ExpInitWinProcessAPI(void);
+extern int		ExpDynloadTclStubs(void);
+

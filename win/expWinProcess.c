@@ -68,8 +68,10 @@ static ExpWinProcs unicodeProcs = {
 	    WCHAR *, TCHAR **)) SearchPathW
 };
 
-#define tclWinProcs expWinProcs
 static ExpWinProcs *expWinProcs = &asciiProcs;
+
+/* add this change here instead to help minimize the code changes. */
+#define tclWinProcs expWinProcs
 
 void
 ExpInitWinProcessAPI (void)
@@ -673,7 +675,6 @@ ExpCreateProcess(argc, argv, inputHandle, outputHandle, errorHandle,
     char execPath[MAX_PATH * TCL_UTF_MAX];
     char *originalName;
     LONG result;
-    BOOL b;
 
     result = 0;
     applType = ExpApplicationType(argv[0], execPath);
@@ -912,10 +913,10 @@ ExpCreateProcess(argc, argv, inputHandle, outputHandle, errorHandle,
 
     BuildCommandLine(execPath, argc, argv, &cmdLine);
 
-    if ((b = (*tclWinProcs->createProcessProc)(NULL, 
+    if ((*tclWinProcs->createProcessProc)(NULL, 
 	    (TCHAR *) Tcl_DStringValue(&cmdLine), NULL, NULL, TRUE, 
-	    (DWORD) createFlags, NULL, NULL, &startInfo, &procInfo)) == 0) {
-	result = GetLastError();
+	    (DWORD) createFlags, NULL, NULL, &startInfo, &procInfo) == 0) {
+	EXP_LOG("couldn't CreateProcess(): 0x%x", (result = GetLastError()));
 	goto end;
     }
 
