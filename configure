@@ -6268,16 +6268,35 @@ if test x"$no_tk" = x"true" ; then
 else
   eval "EXP_CC_SEARCH_FLAGS=\"$TK_LD_SEARCH_FLAGS\""
 fi
-EXP_LD_SEARCH_FLAGS=`echo ${EXP_CC_SEARCH_FLAGS} |sed -e "s|-Wl,||g" -e "s|,| |g"`
+
+echo "EXP_CC_SEARCH_FLAGS =${EXP_CC_SEARCH_FLAGS}"
+echo "TCL_LD_SEARCH_FLAGS =${TCL_LD_SEARCH_FLAGS}"
+
+# TCL_LD_SEARCH_FLAGS is only valid when used with the compiler, $CC.
+# Expect needs to use these flags with the linker, though.  If the
+# linker and the compiler are not the same program (as they aren't on
+# Solaris 2.7) then we need to transform the flags into something that
+# the linker understands.
+
+LD_PROG=`echo ${TCL_SHLIB_LD} | sed -e "s| .*||"`
+CC_PROG=`echo ${CC} | sed -e "s| .*||"`
+echo "LD_PROG=${LD_PROG}"
+echo "CC_PROG=${CC_PROG}"
+if test x"$LD_PROG" = x"$CC_PROG" ; then
+    EXP_LD_SEARCH_FLAGS=${EXP_CC_SEARCH_FLAGS}
+else
+    EXP_LD_SEARCH_FLAGS=`echo ${EXP_CC_SEARCH_FLAGS} |sed -e "s|-Wl,||g" -e "s|,| |g"`
+fi
 
 # now broken out into EXP_AND_TCL_LIBS and EXP_AND_TK_LIBS.  Had to do this
 # in order to avoid repeating lib specs to which some systems object.
-EXP_AND_TCL_LIBS="$EXP_AND_TCL_LIBS $EXP_LD_SEARCH_FLAGS"
-EXP_AND_TK_LIBS="$EXP_AND_TK_LIBS $EXP_LD_SEARCH_FLAGS"
+EXP_AND_TCL_LIBS="$EXP_AND_TCL_LIBS $EXP_CC_SEARCH_FLAGS"
+EXP_AND_TK_LIBS="$EXP_AND_TK_LIBS $EXP_CC_SEARCH_FLAGS"
 
 #
 # Set up makefile substitutions
 #
+
 
 
 
@@ -6451,6 +6470,7 @@ s%@EXP_LIB_SPEC@%$EXP_LIB_SPEC%g
 s%@EXP_CFLAGS@%$EXP_CFLAGS%g
 s%@EXP_LDFLAGS@%$EXP_LDFLAGS%g
 s%@EXP_LD_SEARCH_FLAGS@%$EXP_LD_SEARCH_FLAGS%g
+s%@TCL_LD_SEARCH_FLAGS@%$TCL_LD_SEARCH_FLAGS%g
 s%@EXP_AND_TCL_LIBS@%$EXP_AND_TCL_LIBS%g
 s%@EXP_AND_TK_LIBS@%$EXP_AND_TK_LIBS%g
 s%@EXP_SHLIB_LD_LIBS@%$EXP_SHLIB_LD_LIBS%g
