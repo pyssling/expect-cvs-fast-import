@@ -69,6 +69,12 @@ OLD_CFLAGS=$CFLAGS
 AC_PROG_CC
 CFLAGS=$OLD_CFLAGS
 
+#------------------------------------------------------------------------
+# Hook for when threading is supported in Expect.  The --enable-threads
+# flag currently has no effect.
+#------------------------------------------------------------------------
+
+SC_ENABLE_THREADS
 
 CY_AC_PATH_TCLCONFIG
 CY_AC_LOAD_TCLCONFIG
