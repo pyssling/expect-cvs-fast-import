@@ -209,10 +209,8 @@ expErrorLog TCL_VARARGS_DEF(char *,arg1)
 /* use this function for logging the parent/child conversation */
 /*ARGSUSED*/
 void
-expErrorLogU(buf,force_stdout)
+expErrorLogU(buf)
 char *buf;
-int force_stdout;	/* not used, only declared here for compat with */
-			/* exp_nflog() */
 {
     int length = strlen(buf);
     fwrite(buf,1,length,stderr);
@@ -566,7 +564,7 @@ expLogUserSet(logUser)
 /* generate printable versions of random ASCII strings.  Primarily used */
 /* in diagnostic mode, "expect -d" */
 static char *
-exp_printify(s)
+expPrintifyReal(s)
 {
 	static int destlen = 0;
 	static char *dest = 0;
@@ -611,7 +609,7 @@ expPrintifyObj(obj)
     /* don't bother writing into bigbuf if we're not going to ever use it */
     if ((!tsdPtr->diagToStderr) && (!tsdPtr->diagChannel)) return(tsdPtr->bigbuf);
     
-    return exp_printify(Tcl_GetString(obj));
+    return expPrintifyReal(Tcl_GetString(obj));
 }
 
 char *
@@ -623,7 +621,7 @@ char *s;
     /* don't bother writing into bigbuf if we're not going to ever use it */
     if ((!tsdPtr->diagToStderr) && (!tsdPtr->diagChannel)) return(tsdPtr->bigbuf);
 
-    return exp_printify(s);
+    return expPrintifyReal(s);
 }
  
 void

@@ -38,13 +38,12 @@ typedef struct ThreadSpecificData {
      */
     
     ExpState *firstExpPtr;
+    int channelCount;	 /* this is process-wide as it is used to
+			     give user some hint as to why a spawn has failed
+			     by looking at process-wide resource usage */
 } ThreadSpecificData;
 
 static Tcl_ThreadDataKey dataKey;
-
-int exp_ChannelCount = 0; /* this is process-wide as it is used to
-			     give user some hint as to why a spawn has failed
-			     by looking at process-wide resource usage */
 
 
 /*
@@ -188,7 +187,7 @@ ExpCloseProc(instanceData, interp)
 	    break;
 	}
     }
-    exp_ChannelCount--;
+    tsdPtr->channelCount--;
     ckfree((char *) esPtr);
     return errorCode;
 }
@@ -439,7 +438,14 @@ expCreateChannel(fdin,fdout,pid)
     esPtr->bg_status = unarmed;
     esPtr->bg_ecount = 0;
 
-    exp_ChannelCount++;
+    tsdPtr->channelCount++;
 
-    return esPtr->channel;
+    return esPtr;
+}
+
+void
+expChannelInit() {
+    ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
+
+    tsdPtr->channelCount = 0;
 }

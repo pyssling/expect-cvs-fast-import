@@ -60,8 +60,6 @@ would appreciate credit if this program or parts of it are used.
 #include "expect.h"
 #include "exp_int.h"
 
-#include "exp_printify.h"
-
 #ifdef NO_STDLIB_H
 #include "../compat/stdlib.h"
 #else
@@ -99,6 +97,7 @@ int exp_logfile_all = FALSE;	/* if TRUE, write log of all interactions */
 int exp_loguser = TRUE;		/* if TRUE, user sees interactions on stdout */
 
 
+char *exp_printify();
 void exp_debuglog();
 int getptymaster();
 int getptyslave();
@@ -1242,3 +1241,46 @@ exp_errorlog TCL_VARARGS_DEF(char *,arg1)
     if (exp_logfile) vfprintf(exp_logfile,fmt,args);
     va_end(args);
 }
+
+#include "tcl.h"
+#include <ctype.h>
+
+/* exp_printify - printable versions of random ASCII strings
+char *
+exp_printify(s) /* INTL */
+char *s;
+{
+	static int destlen = 0;
+	static char *dest = 0;
+	char *d;		/* ptr into dest */
+	unsigned int need;
+	Tcl_UniChar ch;
+
+	if (s == 0) return("<null>");
+
+	/* worst case is every character takes 4 to printify */
+	need = strlen(s)*6 + 1;
+	if (need > destlen) {
+		if (dest) ckfree(dest);
+		dest = ckalloc(need);
+		destlen = need;
+	}
+
+	for (d = dest;*s;) {
+	    s += Tcl_UtfToUniChar(s, &ch);
+	    if (ch == '\r') {
+		strcpy(d,"\\r");		d += 2;
+	    } else if (ch == '\n') {
+		strcpy(d,"\\n");		d += 2;
+	    } else if (ch == '\t') {
+		strcpy(d,"\\t");		d += 2;
+	    } else if ((ch < 0x80) && isprint(UCHAR(ch))) {
+		*d = (char)ch;			d += 1;
+	    } else {
+		sprintf(d,"\\u%04x",ch);	d += 6;
+	    }
+	}
+	*d = '\0';
+	return(dest);
+}
+#endif /* WHOLE FILE */

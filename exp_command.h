@@ -15,9 +15,9 @@ EXTERN int exp_default_match_max;
 EXTERN int exp_default_parity;
 EXTERN int exp_default_rm_nulls;
 
-EXTERN int		exp_one_arg_braced _ANSI_ARGS_((char *));
+EXTERN int		exp_one_arg_braced _ANSI_ARGS_((Tcl_Obj *));
 EXTERN int		exp_eval_with_one_arg _ANSI_ARGS_((ClientData,
-				Tcl_Interp *,char **));
+				Tcl_Interp *,objv **));
 EXTERN void		exp_lowmemcpy _ANSI_ARGS_((char *,char *,int));
 
 EXTERN int exp_flageq_code _ANSI_ARGS_((char *,char *,int));
@@ -217,7 +217,7 @@ extern Tcl_ChannelType expChannelType;
 
 EXTERN void		expAdjust _ANSI_ARGS_((ExpState *));
 EXTERN void		exp_buffer_shuffle _ANSI_ARGS_((Tcl_Interp *,ExpState *,int,char *,char *));
-EXTERN int		exp_close _ANSI_ARGS_((Tcl_Interp *,int));
+EXTERN int		exp_close _ANSI_ARGS_((Tcl_Interp *,ExpState *));
 EXTERN void		exp_close_all _ANSI_ARGS_((Tcl_Interp *));
 EXTERN void		exp_ecmd_remove_fd_direct_and_indirect 
 				_ANSI_ARGS_((Tcl_Interp *,int));
@@ -246,6 +246,8 @@ EXTERN void		exp_init_trap _ANSI_ARGS_((void));
 EXTERN void		exp_init_send _ANSI_ARGS_((void));
 EXTERN void		exp_init_unit_random _ANSI_ARGS_((void));
 EXTERN void		exp_init_sig _ANSI_ARGS_((void));
+EXTERN void		expChannelInit _ANSI_ARGS_((void));
+EXTERN int		expChannelCountGet _ANSI_ARGS_((void));
 
 EXTERN int		exp_tcl2_returnvalue _ANSI_ARGS_((int));
 EXTERN int		exp_2tcl_returnvalue _ANSI_ARGS_((int));
@@ -289,8 +291,8 @@ struct exp_i {
 
 EXTERN struct exp_i *	exp_new_i_complex _ANSI_ARGS_((Tcl_Interp *,
 					char *, int, Tcl_VarTraceProc *));
-EXTERN struct exp_i *	exp_new_i_simple _ANSI_ARGS_((int,int));
-EXTERN struct exp_state_list *exp_new_state _ANSI_ARGS_((int));
+EXTERN struct exp_i *	exp_new_i_simple _ANSI_ARGS_((ExpState *,int));
+EXTERN struct exp_state_list *exp_new_state _ANSI_ARGS_((ExpState *));
 EXTERN void		exp_free_i _ANSI_ARGS_((Tcl_Interp *,struct exp_i *,
 					Tcl_VarTraceProc *));
 EXTERN void		exp_free_state _ANSI_ARGS_((struct exp_state_list *));
@@ -329,11 +331,10 @@ EXTERN ExpState *       expStateFromChannelName _ANSI_ARGS_((Tcl_Interp *,char *
 
 EXTERN ExpState *	expCreateChannel _ANSI_ARGS_((int,int,int));
 EXTERN ExpState *	expWaitOnAny _ANSI_ARGS_((Tcl_Interp *));
-EXTERN int		expStateAnyIs _ANSI_ARGS_((ExpState *));
-EXTERN int		expStateStdinOutIs _ANSI_ARGS_((ExpState *));
-EXTERN int		expStateDevttyIs _ANSI_ARGS_((ExpState *));
 EXTERN void		expExpectVarsInit _ANSI_ARGS_((void));
-EXTERN int		expStdinoutIs _ANSI_ARGS_((ExpState *));
+EXTERN int		expStateAnyIs _ANSI_ARGS_((ExpState *));
+EXTERN int		expDevttyIs _ANSI_ARGS_((ExpState *));
+EXTERN int		expStdinOutIs _ANSI_ARGS_((ExpState *));
 EXTERN ExpState *	expStdinoutGet _ANSI_ARGS_((void));
 EXTERN ExpState *	expDevttyGet _ANSI_ARGS_((void));
 

@@ -187,19 +187,23 @@ we're ready).  The other is to return can-match.
 */
 
 static int
-in_keymap(string,stringlen,keymap,km_match,match_length,skip,rm_nulls)
-char *string;
-int stringlen;
-struct keymap *keymap;		/* linked list of keymaps */
-struct keymap **km_match;	/* keymap that matches or can match */
-int *match_length;		/* # of chars that matched */
-int *skip;			/* # of chars to skip */
-int rm_nulls;			/* skip nulls if true */
+in_keymap(esPtr,keymap,km_match,match_length,skip)
+    ExpState *esPtr;
+    struct keymap *keymap;	/* linked list of keymaps */
+    struct keymap **km_match;	/* keymap that matches or can match */
+    int *match_length;		/* # of chars that matched */
+    int *skip;			/* # of chars to skip */
 {
+    char *string;
     struct keymap *km;
     char *ks;		/* string from a keymap */
     char *start_search;	/* where in the string to start searching */
     char *string_end;
+    char *string;
+    int stringLen;
+    int rm_nulls;		/* skip nulls if true */
+
+    string = Tcl_GetStringFromObj(esPtr->buffer,&stringLen);
 
     /* assert (*km == 0) */
 
@@ -207,11 +211,13 @@ int rm_nulls;			/* skip nulls if true */
     /* is lengthy and has no key maps.  Otherwise it would mindlessly */
     /* iterate on each character anyway. */
     if (!keymap) {
-	*skip = stringlen;
+	*skip = stringLen;
 	return(EXP_CANTMATCH);
     }
 
-    string_end = string + stringlen;
+    rm_nulls = esPtr->rm_nulls;
+
+    string_end = string + stringLen;
 
     /* Mark beginning of line for ^ . */
     regbol = string;
@@ -382,8 +388,8 @@ static jmp_buf env;		/* for interruptable read() */
 static int reading;		/* while we are reading */
 				/* really, while "env" is valid */
 static int deferred_interrupt = FALSE;	/* if signal is received, but not */
-				/* in i_read record this here, so it will */
-				/* be handled next time through i_read */
+				/* in expIRead record this here, so it will */
+				/* be handled next time through expIRead */
 
 static void
 sigchld_handler()
@@ -395,29 +401,91 @@ sigchld_handler()
 #define EXP_CHILD_EOF -100
 
 /*
- * Name: i_read, do an interruptable read
+ * Name: expIRead, do an interruptable read
  *
- * i_read() reads from chars from the user.
+ * intIRead() reads from chars from the user.
  *
  * It returns early if it detects the death of a proc (either the spawned
  * process or the child (surrogate).
  */
 static int
-i_read(esPtr,buffer,length)
-ExpState *esPtr;
-char *buffer;
-int length;
+intIRead(channel,obj,size,flags);
+Tcl_Channel channel;
+Tcl_Obj *obj;
+int size;
+int flags;
 {
-	int cc = EXP_CHILD_EOF;
+    int cc = EXP_CHILD_EOF;
 
-	if (deferred_interrupt) return(cc);
+    if (deferred_interrupt) return(cc);
 
-	if (0 == setjmp(env)) {
-		reading = TRUE;
-		cc = Tcl_ReadChars(esPtr->channel,buffer,length);
+    if (0 == setjmp(env)) {
+	reading = TRUE;
+	cc = Tcl_ReadChars(channel,obj,size,flags);
+    }
+    reading = FALSE;
+    return(cc);
+}
+
+/*
+ * intRead() does the logical equivalent of a read() for the interact command.
+ * Returns # of bytes read or negative number (EXP_XXX) indicating unusual event.
+ */
+static int
+intRead(esPtr,warnOnBufferFull,interruptible)
+    ExpState *esPtr;
+    int warnOnBufferFull;
+    int interruptible;
+{
+    char *eobOld;  /* old end of buffer */
+    int cc;
+    int size = expSizeGet(esPtr);
+    char *str;
+
+    str = Tcl_GetString(esPtr->buffer,&size);
+    eobOld = str+size;
+
+    if (size + TCL_UTF_MAX >= esPtr->msize) {
+	/*
+	 * In theory, interact could be invoked when this situation
+	 * already exists, hence the "probably" in the warning below
+	 */
+	if (warnOnBufferFull) {
+	    expDiagLogU("WARNING: interact buffer is full, probably because your\r\n");
+	    expDiagLogU("patterns have matched all of it but require more chars\r\n");
+	    expDiagLogU("in order to complete the match.\r\n");
+	    expDiagLogU("Dumping first half of buffer in order to continue\r\n");
+	    expDiagLogU("Recommend you enlarge the buffer or fix your patterns.\r\n");
 	}
-	reading = FALSE;
-	return(cc);
+	exp_buffer_shuffle(interp,u,0,INTER_OUT,"interact");
+    }
+    if (!interruptible) {
+	cc = Tcl_ReadChars(esPtr->channel,
+		esPtr->buffer,
+		esPtr->msize - (size / TCL_UTF_MAX),
+		1 /* append */);
+    } else {
+#ifdef SIMPLE_EVENT
+	cc = intIRead(esPtr->channel,
+		esPtr->buffer,
+		esPtr->msize - (size / TCL_UTF_MAX),
+		1 /* append */);
+#endif
+    }
+
+    if (cc > 0) {
+	/* strip parity if requested */
+	if (esPtr->parity == 0) {
+	    expParityStrip(esPtr->buffer,size /* old size which is now offset */);
+	}
+	expDiagLog("spawn id %s send <",u->name);
+	expDiagLogU(expPrintify(eobOld));
+	expDiagLogU(">\r\n");
+
+	u->key = key;
+	cc = expSizeGet(esPtr);  /* generate true byte count */
+    }
+    return cc;
 }
 
 /* exit status for the child process created by cmdInteract */
@@ -549,7 +617,7 @@ static char interpreter_cmd[] = "interpreter";
 
 /*ARGSUSED*/
 int
-Exp_InteractCmd(clientData, interp, argc, argv)
+Exp_InteractCmd(clientData, interp, objc, objv)
 ClientData clientData;
 Tcl_Interp *interp;
 int objc;
@@ -581,7 +649,8 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
     int next_echo = FALSE;	/* if macros should be echoed */
     int next_timestamp = FALSE; /* if we should generate a timestamp */
     int status = TCL_OK;	/* final return value */
-    int i;			/* trusty temp */
+    int i;			/* misc temp */
+    int size;			/* size temp */
 
     int timeout_simple = TRUE;	/* if no or global timeout */
 
@@ -1221,56 +1290,24 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 
 	switch (rc) {
 	    case EXP_DATA_NEW:
-		if (u->size == u->msize) {
-		    /* In theory, interact could be invoked when this situation */
-		    /* already exists, hence the "probably" in the warning below */
-		    
-		    expDiagLogU("WARNING: interact buffer is full, probably because your\r\n");
-		    expDiagLogU("patterns have matched all of it but require more chars\r\n");
-		    expDiagLogU("in order to complete the match.\r\n");
-		    expDiagLogU("Dumping first half of buffer in order to continue\r\n");
-		    expDiagLogU("Recommend you enlarge the buffer or fix your patterns.\r\n");
-		    exp_buffer_shuffle(interp,u,0,INTER_OUT,"interact");
-		}
-/*SCOTT*/
-		cc = Tcl_ReadChars(u, u->buffer + u->size,
-				      u->msize - u->size);
-		if (cc > 0) {
-		    u->key = key;
-		    u->size += cc;
-		    u->buffer[u->size] = '\0';
-
-		    /* strip parity if requested */
-		    if (u->parity == 0) {
-			/* do it from end backwards */
-			char *p = u->buffer + u->size - 1;
-			int count = cc;
-			while (count--) {
-			    *p-- &= 0x7f;
-			}
-		    }
-
-		    expDiagLog("spawn id %s send <",u->name);
-		    expDiagLogU(expPrintify(u->buffer + u->size - cc));
-		    expDiagLogU(">\r\n");
-		    break;
-		}
+		cc = intRead(esPtr,1,0);
+		if (cc > 0) break;
 
 		rc = EXP_EOF;
 		/*
+		 * FALLTHRU
+		 *
 		 * Most systems have read() return 0, allowing
 		 * control to fall thru and into this code.  On some
 		 * systems (currently HP and new SGI), read() does
 		 * see eof, and it must be detected earlier.  Then
 		 * control jumps directly to this EXP_EOF label.
 		 */
-
-		/*FALLTHRU*/
 	    case EXP_EOF:
 		action = inp->action_eof;
 		attempt_match = FALSE;
-		skip = u->size;
-		expDiagLog("interact: received eof from spawn_id %d\r\n",u->name);
+		skip = expSizeGet(u);
+		expDiagLog("interact: received eof from spawn_id %s\r\n",u->name);
 		/* actual close is done later so that we have a */
 		/* chance to flush out any remaining characters */
 		need_to_close_master = TRUE;
@@ -1281,15 +1318,14 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 	    case EXP_TIMEOUT:
 		action = inp->action_timeout;
 		attempt_match = FALSE;
-		skip = u->size;
+		skip = expSizeGet(u);
 		break;
 	}
 
 	km = 0;
 
 	if (attempt_match) {
-	    rc = in_keymap(u->buffer,u->size,inp->keymap,
-		    &km,&match_length,&skip,u->rm_nulls);
+	    rc = in_keymap(u,inp->keymap,&km,&match_length,&skip);
 	} else {
 	    attempt_match = TRUE;
 	}
@@ -1393,32 +1429,28 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 	
 	/* u->printed is now accurate with respect to the buffer */
 	/* However, we're about to shift the old data out of the */
-	/* buffer.  Thus, u->size, printed, and echoed must be */
+	/* buffer.  Thus size, printed, and echoed must be */
 	/* updated */
 	
 	/* first update size based on skip information */
 	/* then set skip to the total amount skipped */
 
+	size = expSizeGet(u);
 	if (rc == EXP_MATCH) {
 	    action = &km->action;
 
 	    skip += match_length;
-	    u->size -= skip;
-
-/*SCOTT*/
-	    if (u->size) {
-		memcpy(u->buffer, u->buffer + skip, u->size);
-		exp_lowmemcpy(u->lower,u->buffer+ skip, u->size);
+	    size -= skip;
+	    if (size) {
+		memcpy(u->buffer, u->buffer + skip, size);
 	    }
 	} else {
 	    if (skip) {
-		u->size -= skip;
-		memcpy(u->buffer, u->buffer + skip, u->size);
-		exp_lowmemcpy(u->lower,u->buffer+ skip, u->size);
+		size -= skip;
+		memcpy(u->buffer, u->buffer + skip, size);
 	    }
 	}
-	u->buffer[u->size] = '\0';
-	u->lower [u->size] = '\0';
+	Tcl_SetObjLength(size);
 
 	/* now update printed based on total amount skipped */
 
@@ -1562,39 +1594,21 @@ got_action:
 
 		switch (rc) {
 		case EXP_DATA_NEW:
-			cc = Tcl_ReadChars(u,u->buffer + u->size,
-					     u->msize - u->size);
-			if (cc > 0) {
-				u->key = key;
-				u->size += cc;
-				u->buffer[u->size] = '\0';
-
-				/* strip parity if requested */
-				if (u->parity == 0) {
-					/* do it from end backwards */
-					char *p = u->buffer + u->size - 1;
-					int count = cc;
-					while (count--) {
-						*p-- &= 0x7f;
-					}
-				}
-
-				expDiagLog("spawn id %s send <",u->name);
-				expDiagLogU(expPrintify(u->buffer + u->size - cc));
-				expDiagLogU(">\r\n");
-				break;
-			}
-			/*FALLTHRU*/
-
-			/* Most systems have read() return 0, allowing */
-			/* control to fall thru and into this code.  On some */
-			/* systems (currently HP and new SGI), read() does */
-			/* see eof, and it must be detected earlier.  Then */
-			/* control jumps directly to this EXP_EOF label. */
+		    cc = intRead(esPtr,0,0);
+		    if (cc > 0) break;
+		    /*
+		     * FALLTHRU
+		     *
+		     * Most systems have read() return 0, allowing
+		     * control to fall thru and into this code.  On some
+		     * systems (currently HP and new SGI), read() does
+		     * see eof, and it must be detected earlier.  Then
+		     * control jumps directly to this EXP_EOF label.
+		     */
 		case EXP_EOF:
 			action = inp->action_eof;
 			attempt_match = FALSE;
-			skip = u->size;
+			skip = expSizeGet(u);
 			rc = EXP_EOF;
 			expDiagLog("interact: child received eof from spawn_id %s\r\n",u->name);
 			exp_close(interp,u);
@@ -1607,8 +1621,7 @@ got_action:
 		km = 0;
 
 		if (attempt_match) {
-			rc = in_keymap(u->buffer,u->size,inp->keymap,
-				&km,&match_length,&skip);
+			rc = in_keymap(u,inp->keymap,&km,&match_length,&skip);
 		} else {
 			attempt_match = TRUE;
 		}
@@ -1707,34 +1720,29 @@ got_action:
 
 		/* u->printed is now accurate with respect to the buffer */
 		/* However, we're about to shift the old data out of the */
-		/* buffer.  Thus, u->size, printed, and echoed must be */
+		/* buffer.  Thus size, printed, and echoed must be */
 		/* updated */
 
 		/* first update size based on skip information */
 		/* then set skip to the total amount skipped */
 
-		if (rc == EXP_MATCH) {
-			action = &km->action;
+		size = expSizeGet(u);
+		if (rc =n= EXP_MATCH) {
+		    action = &km->action;
 
-			skip += match_length;
-			u->size -= skip;
-
-			if (u->size)
-				memcpy(u->buffer, u->buffer + skip, u->size);
-				exp_lowmemcpy(u->lower,u->buffer+ skip, u->size);
+		    skip += match_length;
+		    size -= skip;
+		    if (size) {
+			memcpy(u->buffer, u->buffer + skip, size);
+		    }
 		} else {
-			if (skip) {
-				u->size -= skip;
-				memcpy(u->buffer, u->buffer + skip, u->size);
-				exp_lowmemcpy(u->lower,u->buffer+ skip, u->size);
-			}
+		    if (skip) {
+			size -= skip;
+			memcpy(u->buffer, u->buffer + skip, size);
+		    }
 		}
+		Tcl_SetObjLength(size);
 
-		/* as long as buffer is still around, null terminate it */
-		if (rc != EXP_EOF) {
-			u->buffer[u->size] = '\0';
-			u->lower [u->size] = '\0';
-		}
 		/* now update printed based on total amount skipped */
 
 		u->printed -= skip;
@@ -1844,26 +1852,8 @@ got_action:
 
 		switch (rc) {
 		case EXP_DATA_NEW:
-			cc = i_read(u,	u->buffer + u->size,
-					u->msize - u->size);
-			if (cc > 0) {
-				u->key = key;
-				u->size += cc;
-				u->buffer[u->size] = '\0';
-
-				/* strip parity if requested */
-				if (u->parity == 0) {
-					/* do it from end backwards */
-					char *p = u->buffer + u->size - 1;
-					int count = cc;
-					while (count--) {
-						*p-- &= 0x7f;
-					}
-				}
-
-				expDiagLog("spawn id %s send <",u->name);
-				expDiagLogU(expPrintify(u->buffer + u->size - cc));
-				expDiagLogU(">\r\n");
+		        cc = intRead(esPtr,0,1);
+		        if (cc > 0) {
 				break;
 			} else if (cc == EXP_CHILD_EOF) {
 				/* user could potentially have two outputs in which */
@@ -1871,23 +1861,25 @@ got_action:
 				/* the likelihood of this is nil */
 				action = inp->output->action_eof;
 				attempt_match = FALSE;
-				skip = u->size;
+				skip = expSizeGet(u);
 				rc = EXP_EOF;
 				expDiagLogU("interact: process died/eof\r\n");
 				clean_up_after_child(interp,esPtrs[1]);
 				break;
 			}
-			/*FALLTHRU*/
-
-			/* Most systems have read() return 0, allowing */
-			/* control to fall thru and into this code.  On some */
-			/* systems (currently HP and new SGI), read() does */
-			/* see eof, and it must be detected earlier.  Then */
-			/* control jumps directly to this EXP_EOF label. */
+			/*
+			 * FALLTHRU
+			 *
+			 * Most systems have read() return 0, allowing
+			 * control to fall thru and into this code.  On some
+			 * systems (currently HP and new SGI), read() does
+			 * see eof, and it must be detected earlier.  Then
+			 * control jumps directly to this EXP_EOF label.
+			 */
 		case EXP_EOF:
 			action = inp->action_eof;
 			attempt_match = FALSE;
-			skip = u->size;
+			skip = expSizeGet(u);
 			rc = EXP_EOF;
 			expDiagLogU("user sent EOF or disappeared\n\n");
 			break;
@@ -1899,8 +1891,7 @@ got_action:
 		km = 0;
 
 		if (attempt_match) {
-			rc = in_keymap(u->buffer,u->size,inp->keymap,
-				&km,&match_length,&skip);
+			rc = in_keymap(u,inp->keymap,&km,&match_length,&skip);
 		} else {
 			attempt_match = TRUE;
 		}
@@ -2004,34 +1995,29 @@ got_action:
 
 		/* u->printed is now accurate with respect to the buffer */
 		/* However, we're about to shift the old data out of the */
-		/* buffer.  Thus, u->size, printed, and echoed must be */
+		/* buffer.  Thus size, printed, and echoed must be */
 		/* updated */
 
 		/* first update size based on skip information */
 		/* then set skip to the total amount skipped */
 
+		size = expSizeGet(u);
 		if (rc == EXP_MATCH) {
-			action = &km->action;
+		    action = &km->action;
 
-			skip += match_length;
-			u->size -= skip;
-
-			if (u->size)
-				memcpy(u->buffer, u->buffer + skip, u->size);
-				exp_lowmemcpy(u->lower,u->buffer+ skip, u->size);
+		    skip += match_length;
+		    size -= skip;
+		    if (size) {
+			memcpy(u->buffer, u->buffer + skip, size);
+		    }
 		} else {
-			if (skip) {
-				u->size -= skip;
-				memcpy(u->buffer, u->buffer + skip, u->size);
-				exp_lowmemcpy(u->lower,u->buffer+ skip, u->size);
-			}
+		    if (skip) {
+			size -= skip;
+			memcpy(u->buffer, u->buffer + skip, size);
+		    }
 		}
+		Tcl_SetObjLength(size);
 
-		/* as long as buffer is still around, null terminate it */
-		if (rc != EXP_EOF) {
-			u->buffer[u->size] = '\0';
-			u->lower [u->size] = '\0';
-		}
 		/* now update printed based on total amount skipped */
 
 		u->printed -= skip;

@@ -1,9 +1,7 @@
 /* exp_log.h */
 
-#include "exp_printify.h"
-
 extern void		expErrorLog _ANSI_ARGS_(TCL_VARARGS(char *,fmt));
-extern void		expErrorLogU _ANSI_ARGS_((char *buf, int force_stdout));
+extern void		expErrorLogU _ANSI_ARGS_((char *));
 
 extern void		expStdoutLog _ANSI_ARGS_(TCL_VARARGS(int,force_stdout));
 extern void		expStdoutLogU _ANSI_ARGS_((char *buf, int force_stdout));
@@ -17,15 +15,15 @@ EXTERN int		expDiagToStderrGet _ANSI_ARGS_((void));
 EXTERN void		expDiagToStderrSet _ANSI_ARGS_((int));
 EXTERN void		expDiagWriteBytes _ANSI_ARGS_((char *));
 EXTERN void		expDiagWriteChars _ANSI_ARGS_((char *));
-EXTERN void		expDiagWriteObj _ANSI_ARGS_((Tcl_Object *));
+EXTERN void		expDiagWriteObj _ANSI_ARGS_((Tcl_Obj *));
 EXTERN void		expDiagLog _ANSI_ARGS_(TCL_VARARGS(char *,fmt));
 EXTERN void		expDiagLogU _ANSI_ARGS_((char *));
 
-EXTERN void		expPrintify _ANSI_ARGS_((char *));
-EXTERN void		expPrintifyObj _ANSI_ARGS_((Tcl_Obj *));
+EXTERN char *		expPrintify _ANSI_ARGS_((char *));
+EXTERN char *		expPrintifyObj _ANSI_ARGS_((Tcl_Obj *));
 
 EXTERN void		expLogInit _ANSI_ARGS_((void));
-EXTERN int		expLogChannelOpen _ANSI_ARGS_((Tcl_Interp *,char *));
+EXTERN int		expLogChannelOpen _ANSI_ARGS_((Tcl_Interp *,char *,int));
 EXTERN Tcl_Channel 	expLogChannelGet _ANSI_ARGS_((void));
 EXTERN void		expLogChannelSet _ANSI_ARGS_((Tcl_Channel));
 EXTERN void		expLogChannelClose _ANSI_ARGS_((void));

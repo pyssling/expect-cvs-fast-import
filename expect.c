@@ -1555,8 +1555,10 @@ expParityStrip(obj,offsetBytes)
     }
 
     if (changed) {
-/*SCOTT*/
-	/* how do we invalidate the unicode rep? */
+	/* invalidate the unicode rep */
+	if (obj->typePtr->freeIntRepProc) {
+	    obj->typePtr->freeIntRepProc(obj);
+	}
     }
 }
 
@@ -1598,8 +1600,6 @@ int save_flags;
     int cc = EXP_TIMEOUT;
     int size = expSizeGet(esPtr);
 
-    /* int size = Tcl_GetCharLength(esPtr->buffer);*/
-
     if (size + TCL_UTF_MAX >= esPtr->msize) 
 	exp_buffer_shuffle(interp,esPtr,save_flags,EXPECT_OUT,"expect");
     size = expSizeGet(esPtr);
@@ -1619,7 +1619,7 @@ int save_flags;
     cc = Tcl_ReadChars(esPtr->channel,
 	    esPtr->buffer,
 	    esPtr->msize - (size / TCL_UTF_MAX),
-	    1 /* Append */);
+	    1 /* append */);
     i_read_errno = errno;
 
 #ifdef SIMPLE_EVENT
@@ -1642,12 +1642,13 @@ int save_flags;
 #endif
 
     if (cc > 0) {
+	/* strip parity if requested */
 	if (esPtr->parity == 0) {
 	    expParityStrip(esPtr->buffer,size /* old size which is now offset */);
 	}
+	cc = expSizeGet(esPtr); /* generate true byte count */
     }
-
-    return expSizeGet(esPtr);
+    return cc;	
 }
 
 /*
@@ -2600,6 +2601,7 @@ char **argv;
 
 }
 
+#if OBSOLETEWITH81
 /* lowmemcpy - like memcpy but it lowercases result */
 void
 exp_lowmemcpy(dest,src,n)
@@ -2612,6 +2614,7 @@ int n;
 		src++;	dest++;
 	}
 }
+#endif
 
 /*ARGSUSED*/
 int

@@ -501,6 +501,7 @@ Tcl_Interp *interp;
 		exp_init_trap();
 		exp_init_unit_random();
 		exp_init_spawn_ids();
+		expChannelInit();
 		expDiagInit();
 		expLogInit();
 
