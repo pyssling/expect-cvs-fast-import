@@ -4,16 +4,19 @@
  *
  *   Tcl's hash table done as a template.
  *
- * Copyright (c) 1999-2001 Tomahawk Software Group
+ * Copyright (c) 1999-2001 David Gravereaux
  *
  * See the file "license.txt" for information on usage and redistribution
  * of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  *
- * RCS: @(#) $Id: TclHash.hpp,v 1.9 2001/09/02 04:19:47 daveg Exp $
+ * RCS: @(#) $Id: TclHash.hpp,v 1.1.2.1 2002/03/12 16:42:07 davygrvy Exp $
  ------------------------------------------------------------------------------
  */
+
 #ifndef INC_tclhash_hpp__
 #define INC_tclhash_hpp__
+
+#include "tcl.h"
 
 namespace Tcl {
 
@@ -27,7 +30,11 @@ namespace Tcl {
 	int Add (void *key, T result);
 	int Find (void *key, T *result);
 	int Delete (void *key);
+	int Top (T *result);
+	int Next (T *result);
 
+    protected:
+	Tcl_HashSearch HashSrch;
 	Tcl_HashTable HashTbl;
     };
 
@@ -84,6 +91,36 @@ namespace Tcl {
 	    return TCL_ERROR;
 	}
 	Tcl_DeleteHashEntry(entryPtr);
+	return TCL_OK;
+    }
+
+    template <class T, int keytype>
+	int Hash<T, keytype>::Top (T *result)
+    {
+	Tcl_HashEntry *entryPtr;
+
+	entryPtr = Tcl_FirstHashEntry(&HashTbl, &HashSrch);
+	if (entryPtr == 0L) {
+	    return TCL_ERROR;
+	}
+	if (result != 0L) {
+	    *result = static_cast<T>(Tcl_GetHashValue(entryPtr));
+	}
+	return TCL_OK;
+    }
+
+    template <class T, int keytype>
+	int Hash<T, keytype>::Next (T *result)
+    {
+	Tcl_HashEntry *entryPtr;
+
+	entryPtr = Tcl_NextHashEntry(&HashSrch);
+	if (entryPtr == 0L) {
+	    return TCL_ERROR;
+	}
+	if (result != 0L) {
+	    *result = static_cast<T>(Tcl_GetHashValue(entryPtr));
+	}
 	return TCL_OK;
     }
 
