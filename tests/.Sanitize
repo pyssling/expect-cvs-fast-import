@@ -25,7 +25,7 @@ Things-to-keep:
 
 .Sanitize
 README
-all
+all.tcl
 defs
 logfile.test
 send.test
