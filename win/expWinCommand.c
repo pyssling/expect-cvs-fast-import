@@ -392,9 +392,7 @@ Exp_SpawnCmd(ClientData clientData,Tcl_Interp *interp,int argc,char **argv)
     nargv[2] = usePipes ? "1" : "0";
     nargv[3] = debug    ? "1" : "0";
     j = 4;
-    if (Tcl_DStringValue(&slavePath)) {
-	nargv[j++] = Tcl_DStringValue(&slavePath);
-    }
+    nargv[j++] = Tcl_DStringValue(&slavePath);
     for (i = 0; i < argc; i++, j++) {
 	nargv[j] = argv[i];
     }
@@ -402,20 +400,20 @@ Exp_SpawnCmd(ClientData clientData,Tcl_Interp *interp,int argc,char **argv)
 
     /*
      * When the Expect extension is running in a debugger,
-     * print the commandline to the output window.
+     * print the commandline to the debugger's output window.
+     * This is a feature of the OS.
      */
     if (IsDebuggerPresent()) {
-	int i;
-	char buf[100];
+	Tcl_DString ds;
 
-	OutputDebugString("spawndrv.exe commandline: ");
-	for (i = 0; i < argc; i++) {
-	    wsprintf(buf, "%s ", nargv[i]);
-	    OutputDebugString(buf);
-	}
+	OutputDebugString("spawndrv.exe args: ");
+	Tcl_DStringInit(&ds);
+	/* This quotes the strings properly. */
+	BuildCommandLine(nargv[0], argc, nargv, &ds);
+	(*expWinProcs->outputDebugStringProc)((LPCTSTR)Tcl_DStringValue(&ds));
 	OutputDebugString("\n");
-//	slaveDrvPid = 0;
-//	globalPid = 1;
+
+	Tcl_DStringFree(&ds);
     }
 
     hide = !debug;

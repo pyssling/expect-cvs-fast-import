@@ -220,7 +220,7 @@ main(argc, argv)
     Sleep(22000);		/* XXX: For debugging purposes */
 #endif
 
-    ExpWinProcessInit();
+    ExpWinInit();
 
     if (argc < 2) {
 	exit(1);

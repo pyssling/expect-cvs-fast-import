@@ -60,9 +60,27 @@ typedef struct {
     int toWrite;
 } ExpSpawnState;
 
-extern void		ExpWinProcessInit(void);
+typedef struct {
+    int useWide;
+    HANDLE (WINAPI *createFileProc)(CONST TCHAR *, DWORD, DWORD, 
+	    LPSECURITY_ATTRIBUTES, DWORD, DWORD, HANDLE);
+    BOOL (WINAPI *createProcessProc)(CONST TCHAR *, TCHAR *, 
+	    LPSECURITY_ATTRIBUTES, LPSECURITY_ATTRIBUTES, BOOL, DWORD, 
+	    LPVOID, CONST TCHAR *, LPSTARTUPINFO, LPPROCESS_INFORMATION);
+    DWORD (WINAPI *getFileAttributesProc)(CONST TCHAR *);
+    DWORD (WINAPI *getShortPathNameProc)(CONST TCHAR *, TCHAR *, DWORD); 
+    DWORD (WINAPI *searchPathProc)(CONST TCHAR *, CONST TCHAR *, 
+	    CONST TCHAR *, DWORD, TCHAR *, TCHAR **);
+    VOID (WINAPI *outputDebugStringProc)(LPCTSTR);
+} ExpWinProcs;
+
+extern ExpWinProcs *expWinProcs;
+
+extern void		ExpWinInit(void);
 extern DWORD		ExpWinApplicationType(const char *originalName,
 			    Tcl_DString *fullPath);
+extern void		BuildCommandLine(CONST char *executable, int argc,
+			    char **argv, Tcl_DString *linePtr);
 extern DWORD		ExpWinCreateProcess(int argc, char **argv,
 			    HANDLE inputHandle, HANDLE outputHandle,
 			    HANDLE errorHandle, int allocConsole,

@@ -41,18 +41,6 @@ static ProcInfo *procList = NULL;
 		    a == EXP_APPL_OS2 || a == EXP_APPL_WIN32CUI || \
 		    a == EXP_APPL_WIN64CUI)
 
-typedef struct {
-    int useWide;
-    HANDLE (WINAPI *createFileProc)(CONST TCHAR *, DWORD, DWORD, 
-	    LPSECURITY_ATTRIBUTES, DWORD, DWORD, HANDLE);
-    BOOL (WINAPI *createProcessProc)(CONST TCHAR *, TCHAR *, 
-	    LPSECURITY_ATTRIBUTES, LPSECURITY_ATTRIBUTES, BOOL, DWORD, 
-	    LPVOID, CONST TCHAR *, LPSTARTUPINFO, LPPROCESS_INFORMATION);
-    DWORD (WINAPI *getFileAttributesProc)(CONST TCHAR *);
-    DWORD (WINAPI *getShortPathNameProc)(CONST TCHAR *, TCHAR *, DWORD); 
-    DWORD (WINAPI *searchPathProc)(CONST TCHAR *, CONST TCHAR *, 
-	    CONST TCHAR *, DWORD, TCHAR *, TCHAR **);
-} ExpWinProcs;
 
 static ExpWinProcs asciiProcs = {
     0,
@@ -64,7 +52,8 @@ static ExpWinProcs asciiProcs = {
     (DWORD (WINAPI *)(CONST TCHAR *)) GetFileAttributesA,
     (DWORD (WINAPI *)(CONST TCHAR *, TCHAR *, DWORD)) GetShortPathNameA,
     (DWORD (WINAPI *)(CONST TCHAR *, CONST TCHAR *, CONST TCHAR *, DWORD, 
-	    TCHAR *, TCHAR **)) SearchPathA
+	    TCHAR *, TCHAR **)) SearchPathA,
+    (VOID (WINAPI *)(LPCTSTR)) OutputDebugStringA
 };
 
 static ExpWinProcs unicodeProcs = {
@@ -77,14 +66,15 @@ static ExpWinProcs unicodeProcs = {
     (DWORD (WINAPI *)(CONST TCHAR *)) GetFileAttributesW,
     (DWORD (WINAPI *)(CONST TCHAR *, TCHAR *, DWORD)) GetShortPathNameW,
     (DWORD (WINAPI *)(CONST TCHAR *, CONST TCHAR *, CONST TCHAR *, DWORD, 
-	    TCHAR *, TCHAR **)) SearchPathW
+	    TCHAR *, TCHAR **)) SearchPathW,
+    (VOID (WINAPI *)(LPCTSTR)) OutputDebugStringW
 };
 
 ExpWinProcs *expWinProcs = &asciiProcs;
 
 /*
  *----------------------------------------------------------------------
- *  ExpWinProcessInit --
+ *  ExpWinInit --
  *
  *	Switches to the correct native API at run-time.  Works in
  *	tandem with Tcl_WinUtfToTchar().
@@ -95,7 +85,7 @@ ExpWinProcs *expWinProcs = &asciiProcs;
  *----------------------------------------------------------------------
  */
 void
-ExpWinProcessInit(void)
+ExpWinInit(void)
 {
     if (TclWinGetPlatformId() == VER_PLATFORM_WIN32_NT) {    
 	expWinProcs = &unicodeProcs;

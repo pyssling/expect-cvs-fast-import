@@ -541,6 +541,12 @@ Tcl_Interp *interp;
 		if (Tcl_PkgProvide(interp, "Expect", EXP_VERSION) != TCL_OK) {
 			return TCL_ERROR;
 		}
+#ifdef __WIN32__
+		{
+		    extern void ExpWinInit(void);
+		    ExpWinInit();
+		}
+#endif
 
 		exp_getpid = getpid();
 		exp_init_spawn_ids(interp);
