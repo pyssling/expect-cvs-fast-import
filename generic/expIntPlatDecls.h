@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expIntPlatDecls.h,v 1.1.4.3 2002/02/10 13:40:47 davygrvy Exp $
+ * RCS: @(#) $Id: expIntPlatDecls.h,v 1.1.4.4 2002/03/07 02:49:36 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -48,8 +48,9 @@ TCL_EXTERN(DWORD)	ExpWinCreateProcess _ANSI_ARGS_((int argc,
 				int newProcessGroup, HANDLE * processPtr, 
 				PDWORD globalPidPtr));
 /* 2 */
-TCL_EXTERN(void)	ExpSyslog _ANSI_ARGS_(TCL_VARARGS(char *,fmt));
-/* Slot 3 is reserved */
+TCL_EXTERN(void)	ExpWinSyslog _ANSI_ARGS_(TCL_VARARGS(DWORD,errId));
+/* 3 */
+TCL_EXTERN(char *)	ExpSyslogGetSysMsg _ANSI_ARGS_((DWORD errId));
 /* 4 */
 TCL_EXTERN(Tcl_Pid)	Exp_WaitPid _ANSI_ARGS_((Tcl_Pid pid, int * statPtr, 
 				int options));
@@ -70,8 +71,8 @@ typedef struct ExpIntPlatStubs {
 #ifdef __WIN32__
     DWORD (*expWinApplicationType) _ANSI_ARGS_((const char * originalName, Tcl_DString * fullPath)); /* 0 */
     DWORD (*expWinCreateProcess) _ANSI_ARGS_((int argc, char *const * argv, HANDLE inputHandle, HANDLE outputHandle, HANDLE errorHandle, int allocConsole, int hideConsole, int debug, int newProcessGroup, HANDLE * processPtr, PDWORD globalPidPtr)); /* 1 */
-    void (*expSyslog) _ANSI_ARGS_(TCL_VARARGS(char *,fmt)); /* 2 */
-    void *reserved3;
+    void (*expWinSyslog) _ANSI_ARGS_(TCL_VARARGS(DWORD,errId)); /* 2 */
+    char * (*expSyslogGetSysMsg) _ANSI_ARGS_((DWORD errId)); /* 3 */
     Tcl_Pid (*exp_WaitPid) _ANSI_ARGS_((Tcl_Pid pid, int * statPtr, int options)); /* 4 */
     void (*exp_KillProcess) _ANSI_ARGS_((Tcl_Pid pid)); /* 5 */
     void (*expWinInit) _ANSI_ARGS_((void)); /* 6 */
@@ -102,11 +103,14 @@ extern ExpIntPlatStubs *expIntPlatStubsPtr;
 #define ExpWinCreateProcess \
 	(expIntPlatStubsPtr->expWinCreateProcess) /* 1 */
 #endif
-#ifndef ExpSyslog
-#define ExpSyslog \
-	(expIntPlatStubsPtr->expSyslog) /* 2 */
+#ifndef ExpWinSyslog
+#define ExpWinSyslog \
+	(expIntPlatStubsPtr->expWinSyslog) /* 2 */
 #endif
-/* Slot 3 is reserved */
+#ifndef ExpSyslogGetSysMsg
+#define ExpSyslogGetSysMsg \
+	(expIntPlatStubsPtr->expSyslogGetSysMsg) /* 3 */
+#endif
 #ifndef Exp_WaitPid
 #define Exp_WaitPid \
 	(expIntPlatStubsPtr->exp_WaitPid) /* 4 */

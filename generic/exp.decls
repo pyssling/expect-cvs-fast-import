@@ -25,7 +25,7 @@
 #	   http://expect.sf.net/
 #	   http://bmrc.berkeley.edu/people/chaffee/expectnt.html
 # ----------------------------------------------------------------------------
-# RCS: @(#) $Id: exp.decls,v 1.1.4.5 2002/02/13 02:39:41 davygrvy Exp $
+# RCS: @(#) $Id: exp.decls,v 1.1.4.6 2002/03/07 02:49:36 davygrvy Exp $
 # ----------------------------------------------------------------------------
 
 library exp
@@ -494,11 +494,11 @@ declare 1 win {
 	PDWORD globalPidPtr)
 }
 declare 2 win {
-    void ExpSyslog (char *fmt, ...)
+    void ExpWinSyslog (DWORD errId, ...)
 }
-#declare 3 win {
-#    char *ExpSyslogGetSysMsg (DWORD errId)
-#}
+declare 3 win {
+    char *ExpSyslogGetSysMsg (DWORD errId)
+}
 declare 4 win {
     Tcl_Pid Exp_WaitPid (Tcl_Pid pid, int *statPtr, int options)
 }

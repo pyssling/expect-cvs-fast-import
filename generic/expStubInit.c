@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expStubInit.c,v 1.1.4.3 2002/02/10 12:04:22 davygrvy Exp $
+ * RCS: @(#) $Id: expStubInit.c,v 1.1.4.4 2002/02/10 13:40:47 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -91,8 +91,8 @@ ExpIntPlatStubs expIntPlatStubs = {
 #ifdef __WIN32__
     ExpWinApplicationType, /* 0 */
     ExpWinCreateProcess, /* 1 */
-    ExpSyslog, /* 2 */
-    NULL, /* 3 */
+    ExpWinSyslog, /* 2 */
+    ExpSyslogGetSysMsg, /* 3 */
     Exp_WaitPid, /* 4 */
     Exp_KillProcess, /* 5 */
     ExpWinInit, /* 6 */
