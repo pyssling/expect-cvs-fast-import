@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: exp.h,v 1.1.2.5 2001/10/29 06:40:29 davygrvy Exp $
+ * RCS: @(#) $Id: expIntPlatDecls.h,v 1.1.2.4 2001/11/07 10:06:30 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -50,7 +50,7 @@ TCL_EXTERN(DWORD)	ExpWinCreateProcess _ANSI_ARGS_((int argc,
 /* 2 */
 TCL_EXTERN(void)	ExpWinSyslog _ANSI_ARGS_(TCL_VARARGS(DWORD,errId));
 /* 3 */
-TCL_EXTERN(TCHAR*)	ExpSyslogGetSysMsg _ANSI_ARGS_((DWORD errId));
+TCL_EXTERN(char *)	ExpSyslogGetSysMsg _ANSI_ARGS_((DWORD errId));
 /* 4 */
 TCL_EXTERN(Tcl_Pid)	Exp_WaitPid _ANSI_ARGS_((Tcl_Pid pid, int * statPtr, 
 				int options));

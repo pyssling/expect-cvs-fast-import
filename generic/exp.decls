@@ -5,7 +5,7 @@
 #	This file is used to generate the expDecls.h, expPlatDecls.h,
 #	expIntDecls.h, and expStub.c files.
 #
-# RCS: @(#) $Id: exp.decls,v 1.1.2.3 2001/10/29 20:54:09 davygrvy Exp $
+# RCS: @(#) $Id: exp.decls,v 1.1.2.4 2001/11/07 10:06:30 davygrvy Exp $
 
 library exp
 
@@ -191,7 +191,7 @@ declare 2 win {
 	void ExpWinSyslog (DWORD errId, ...)
 }
 declare 3 win {
-	TCHAR* ExpSyslogGetSysMsg (DWORD errId)
+	char *ExpSyslogGetSysMsg (DWORD errId)
 }
 declare 4 win {
 	Tcl_Pid	Exp_WaitPid (Tcl_Pid pid, int *statPtr, int options)
