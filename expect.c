@@ -842,7 +842,7 @@ char *suffix;
 	if (p) {
 	    e->simple_start = p - str;
 	    o->e = e;
-	    o->match = e->simple_start + patLength;
+	    o->match = patLength;
 	    o->buffer = buffer;
 	    o->esPtr = esPtr;
 	    expDiagLogU(yes);
@@ -1755,7 +1755,6 @@ char *caller_name;
     char *str;
     char *middleGuess;
     char *p;
-    char *end;
     int length, newlen;
     int skiplen;
     char lostByte;
@@ -1793,16 +1792,12 @@ char *caller_name;
     }
 
     /*
-     * p is now at the beginning of a UTF char
+     * p is now at the beginning of a UTF char in the middle of the string
      */
-
 
     /*
      * before doing move, show user data we are discarding
      */
-    end = strchr(p,'\0');
-    length = end - p;
-    
     skiplen = p-str;
     lostByte = *p;
     /* temporarily stick null in middle of string */
