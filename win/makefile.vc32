@@ -15,16 +15,17 @@ expect :   setup $(EXPLIB)
 slavedrv : setup $(SLAVEDRV)
 
 setup :
-	@if not exist $(TMP_DIR)\nul mkdir $(TMP_DIR) &\
+	@if not exist "$(TMP_DIR)\nul" mkdir "$(TMP_DIR)" &\
 		echo Created directory '$(TMP_DIR)'
-	@if not exist $(OUT_DIR)\nul mkdir $(OUT_DIR) &\
+	@if not exist "$(OUT_DIR)\nul" mkdir "$(OUT_DIR)" &\
 		echo Created directory '$(OUT_DIR)'
+
 
 $(EXPLIB) : $(EXPLIB_OBJs)
 !if $(STATIC_BUILD)
 	lib -nologo -out:$@ @<<
 !else
-	link -nologo -out:$@ $(dlllflags) $(guilibsdll) $(TCLSTUBSLIB) @<<
+	link -nologo -force -out:$@ $(dlllflags) $(guilibsdll) $(TCLSTUBSLIB) @<<
 !endif
 $(EXPLIB_OBJs)
 <<
@@ -80,5 +81,61 @@ $<
 
 $(TMP_DIR)\spawndrvmc.rc : $(WINDIR)\spawndrvmc.mc
 	mc -w -h "$(TMP_DIR)" -r "$(TMP_DIR)" $?
+
+
+install :    install-binaries install-libraries install-help
+
+install-binaries :
+	@if not exist "$(SCRIPT_INSTALL_DIR)\nul" mkdir "$(LIB_INSTALL_DIR)" &\
+	    echo Created directory '$(SCRIPT_INSTALL_DIR)'
+	@echo installing $(EXPLIBNAME)...
+	@copy /y /b $(EXPLIB) "$(SCRIPT_INSTALL_DIR)" > nul
+	@echo installing $(EXPSTUBLIBNAME)...
+	@copy /y /b $(EXPSTUBLIB) "$(LIB_INSTALL_DIR)" > nul
+	@echo installing headers...
+	@copy /y /a "$(GENERICDIR)\exp.h" \
+		    "$(GENERICDIR)\expDecls.h" \
+		    "$(GENERICDIR)\expPlatDecls.h" \
+		    "$(INCLUDE_INSTALL_DIR)" > nul
+	@echo installing pkgIndex.tcl...
+	@echo package ifneeded Expect $(EXP_DOTVERSION) [list load [file join $$dir $(EXPLIBNAME)] Expect] > \
+	    "$(SCRIPT_INSTALL_DIR)\pkgIndex.tcl"
+
+install-libraries :
+	@if not exist "$(LIB_INSTALL_DIR)\nul" mkdir "$(LIB_INSTALL_DIR)" &\
+		echo Created directory '$(LIB_INSTALL_DIR)'
+	@copy /y /a "" \
+	    "$(EXAMPLE_INSTALL_DIR)" > nul
+
+install-help :
+	@echo installing $(EXPHLPNAME)...
+	copy /y /b $(EXPHLP) "$(DOC_INSTALL_DIR)" > nul
+
+
+clean :
+!if "$(OS)" == "Windows_NT"
+	del /q $(ObjDir)\*.obj \
+	    $(TMP_DIR)\*.pdb \
+	    $(TMP_DIR)\*.h   \
+	    $(TMP_DIR)\*.lib \
+	    $(TMP_DIR)\*.exp \
+	    $(TMP_DIR)\*.res \
+	    $(OUT_DIR)\*.hlp \
+	    $(OUT_DIR)\*.lib \
+	    $(OUT_DIR)\*.exe \
+	    $(OUT_DIR)\*.dll >nul 2>nul
+!else  # Win95 doesn't support "2>" on command line, multiple files on a Del command, or /q
+	erase  $(TMP_DIR)\*.obj >nul
+	erase  $(TMP_DIR)\*.pdb >nul
+	erase  $(TMP_DIR)\*.h   >nul
+	erase  $(TMP_DIR)\*.lib >nul
+	erase  $(TMP_DIR)\*.exp >nul
+	erase  $(TMP_DIR)\*.res >nul
+	erase  $(TMP_DIR)\*.hlp >nul
+	erase  $(TMP_DIR)\*.lib >nul
+	erase  $(TMP_DIR)\*.exe >nul
+	erase  $(TMP_DIR)\*.dll >nul
+!endif
+
 
 .SUFFIXES: .c

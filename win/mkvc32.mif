@@ -6,7 +6,7 @@
 #   NMAKE specific syntax is allowed in this file.
 #
 #==============================================================================
-# RCS: @(#) $Id: mkvc32.mif,v 1.1.2.4 2001/10/11 03:59:36 davygrvy Exp $
+# RCS: @(#) $Id: mkvc32.mif,v 1.1.2.5 2001/10/14 22:15:28 davygrvy Exp $
 #==============================================================================
 
 !ifndef _MKVC32_MIF
@@ -113,10 +113,8 @@ TCLSH_PROG	= "$(TCLROOT)\win\$(TMPDIRNAMEPREFIX)\tclsh$(TCLMAJOR)$(TCLMINOR)$(DB
 
 !if $(ISTCLINSTALL)
 TCL_INCLUDES	= -I"$(TCLROOT)\include"
-TCL_INTINCLUDES	= -I"$(TCLROOT)\include"
 !else
 TCL_INCLUDES	= -I"$(TCLROOT)\generic"
-TCL_INTINCLUDES	= -I"$(TCLROOT)\generic" -I"$(TCLROOT)\win"
 !endif
 
 #==============================================
@@ -170,48 +168,5 @@ CFLAGS	= -nologo -c $(COPTS) -MD$(DBGX) -YX -Fo$(TMP_DIR)^\ -Fp$(TMP_DIR)^\
 _NMAKE_VER  = $(_NMAKE_VER:6.00.8168.0=600)
 #==============================================
 
-
-# Win95 doesn't support "&" on command line.
-#MkDest=@for %d in ($(PLATFORM) $(ObjDir)) do $(COMSPEC) /c if not exist %d md %d
-
-#clean:
-# $(MkDest)
-#!if "$(OS)" == "Windows_NT"
-# del /q $(ObjDir)\*.obj \
-#        $(ObjDir)\*.out \
-#        $(ObjDir)\*.h   \
-#        $(ObjDir)\*.dbg \
-#        $(ObjDir)\*.ocx \
-#        $(ObjDir)\*.log \
-#        $(ObjDir)\*.lib \
-#        $(ObjDir)\*.exe \
-#        $(ObjDir)\*.dll \
-#        $(ObjDir)\*.map \
-#        $(ObjDir)\*.res \
-#        $(ObjDir)\*.bin \
-#        $(ObjDir)\*.lst \
-#        $(ObjDir)\*.blt \
-#        $(ObjDir)\*.hlp \
-#        $(ObjDir)\*.srl \
-#        $(ObjDir)\*.exp >NUL 2>NUL
-#!else  # Win95 doesn't support "2>" on command line, multiple files on a Del command, or /q
-# erase  $(ObjDir)\*.obj >NUL
-# erase  $(ObjDir)\*.out >NUL
-# erase  $(ObjDir)\*.h   >NUL
-# erase  $(ObjDir)\*.dbg >NUL
-# erase  $(ObjDir)\*.ocx >NUL
-# erase  $(ObjDir)\*.log >NUL
-# erase  $(ObjDir)\*.lib >NUL
-# erase  $(ObjDir)\*.exe >NUL
-# erase  $(ObjDir)\*.dll >NUL
-# erase  $(ObjDir)\*.map >NUL
-# erase  $(ObjDir)\*.res >NUL
-# erase  $(ObjDir)\*.bin >NUL
-# erase  $(ObjDir)\*.lst >NUL
-# erase  $(ObjDir)\*.blt >NUL
-# erase  $(ObjDir)\*.hlp >NUL
-# erase  $(ObjDir)\*.srl >NUL
-# erase  $(ObjDir)\*.exp >NUL
-#!endif  # OS == Windows_NT
 
 !endif  # _MKVC32_MIF
