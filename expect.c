@@ -32,7 +32,6 @@ would appreciate credit if this program or parts of it are used.
 
 #include "string.h"
 
-#include "tclRegexp.h"
 #include "exp_rename.h"
 #include "exp_prog.h"
 #include "exp_command.h"
@@ -852,7 +851,8 @@ char *suffix;
 		return EXP_MATCH;
 	    }
 	    debuglog(no);
-	} else if ((length == esPtr->msize) && (length > 0)) {
+	} else if ((Tcl_GetCharLength(esPtr->buffer) == esPtr->msize)
+		&& (length > 0)) {
 		debuglog("%s? ",e->pat);
 		o->e = e;
 		o->match = length;
@@ -880,73 +880,74 @@ int *masters;
 int mcount;
 char *suffix;
 {
-	int i;
-	int em;	/* master of ecase */
-	struct ecase *e;
+    int i;
+    int em;	/* master of ecase */
+    struct ecase *e;
 
-	if (o->e || status == EXP_TCLERROR || eg->ecd.count == 0) return(status);
+    if (o->e || status == EXP_TCLERROR || eg->ecd.count == 0) return(status);
 
-	if (status == EXP_TIMEOUT) {
-		for (i=0;i<eg->ecd.count;i++) {
-			e = eg->ecd.cases[i];
-			if (e->use == PAT_TIMEOUT || e->use == PAT_DEFAULT) {
-				o->e = e;
-				break;
-			}
-		}
-		return(status);
-	} else if (status == EXP_EOF) {
-		for (i=0;i<eg->ecd.count;i++) {
-			e = eg->ecd.cases[i];
-			if (e->use == PAT_EOF || e->use == PAT_DEFAULT) {
-				struct exp_state_list *slPtr;
-
-				for (slPtr=e->i_list->state_list; slPtr ;slPtr=slPtr->next) {
-					em = slPtr->esPtr;
-					if (expIsStateAny(em) || em == m) {
-						o->e = e;
-						return(status);
-					}
-				}
-			}
-		}
-		return(status);
-	}
-
-	/* the top loops are split from the bottom loop only because I can't */
-	/* split'em further. */
-
-	/* The bufferful condition does not prevent a pattern match from */
-	/* occurring and vice versa, so it is scanned with patterns */
+    if (status == EXP_TIMEOUT) {
 	for (i=0;i<eg->ecd.count;i++) {
-		struct exp_state_list *slPtr;
-		int j;
-
-		e = eg->ecd.cases[i];
-		if (e->use == PAT_TIMEOUT ||
-		    e->use == PAT_DEFAULT ||
-		    e->use == PAT_EOF) continue;
-
-		for (slPtr = e->i_list->state_list; slPtr; slPtr = slPtr->next) {
-			em = slPtr->esPtr;
-			/* if em == EXP_SPAWN_ID_ANY, then user is explicitly asking */
-			/* every case to be checked against every master */
-			if (expIsStateAny(em)) {
-				/* test against each spawn_id */
-				for (j=0;j<mcount;j++) {
-					status = eval_case_string(interp,e,masters[j],o,last_esPtr,last_case,suffix);
-					if (status != EXP_NOMATCH) return(status);
-				}
-			} else {
-				/* reject things immediately from wrong spawn_id */
-				if (em != m) continue;
-
-				status = eval_case_string(interp,e,m,o,last_esPtr,last_case,suffix);
-				if (status != EXP_NOMATCH) return(status);
-			}
-		}
+	    e = eg->ecd.cases[i];
+	    if (e->use == PAT_TIMEOUT || e->use == PAT_DEFAULT) {
+		o->e = e;
+		break;
+	    }
 	}
-	return(EXP_NOMATCH);
+	return(status);
+    } else if (status == EXP_EOF) {
+	for (i=0;i<eg->ecd.count;i++) {
+	    e = eg->ecd.cases[i];
+	    if (e->use == PAT_EOF || e->use == PAT_DEFAULT) {
+		struct exp_state_list *slPtr;
+
+		for (slPtr=e->i_list->state_list; slPtr ;slPtr=slPtr->next) {
+		    em = slPtr->esPtr;
+		    if (expIsStateAny(em) || em == m) {
+			o->e = e;
+			return(status);
+		    }
+		}
+	    }
+	}
+	return(status);
+    }
+
+    /* the top loops are split from the bottom loop only because I can't */
+    /* split'em further. */
+
+    /* The bufferful condition does not prevent a pattern match from */
+    /* occurring and vice versa, so it is scanned with patterns */
+    for (i=0;i<eg->ecd.count;i++) {
+	struct exp_state_list *slPtr;
+	int j;
+
+	e = eg->ecd.cases[i];
+	if (e->use == PAT_TIMEOUT ||
+		e->use == PAT_DEFAULT ||
+		e->use == PAT_EOF) continue;
+
+	for (slPtr = e->i_list->state_list; slPtr; slPtr = slPtr->next) {
+	    em = slPtr->esPtr;
+	    /* if em == EXP_SPAWN_ID_ANY, then user is explicitly asking */
+	    /* every case to be checked against every master */
+	    if (expIsStateAny(em)) {
+		/* test against each spawn_id */
+		for (j=0;j<mcount;j++) {
+		    status = eval_case_string(interp,e,masters[j],o,
+			    last_esPtr,last_case,suffix);
+		    if (status != EXP_NOMATCH) return(status);
+		}
+	    } else {
+		/* reject things immediately from wrong spawn_id */
+		if (em != m) continue;
+
+		status = eval_case_string(interp,e,m,o,last_esPtr,last_case,suffix);
+		if (status != EXP_NOMATCH) return(status);
+	    }
+	}
+    }
+    return(EXP_NOMATCH);
 }
 
 static void
@@ -1620,18 +1621,16 @@ int key;
 /* when buffer fills, copy second half over first and */
 /* continue, so we can do matches over multiple buffers */
 void
-exp_buffer_shuffle(interp,esPtr,save_flags,array_name,caller_name)
+exp_buffer_shuffle(interp,esPtr,save_flags,array_name,caller_name) /* INTL */
 Tcl_Interp *interp;
 ExpState *esPtr;
 int save_flags;
 char *array_name;
 char *caller_name;
 {
-	char match_char;	/* place to hold char temporarily */
-				/* uprooted by a NULL */
-
-	int first_half = esPtr->size/2;
-	int second_half = esPtr->size - first_half;
+	Tcl_UniChar *ustr;
+	int first_half, second_half, length;
+	char *str;
 
 	/*
 	 * allow user to see data we are discarding
@@ -1641,23 +1640,36 @@ char *caller_name;
 		 caller_name,array_name,esPtr->name);
 	Tcl_SetVar2(interp,array_name,"spawn_id",esPtr->name,save_flags);
 
-/*SCOTT*/
+	/*
+	 * The internal storage buffer object should only be referred
+	 * to by the channel that uses it.  We always copy the contents
+	 * out of the object before passing the data to anyone outside
+	 * of these routines.  This ensures that the object always has
+	 * a refcount of 1 so we can safely modify the contents in place.
+	 */
 
-	/* temporarily null-terminate buffer in middle */
-	match_char = esPtr->buffer[first_half];
-	esPtr->buffer[first_half] = 0;
+	if (Tcl_IsShared(esPtr->buffer)) {
+	    panic("exp_buffer_shuffle called with shared buffer object");
+	}
+
+	str = Tcl_GetString(esPtr->buffer);
+	ustr = Tcl_GetUnicode(esPtr->buffer);
+	length = Tcl_GetCharLength(esPtr->buffer);
+
+	first_half = length/2;
+	second_half = length - first_half;
+
+	first_half_bytes = Tcl_UtfAtIndex(str, first_half) - str;
+
+	memcpy(ustr, ustr+first_half, second_half);
+	Tcl_SetUnicodeLength(esPtr->buffer, first_half);
 
 	debuglog("%s: set %s(buffer) \"%s\"\r\n",
 		 caller_name,array_name,dprintify(esPtr->buffer));
-	Tcl_SetVar2(interp,array_name,"buffer",esPtr->buffer,save_flags);
+	Tcl_SetVar2(interp,array_name,"buffer",Tcl_GetString(esPtr->buffer),
+		save_flags);
 
-	/* remove middle-null-terminator */
-	esPtr->buffer[first_half] = match_char;
-
-	memcpy(esPtr->buffer,esPtr->buffer+first_half,second_half);
-	memcpy(esPtr->lower, esPtr->lower +first_half,second_half);
-	esPtr->size = second_half;
-	esPtr->printed -= first_half;
+	esPtr->printed -= first_half_bytes;
 	if (esPtr->printed < 0) esPtr->printed = 0;
 }
 
@@ -1700,15 +1712,16 @@ int x;
 /* the read will complete immediately. */
 /*ARGSUSED*/
 static int
-exp_i_read(interp,esPtr,timeout,save_flags)
+exp_i_read(interp,esPtr,timeout,save_flags) /* INTL */
 Tcl_Interp *interp;
 ExpState *esPtr;
 int timeout;
 int save_flags;
 {
     int cc = EXP_TIMEOUT;
+    int size = Tcl_GetCharLength(esPtr->buffer);
 
-    if (esPtr->size == esPtr->msize) 
+    if (size == esPtr->msize) 
 	exp_buffer_shuffle(interp,f,save_flags,EXPECT_OUT,"expect");
 
 #ifdef SIMPLE_EVENT
@@ -1722,8 +1735,9 @@ int save_flags;
     }
 #endif
 
-/*SCOTT*/
-    cc = Tcl_ReadChars(m,esPtr->buffer+esPtr->size, esPtr->msize-esPtr->size);
+    
+    cc = Tcl_ReadChars(esPtr->channel, esPtr->buffer, esPtr->msize - size,
+	    1 /* Append */);
     i_read_errno = errno;
 
 #ifdef SIMPLE_EVENT
@@ -1744,7 +1758,7 @@ int save_flags;
 	}
     }
 #endif
-	return(cc);
+    return(cc);
 }
 
 /* variables predefined by expect are retrieved using this routine
@@ -1918,10 +1932,186 @@ struct exp_i *exp_i;
 	return (char *)0;
 }
 
+int
+exp_process_matches(interp, eo, bg, detail)
+    Tcl_Interp interp;
+    struct eval_out *eo;	/* final case of interest */
+    int bg;			/* 1 if called from background handler, */
+				/* else 0 */
+    char *detail;
+{
+    ExpState *esPtr = 0;	/* ExpState associated with master */
+    char *body = 0;
+    Tcl_Obj *buffer;
+    struct ecase *e = 0;	/* points to current ecase */
+    int match = -1;		/* characters matched */
+    char match_char;	/* place to hold char temporarily */
+    /* uprooted by a NULL */
+    char *eof_body = 0;
+    int result = TCL_OK;
+
+#define out(indexName, value) \
+    debuglog("%s: set %s(%s) \"%s\"\r\n", detail, EXPECT_OUT,indexName, \
+	    dprintify(value)); \
+    Tcl_SetVar2(interp, EXPECT_OUT,index,value,(bg ? TCL_GLOBAL_ONLY : 0);
+
+    if (eo->e) {
+	e = eo->e;
+	body = e->body;
+	if (cc != EXP_TIMEOUT) {
+	    esPtr = eo->esPtr;
+	    match = eo->match;
+	    buffer = eo->buffer;
+	}
+    } else if (cc == EXP_EOF) {
+	/* read an eof but no user-supplied case */
+	esPtr = eo->esPtr;
+	match = eo->match;
+	buffer = eo->buffer;
+    }			
+
+    if (match >= 0) {
+	char name[20], value[20];
+
+	if (e && e->use == PAT_RE) {
+	    regexp *re;
+	    int flags;
+	    Tcl_RegExpInfo info;
+
+	    if (e->Case == CASE_NORM) {
+		flags = TCL_REG_ADVANCED;
+	    } else {
+		flags = TCL_REG_ADVANCED | TCL_REG_NOCASE;
+	    }
+		    
+	    re = Tcl_GetRegExpFromObj(interp, e->pat, flags);
+	    Tcl_RegExpGetInfo(re, &info);
+
+	    for (i=0;i<info.nsub;i++) {
+		int offset, start, end;
+		Tcl_Obj *val;
+
+		start = info.matches[i].start;
+		end = info.matches[i].end-1;
+		if (start == -1) continue;
+
+		if (e->indices) {
+				/* start index */
+		    sprintf(name,"%d,start",i);
+		    offset = 
+			sprintf(value,"%d",start);
+		    out(name,value);
+
+				/* end index */
+		    sprintf(name,"%d,end",i);
+		    sprintf(value,"%d",end);
+		    out(name,value);
+		}
+
+				/* string itself */
+		sprintf(name,"%d,string",i);
+		val = Tcl_GetRange(buffer, start, end);
+		debuglog("expect_background: set %s(%s) \"%s\"\r\n",EXPECT_OUT,name, dprintifyobj(val));
+		Tcl_SetVar2Ex(interp,EXPECT_OUT,name,
+			val, TCL_GLOBAL_ONLY);
+	    }
+	} else if (e && (e->use == PAT_GLOB || e->use == PAT_EXACT)) {
+	    char *str;
+
+	    if (e->indices) {
+		/* start index */
+		sprintf(value,"%d",e->simple_start);
+		out("0,start",value);
+
+		/* end index */
+		sprintf(value,"%d",e->simple_start + match - 1);
+		out("0,end",value);
+	    }
+
+	    /* string itself */
+	    str = Tcl_GetString(esPtr->buffer);
+	    /* temporarily null-terminate in middle */
+	    match_char = str[match];
+	    str[match] = 0;
+	    out("0,string",str + e->simple_start);
+	    str[match] = match_char;
+
+				/* redefine length of string that */
+				/* matched for later extraction */
+	    match += e->simple_start;
+	} else if (e && e->use == PAT_NULL && e->indices) {
+				/* start index */
+	    sprintf(value,"%d",match-1);
+	    out("0,start",value);
+				/* end index */
+	    sprintf(value,"%d",match-1);
+	    out("0,end",value);
+	} else if (e && e->use == PAT_FULLBUFFER) {
+	    debuglog("expect_background: full buffer\r\n");
+	}
+    }
+
+    /* this is broken out of (match > 0) (above) since it can */
+    /* that an EOF occurred with match == 0 */
+    if (eo->f) {
+	char spawn_id[10];	/* enough for a %d */
+	char *str;
+
+	sprintf(spawn_id,"%d",f-exp_fs);
+	out("spawn_id",spawn_id);
+
+	str = Tcl_GetStringFromObj(esPtr->buffer, &length);
+			
+	/* save buf[0..match] */
+	/* temporarily null-terminate string in middle */
+	match_char = str[match];
+	str[match] = 0;
+	out("buffer",str);
+	/* remove middle-null-terminator */
+	str[match] = match_char;
+
+	/* "!e" means no case matched - transfer by default */
+	if (!e || e->transfer) {
+	    /* delete matched chars from input buffer */
+	    esPtr->printed -= match;
+	    if (length != 0) {
+		memmove(str,str+match,length-match);
+	    }
+	    Tcl_SetObjLength(esPtr->buffer, length-match);
+	}
+
+	if (cc == EXP_EOF) {
+				/* exp_close() deletes all background bodies */
+				/* so save eof body temporarily */
+	    if (body) {
+		eof_body = ckalloc(strlen(body)+1);
+		strcpy(eof_body,body);
+		body = eof_body;
+	    }
+
+	    exp_close(interp,f - exp_fs);
+	}
+
+    }
+
+    if (body) {
+	if (!bg) {
+	    result = Tcl_Eval(interp,body);
+	} else {
+	    result = Tcl_GlobalEval(interp,body);
+	    if (result != TCL_OK) Tcl_BackgroundError(interp);
+	}
+	if (eof_body) ckfree(eof_body);
+    }
+    return result;
+}
+#undef out
+
+
 /* this function is called from the background when input arrives */
 /*ARGSUSED*/
 void
-exp_background_channelhandler(clientData,mask)
+exp_background_channelhandler(clientData,mask) /* INTL */
 ClientData clientData;
 int mask;
 {
@@ -1937,6 +2127,7 @@ int mask;
     ExpState *last_esPtr;	/* for differentiating when multiple f's */
 				/* to print out better debugging messages */
     int last_case;		/* as above but for case */
+    int length;
 
     /* restore our environment */
     esPtr = *(ExpState *)clientData;
@@ -2007,167 +2198,21 @@ do_more_data:
 	}
 
  matched:
-#define out(i,val)  debuglog("expect_background: set %s(%s) \"%s\"\r\n",EXPECT_OUT,i, \
-						dprintify(val)); \
-		    Tcl_SetVar2(interp,EXPECT_OUT,i,val,TCL_GLOBAL_ONLY);
 	{
-		char *body = 0;
-		char *buffer;	/* pointer to normal or lowercased data */
-		struct ecase *e = 0;	/* points to current ecase */
-		int match = -1;		/* characters matched */
-		char match_char;	/* place to hold char temporarily */
-					/* uprooted by a NULL */
-		char *eof_body = 0;
-
-		if (eo.e) {
-			e = eo.e;
-			body = e->body;
-			if (cc != EXP_TIMEOUT) {
-				esPtr = eo.esPtr;
-				match = eo.match;
-				buffer = eo.buffer;
-			}
-		} else if (cc == EXP_EOF) {
-			/* read an eof but no user-supplied case */
-			esPtr = eo.esPtr;
-			match = eo.match;
-			buffer = eo.buffer;
-		}			
-
-		if (match >= 0) {
-			char name[20], value[20];
-
-			if (e && e->use == PAT_RE) {
-				regexp *re = e->re;
-
-				for (i=0;i<NSUBEXP;i++) {
-					int offset;
-
-					if (re->startp[i] == 0) continue;
-
-					if (e->indices) {
-					  /* start index */
-					  sprintf(name,"%d,start",i);
-					  offset = re->startp[i]-buffer;
-					  sprintf(value,"%d",offset);
-					  out(name,value);
-
-					  /* end index */
-					  sprintf(name,"%d,end",i);
-					  sprintf(value,"%d",
-						re->endp[i]-buffer-1);
-					  out(name,value);
-					}
-
-					/* string itself */
-					sprintf(name,"%d,string",i);
-
-					/* temporarily null-terminate in */
-					/* middle */
-					match_char = *re->endp[i];
-					*re->endp[i] = 0;
-					out(name,re->startp[i]);
-					*re->endp[i] = match_char;
-				}
-				/* redefine length of string that */
-				/* matched for later extraction */
-				match = re->endp[0]-buffer;
-			} else if (e && (e->use == PAT_GLOB || e->use == PAT_EXACT)) {
-				char *str;
-
-				if (e->indices) {
-				  /* start index */
-				  sprintf(value,"%d",e->simple_start);
-				  out("0,start",value);
-
-				  /* end index */
-				  sprintf(value,"%d",e->simple_start + match - 1);
-				  out("0,end",value);
-				}
-
-				/* string itself */
-				str = esPtr->buffer + e->simple_start;
-				/* temporarily null-terminate in middle */
-				match_char = str[match];
-				str[match] = 0;
-				out("0,string",str);
-				str[match] = match_char;
-
-				/* redefine length of string that */
-				/* matched for later extraction */
-				match += e->simple_start;
-			} else if (e && e->use == PAT_NULL && e->indices) {
-				/* start index */
-				sprintf(value,"%d",match-1);
-				out("0,start",value);
-				/* end index */
-				sprintf(value,"%d",match-1);
-				out("0,end",value);
-			} else if (e && e->use == PAT_FULLBUFFER) {
-				debuglog("expect_background: full buffer\r\n");
-			}
-		}
-
-		/* this is broken out of (match > 0) (above) since it can */
-		/* that an EOF occurred with match == 0 */
-		if (eo.f) {
-			char spawn_id[10];	/* enough for a %d */
-
-			sprintf(spawn_id,"%d",f-exp_fs);
-			out("spawn_id",spawn_id);
-
-			/* save buf[0..match] */
-			/* temporarily null-terminate string in middle */
-			match_char = esPtr->buffer[match];
-			esPtr->buffer[match] = 0;
-			out("buffer",esPtr->buffer);
-			/* remove middle-null-terminator */
-			esPtr->buffer[match] = match_char;
-
-			/* "!e" means no case matched - transfer by default */
-			if (!e || e->transfer) {
-				/* delete matched chars from input buffer */
-				esPtr->size -= match;
-				esPtr->printed -= match;
-				if (esPtr->size != 0) {
-				   memmove(esPtr->buffer,esPtr->buffer+match,esPtr->size);
-				   memmove(esPtr->lower,esPtr->lower+match,esPtr->size);
-				}
-				esPtr->buffer[esPtr->size] = '\0';
-				esPtr->lower[esPtr->size] = '\0';
-			}
-
-			if (cc == EXP_EOF) {
-				/* exp_close() deletes all background bodies */
-				/* so save eof body temporarily */
-				if (body) {
-					eof_body = ckalloc(strlen(body)+1);
-					strcpy(eof_body,body);
-					body = eof_body;
-				}
-
-				exp_close(interp,f - exp_fs);
-			}
-
-		}
-
-		if (body) {
-			int result = Tcl_GlobalEval(interp,body);
-			if (result != TCL_OK) Tcl_BackgroundError(interp);
-
-			if (eof_body) ckfree(eof_body);
-		}
-
+		exp_process_matches(interp, &eo, 1 /* bg */,
+			"expect_background");
 
 		/*
 		 * Event handler will not call us back if there is more input
 		 * pending but it has already arrived.  bg_status will be
 		 * "blocked" only if armed.
 		 */
-		if (esPtr->valid && (esPtr->bg_status == blocked)
-		 && (esPtr->size > 0)) {
-			cc = esPtr->size;
+		if (esPtr->valid && (esPtr->bg_status == blocked)) {
+		    Tcl_GetStringFromObj(esPtr->buffer, &length);
+		    if (length > 0) {
+			cc = length;
 			goto do_more_data;
+		    }
 		}
 	}
  finish:
@@ -2175,7 +2220,6 @@ do_more_data:
 	if (esPtr->valid)
 		exp_unblock_background_channelhandler(esPtr);
 }
-#undef out
 
 /*ARGSUSED*/
 int
@@ -2287,7 +2331,7 @@ char **argv;
 	key = expect_key++;
 
 	result = TCL_OK;
-z	last_esPtr = 0;
+	last_esPtr = 0;
 
 	/* end of restart code */
 
@@ -2375,163 +2419,8 @@ error:
 		    Tcl_SetVar2(interp,EXPECT_OUT,i,val,0);
 
 	if (result != TCL_ERROR) {
-/*		int iwrite = FALSE;*/	/* write spawn_id? */
-		char *body = 0;
-		char *buffer;	/* pointer to normal or lowercased data */
-		struct ecase *e = 0;	/* points to current ecase */
-		int match = -1;		/* characters matched */
-		char match_char;	/* place to hold char temporarily */
-					/* uprooted by a NULL */
-		char *eof_body = 0;
-
-		if (eo.e) {
-			e = eo.e;
-			body = e->body;
-/*			iwrite = e->iwrite;*/
-			if (cc != EXP_TIMEOUT) {
-				esPtr = eo.esPtr;
-				match = eo.match;
-				buffer = eo.buffer;
-			}
-			if (e->timestamp) {
-				char value[20];
-
-				time(&current_time);
-				elapsed_time = current_time - start_time;
-				elapsed_time_total = current_time - start_time_total;
-				sprintf(value,"%d",elapsed_time);
-				out("seconds",value);
-				sprintf(value,"%d",elapsed_time_total);
-				out("seconds_total",value);
-
-				/* deprecated */
-				exp_timestamp(interp,&current_time,EXPECT_OUT);
-			}
-		} else if (cc == EXP_EOF) {
-			/* read an eof but no user-supplied case */
-			esPtr = eo.esPtr;
-			match = eo.match;
-			buffer = eo.buffer;
-		}			
-
-		if (match >= 0) {
-			char name[20], value[20];
-
-			if (e && e->use == PAT_RE) {
-				regexp *re = e->re;
-
-				for (i=0;i<NSUBEXP;i++) {
-					int offset;
-
-					if (re->startp[i] == 0) continue;
-
-					if (e->indices) {
-					  /* start index */
-					  sprintf(name,"%d,start",i);
-					  offset = re->startp[i]-buffer;
-					  sprintf(value,"%d",offset);
-					  out(name,value);
-
-					  /* end index */
-					  sprintf(name,"%d,end",i);
-					  sprintf(value,"%d",
-						re->endp[i]-buffer-1);
-					  out(name,value);
-					}
-
-					/* string itself */
-					sprintf(name,"%d,string",i);
-
-					/* temporarily null-terminate in */
-					/* middle */
-					match_char = *re->endp[i];
-					*re->endp[i] = 0;
-					out(name,re->startp[i]);
-					*re->endp[i] = match_char;
-				}
-				/* redefine length of string that */
-				/* matched for later extraction */
-				match = re->endp[0]-buffer;
-			} else if (e && (e->use == PAT_GLOB || e->use == PAT_EXACT)) {
-				char *str;
-
-				if (e->indices) {
-				  /* start index */
-				  sprintf(value,"%d",e->simple_start);
-				  out("0,start",value);
-
-				  /* end index */
-				  sprintf(value,"%d",e->simple_start + match - 1);
-				  out("0,end",value);
-				}
-
-				/* string itself */
-				str = esPtr->buffer + e->simple_start;
-				/* temporarily null-terminate in middle */
-				match_char = str[match];
-				str[match] = 0;
-				out("0,string",str);
-				str[match] = match_char;
-
-				/* redefine length of string that */
-				/* matched for later extraction */
-				match += e->simple_start;
-			} else if (e && e->use == PAT_NULL && e->indices) {
-				/* start index */
-				sprintf(value,"%d",match-1);
-				out("0,start",value);
-				/* end index */
-				sprintf(value,"%d",match-1);
-				out("0,end",value);
-			} else if (e && e->use == PAT_FULLBUFFER) {
-				debuglog("expect: full buffer\r\n");
-			}
-		}
-
-		/* this is broken out of (match > 0) (above) since it can */
-		/* that an EOF occurred with match == 0 */
-		if (eo.f) {
-			out("spawn_id",esPtr->name);
-
-			/* save buf[0..match] */
-			/* temporarily null-terminate string in middle */
-			match_char = esPtr->buffer[match];
-			esPtr->buffer[match] = 0;
-			out("buffer",esPtr->buffer);
-			/* remove middle-null-terminator */
-			esPtr->buffer[match] = match_char;
-
-			/* "!e" means no case matched - transfer by default */
-			if (!e || e->transfer) {
-				/* delete matched chars from input buffer */
-				esPtr->size -= match;
-				esPtr->printed -= match;
-				if (esPtr->size != 0) {
-				   memmove(esPtr->buffer,esPtr->buffer+match,esPtr->size);
-				   memmove(esPtr->lower,esPtr->lower+match,esPtr->size);
-				}
-				esPtr->buffer[esPtr->size] = '\0';
-				esPtr->lower[esPtr->size] = '\0';
-			}
-
-			if (cc == EXP_EOF) {
-				/* exp_close() deletes all background bodies */
-				/* so save eof body temporarily */
-				if (body) {
-					eof_body = ckalloc(strlen(body)+1);
-					strcpy(eof_body,body);
-					body = eof_body;
-				}
-
-				exp_close(interp,esPtr);
-			}
-		}
-
-		if (body) {
-			result = Tcl_Eval(interp,body);
-
-			if (eof_body) ckfree(eof_body);
-		}
+		result = exp_process_matches(interp, &eo, 0 /* not bg */,
+			"expect");
 	}
 
  cleanup:

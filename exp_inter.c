@@ -1322,13 +1322,15 @@ char **argv;
 				/* send to logfile if open */
 				/* and user is seeing it */
 				if (logfile && real_tty_output(fdp->esPtr)) {
-					fwrite(u->buffer+u->printed,1,
-					       print - u->printed,logfile);
+					Tcl_WriteChars(logfile,
+						u->buffer+u->printed,
+						print - u->printed);
 				}
 
 				/* send to each output descriptor */
 /*SCOTT*/
-				wc = Tcl_Write(fdp->esPtr,u->buffer+u->printed,
+				wc = Tcl_WriteChars(fdp->esPtr->channel,
+					Tcl_GetString(u->buffer)+u->printed,
 					print - u->printed);
 				if (wc <= 0) {
 					debuglog("interact: write on spawn id %s failed (%s)\r\n",fdp->esPtr->name,Tcl_PosixError(interp));
@@ -1669,8 +1671,8 @@ got_action:
 				}
 
 				/* send to each output descriptor */
-/*SCOTT*/
-				wc = Tcl_Write(fdp->esPtr,u->buffer+u->printed,
+				wc = Tcl_WriteChars(fdp->esPtr->channel,
+					Tcl_GetString(u->buffer) + u->printed,
 					print - u->printed);
 				if (wc <= 0) {
 					debuglog("interact: write on spawn id %d failed (%s)\r\n",Tcl_GetChannelName(fdp->esPtr->channel),Tcl_PosixError(interp));
@@ -1979,9 +1981,9 @@ got_action:
 					       print - u->printed,logfile);
 				}
 
-/*SCOTT*
 				/* send to each output descriptor */
-				wc = Tcl_Write(fdp->esPtr,u->buffer+u->printed,
+				wc = Tcl_WriteChars(fdp->esPtr->channel,
+					Tcl_GetString(u->buffer)+u->printed,
 					print - u->printed);
 				if (wc <= 0) {
 					debuglog("interact: write on spawn id %s failed (%s)\r\n",fdp->esPtr->name,Tcl_PosixError(interp));

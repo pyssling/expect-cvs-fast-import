@@ -88,6 +88,13 @@ would appreciate credit if this program or parts of it are used.
 #include "tcldbg.h"
 #endif
 
+/*
+ * These constants refer to the UTF string that encodes a null character.
+ */
+
+#define NULL_STRING "\xC0\x80"
+#define NULL_LENGTH 2
+
 #define SPAWN_ID_VARNAME "spawn_id"
 
 int getptymaster();
@@ -375,16 +382,6 @@ ExpState *esPtr;
     }
 
     return(TCL_OK);
-}
-
-void
-exp_init_send(interp)
-{
-    ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
-
-    /* for efficiency, create a null for exp_send -null command */
-    tsdPtr->null = ckalloc(TCL_UTF_MAX);
-    Tcl_UniCharToUtf((Tcl_UniChar)0,tsdPtr->null);
 }
 
 expIsStdinout(esPtr)
@@ -1330,16 +1327,14 @@ char **argv;
 /* write exactly this many bytes, i.e. retry partial writes */
 /* returns 0 for success, -1 for failure */
 static int
-exact_write(esPtr,buffer,rembytes)
+exact_write(esPtr,buffer,rembytes) /* INTL */
 ExpState *esPtr;
 char *buffer;
 int rembytes;
 {
 	int cc;
-
-/*SCOTT*/
 	while (rembytes) {
-		if (-1 == (cc = Tcl_Write(esPtr->channel,buffer,rembytes))) return(-1);
+		if (-1 == (cc = Tcl_WriteChars(esPtr->channel,buffer,rembytes))) return(-1);
 		if (0 == cc) {
 			/* This shouldn't happen but I'm told that it does */
 			/* nonetheless (at least on SunOS 4.1.3).  Since */
@@ -1390,7 +1385,7 @@ struct slow_arg *x;
 
 /* returns 0 for success, -1 for failure, pos. for Tcl return value */
 static int
-slow_write(interp,esPtr,buffer,rembytes,arg)
+slow_write(interp,esPtr,buffer,rembytes,arg) /* INTL */
 Tcl_Interp *interp;
 ExpState *esPtr;
 char *buffer;
@@ -1401,9 +1396,7 @@ struct slow_arg *arg;
 
 	while (rembytes > 0) {
 		int len;
-
-/*SCOTT?*/
-
+		
 		len = (arg->size<rembytes?arg->size:rembytes);
 		if (0 > exact_write(esPtr,buffer,len)) return(-1);
 		rembytes -= arg->size;
@@ -1491,27 +1484,30 @@ exp_init_unit_random()
 /* transitions. */
 /* returns 0 for success, -1 for failure, pos. for Tcl return value */
 static int
-human_write(interp,esPtr,buffer,arg)
+human_write(interp,esPtr,buffer,arg) /* INTL */
 Tcl_Interp *interp;
 ExpState *esPtr;
 char *buffer;
 struct human_arg *arg;
 {
     char *sp;
+    int size;
     float t;
     float alpha;
     int wc;
     int in_word = TRUE;
+    Tcl_UniChar ch;
 
     debuglog("human_write: avg_arr=%f/%f  1/shape=%f  min=%f  max=%f\r\n",
 	    arg->alpha,arg->alpha_eow,arg->c,arg->min,arg->max);
 
-    for (sp = buffer;*sp;sp++) {
+    for (sp = buffer;*sp;sp += size) {
+	size = Tcl_UtfToUniChar(sp, &ch);
 	/* use the end-of-word alpha at eow transitions */
-	if (in_word && (ispunct(*sp) || isspace(*sp)))
+	if (in_word && (Tcl_UniCharIsPunct(ch) || Tcl_UniCharIsSpace(ch)))
 	    alpha = arg->alpha_eow;
 	else alpha = arg->alpha;
-	in_word = !(ispunct(*sp) || isspace(*sp));
+	in_word = !(Tcl_UniCharIsPunct(ch) || Tcl_UniCharIsSpace(ch));
 
 	t = alpha * pow(-log((double)unit_random()),arg->c);
 
@@ -1525,8 +1521,7 @@ struct human_arg *arg;
 	    if (wc > 0) return wc;
 	}
 
-/*SCOTT?*/
-	wc = write(fd,sp,1);
+	wc = Tcl_WriteChars(esPtr->channel, sp, size);
 	if (0 > wc) return(wc);
     }
     return(0);
@@ -1719,37 +1714,21 @@ ExpState *esPtr;
 
 /* this routine assumes i->esPtr is meaningful */
 void
-exp_i_parse_states(i)
+exp_i_parse_states(i) /* INTL */
 struct exp_i *i;
 {
     char *p = i->value;
+    int argc;
+    char **argv;
 
-/*SCOTT*/
-    /* reparse it */
-    while (1) {
-	int m;
-	int negative = 0;
-	int valid_spawn_id = 0;
-
-	m = 0;
-	while (isspace(*p)) p++;
-	for (;;p++) {
-	    if (*p == '-') negative = 1;
-	    else if (isdigit(*p)) {
-		m = m*10 + (*p-'0');
-		valid_spawn_id = 1;
-	    } else if (*p == '\0' || isspace(*p)) break;
-	}
-
-	/* we either have a spawn_id or whitespace at end of string */
-
-	/* skip whitespace end-of-string */
-	if (!valid_spawn_id) break;
-
-	if (negative) m = -m;
-
-	exp_i_add_state(i,m);
+    if (Tcl_SplitList(NULL, p, &argc, &argv) != TCL_OK) {
+	return;
     }
+
+    for (i = 0; i < argc; i++) {
+	exp_i_add_state(i,argv[i]);
+    }
+    ckfree((char*)argv);
 }
 	
 /* updates a single exp_i struct */
@@ -1783,7 +1762,7 @@ struct exp_i *i;
 		/* "direct" i's once */
 		i->state_list = 0;
 	}
-	exp_i_parse_states(i);
+	exp_i_parse_states(interp, i);
 }
 
 struct exp_i *
@@ -1845,7 +1824,7 @@ char **argv;
 /* you should quote all your send args to make them one single argument. */
 /*ARGSUSED*/
 static int
-Exp_SendObjCmd(clientData, interp, objc, objv)
+Exp_SendObjCmd(clientData, interp, objc, objv) /* INTL */
 ClientData clientData;
 Tcl_Interp *interp;
 int objc;
@@ -1982,11 +1961,10 @@ Tcl_Obj *CONST objv[];
 	/* if closing brace doesn't appear, that's because an error */
 	/* was encountered before we could send it */
     } else {
-/*SCOTT*/
 	if (debugfile)
-	    fwrite(string,1,len,debugfile);
+	    Tcl_WriteChars(debugfile, string, len);
 	if ((send_to_user && logfile_all) || logfile)
-	    fwrite(string,1,len,logfile);
+	    Tcl_WriteChars(logfile, string, len);
     }
 
     for (state_list=i->state_list;state_list;state_list=state_list->next) {
@@ -2015,7 +1993,8 @@ Tcl_Obj *CONST objv[];
 		break;
 	    case SEND_STYLE_ZERO:
 		for (;zeros>0;zeros--) {
-		    rc = Tcl_WriteChar(esPtr->channel,tsdPtr->null);
+		    rc = Tcl_WriteChars(esPtr->channel,
+			    NULL_STRING, NULL_LENGTH);
 		}
 		/* catching error on last write is sufficient */
 		rc = ((rc==1) ? 0 : -1);   /* normal is 1 not 0 */

@@ -10,6 +10,7 @@
 			  }
 
 #define dprintify(x)	((is_debugging || debugfile)?exp_printify(x):0)
+#define dprintifyobj(x)	((is_debugging || debugfile)?exp_printify(Tcl_GetString(x)):0)
 /* in circumstances where "debuglog(printify(...))" is written, call */
 /* dprintify instead.  This will avoid doing any formatting that would */
 /* occur before debuglog got control and decided not to do anything */

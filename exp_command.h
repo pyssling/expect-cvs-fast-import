@@ -177,9 +177,9 @@ typedef struct ExpState {
     /* no longer necessary?
     /* int size;	/* current size of data */
 
-    int msize;	        /* size of buffer (true size is one greater
-			   for trailing null) */
-    int umsize;	        /* user view of size of buffer */
+    int msize;	        /* maximum number of characters to hold in the */
+			/* buffer*/
+    int umsize;	        /* user view of size of buffer (in characters) */
     int rm_nulls;	/* if nulls should be stripped before pat matching */
     int user_closed;    /* if user has issued "close" command or close has */
     		        /* occurred implicitly */
@@ -188,9 +188,9 @@ typedef struct ExpState {
     int sys_waited;	/* if wait() (or variant) has been called */
     WAIT_STATUS_TYPE wait;	/* raw status from wait() */
     int parity;	        /* strip parity if false */
-    int printed;	/* # of characters written to stdout (if logging on) */
+    int printed;	/* # of bytes written to stdout (if logging on) */
                         /* but not actually returned via a match yet */
-    int echoed;	        /* additional # of chars (beyond "printed" above) */
+    int echoed;	        /* additional # of bytes (beyond "printed" above) */
                         /* echoed back but not actually returned via a match */
                         /* yet.  This supports interact -echo */
     int key;	        /* unique id that identifies what command instance */

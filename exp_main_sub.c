@@ -482,7 +482,6 @@ Tcl_Interp *interp;
 		exp_init_event();
 		exp_init_trap();
 		exp_init_unit_random();
-		exp_init_send();
 		exp_init_spawn_ids();
 
 		Tcl_CreateExitHandler(exp_exit_handlers,(ClientData)NULL);
