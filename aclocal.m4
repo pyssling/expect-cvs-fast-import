@@ -100,11 +100,14 @@ fi
 if test x"${ac_cv_c_tclh}" = x ; then
   for i in \
 		${srcdir}/../tcl \
-		`ls -dr ${srcdir}/../tcl[[7-9]].[[0-9]].[[0-9]] ${srcdir}/../tcl[[7-9]].[[0-9]] 2>/dev/null` \
+		`ls -dr ${srcdir}/../tcl[[9]].[[0-9]].[[0-9]] ${srcdir}/../tcl[[9]].[[0-9]] 2>/dev/null` \
+		`ls -dr ${srcdir}/../tcl[[8]].[[2-9]].[[0-9]] ${srcdir}/../tcl[[8]].[[2-9]] 2>/dev/null` \
 		${srcdir}/../../tcl \
-		`ls -dr ${srcdir}/../../tcl[[7-9]].[[0-9]].[[0-9]] ${srcdir}/../../tcl[[7-9]].[[0-9]] 2>/dev/null` \
+		`ls -dr ${srcdir}/../../tcl[[9]].[[0-9]].[[0-9]] ${srcdir}/../../tcl[[9]].[[0-9]] 2>/dev/null` \
+		`ls -dr ${srcdir}/../../tcl[[8]].[[2-9]].[[0-9]] ${srcdir}/../../tcl[[8]].[[2-9]] 2>/dev/null` \
 		${srcdir}/../../../tcl \
-		`ls -dr ${srcdir}/../../../tcl[[7-9]].[[0-9]].[[0-9]] ${srcdir}/../../../tcl[[7-9]].[[0-9]] 2>/dev/null ` ; do
+		`ls -dr ${srcdir}/../../../tcl[[9]].[[0-9]].[[0-9]] ${srcdir}/../../../tcl[[9]].[[0-9]] 2>/dev/null ` \
+		`ls -dr ${srcdir}/../../../tcl[[8]].[[2-9]].[[0-9]] ${srcdir}/../../../tcl[[8]].[[2-9]] 2>/dev/null ` ; do
     if test -f $i/generic/tclInt.h ; then
       ac_cv_c_tclh=`(cd $i/generic; pwd)`
       break
@@ -116,8 +119,10 @@ fi
 # since ls returns lowest version numbers first, reverse its output
 if test x"${ac_cv_c_tclh}" = x ; then
   for i in \
-		`ls -dr /usr/local/src/tcl[[7-9]].[[0-9]].[[0-9]] /usr/local/src/tcl[[7-9]].[[0-9]] 2>/dev/null` \
-		`ls -dr /usr/local/lib/tcl[[7-9]].[[0-9]].[[0-9]] /usr/local/lib/tcl[[7-9]].[[0-9]] 2>/dev/null` \
+		`ls -dr /usr/local/src/tcl[[9]].[[0-9]].[[0-9]] /usr/local/src/tcl[[9]].[[0-9]] 2>/dev/null` \
+		`ls -dr /usr/local/src/tcl[[8]].[[2-9]].[[0-9]] /usr/local/src/tcl[[8]].[[2-9]] 2>/dev/null` \
+		`ls -dr /usr/local/lib/tcl[[9]].[[0-9]].[[0-9]] /usr/local/lib/tcl[[9]].[[0-9]] 2>/dev/null` \
+		`ls -dr /usr/local/lib/tcl[[8]].[[2-9]].[[0-9]] /usr/local/lib/tcl[[8]].[[2-9]] 2>/dev/null` \
 		/usr/local/src/tcl \
 		/usr/local/lib/tcl \
 		${prefix}/include ; do
@@ -163,18 +168,18 @@ AC_DEFUN(CY_AC_PATH_TCLCONFIG, [
 #
 # Ok, lets find the tcl configuration
 # First, look for one uninstalled.  
-# the alternative search directory is invoked by --with-tclconfig
+# the alternative search directory is invoked by --with-tcl
 #
 
 if test x"${no_tcl}" = x ; then
   # we reset no_tcl in case something fails here
   no_tcl=true
-  AC_ARG_WITH(tclconfig, [  --with-tclconfig           directory containing tcl configuration (tclConfig.sh)],
+  AC_ARG_WITH(tcl, [  --with-tcl           directory containing tcl configuration (tclConfig.sh)],
          with_tclconfig=${withval})
   AC_MSG_CHECKING([for Tcl configuration])
   AC_CACHE_VAL(ac_cv_c_tclconfig,[
 
-  # First check to see if --with-tclconfig was specified.
+  # First check to see if --with-tcl was specified.
   if test x"${with_tclconfig}" != x ; then
     if test -f "${with_tclconfig}/tclConfig.sh" ; then
       ac_cv_c_tclconfig=`(cd ${with_tclconfig}; pwd)`
@@ -187,11 +192,14 @@ if test x"${no_tcl}" = x ; then
   if test x"${ac_cv_c_tclconfig}" = x ; then
     for i in \
 		../tcl \
-		`ls -dr ../tcl[[7-9]].[[0-9]].[[0-9]] ../tcl[[7-9]].[[0-9]] 2>/dev/null` \
+		`ls -dr ../tcl[[9]].[[0-9]].[[0-9]] ../tcl[[9]].[[0-9]] 2>/dev/null` \
+		`ls -dr ../tcl[[8]].[[2-9]].[[0-9]] ../tcl[[8]].[[2-9]] 2>/dev/null` \
 		../../tcl \
-		`ls -dr ../../tcl[[7-9]].[[0-9]].[[0-9]] ../../tcl[[7-9]].[[0-9]] 2>/dev/null` \
+		`ls -dr ../../tcl[[9]].[[0-9]].[[0-9]] ../../tcl[[9]].[[0-9]] 2>/dev/null` \
+		`ls -dr ../../tcl[[8]].[[2-9]].[[0-9]] ../../tcl[[8]].[[2-9]] 2>/dev/null` \
 		../../../tcl \
-		`ls -dr ../../../tcl[[7-9]].[[0-9]].[[0-9]] ../../../tcl[[7-9]].[[0-9]] 2>/dev/null` ; do
+		`ls -dr ../../../tcl[[9]].[[0-9]].[[0-9]] ../../../tcl[[9]].[[0-9]] 2>/dev/null` \
+		`ls -dr ../../../tcl[[8]].[[2-9]].[[0-9]] ../../../tcl[[8]].[[2-9]] 2>/dev/null` ; do
       if test -f "$i/unix/tclConfig.sh" ; then
         ac_cv_c_tclconfig=`(cd $i/unix; pwd)`
 	break
@@ -211,7 +219,8 @@ if test x"${no_tcl}" = x ; then
   if test x"${ac_cv_c_tclconfig}" = x ; then
     for i in \
 		${srcdir}/../tcl \
-		`ls -dr ${srcdir}/../tcl[[7-9]].[[0-9]].[[0-9]] ${srcdir}/../tcl[[7-9]].[[0-9]] 2>/dev/null` ; do
+		`ls -dr ${srcdir}/../tcl[[9]].[[0-9]].[[0-9]] ${srcdir}/../tcl[[9]].[[0-9]] 2>/dev/null` \
+		`ls -dr ${srcdir}/../tcl[[8]].[[2-9]].[[0-9]] ${srcdir}/../tcl[[8]].[[2-9]] 2>/dev/null` ; do
       if test -f "$i/unix/tclConfig.sh" ; then
         ac_cv_c_tclconfig=`(cd $i/unix; pwd)`
 	break
@@ -252,9 +261,7 @@ dnl     AC_SUBST(TCL_LIBS)
 dnl not used, don't export to save symbols
 dnl    AC_SUBST(TCL_PREFIX)
 
-dnl not used, don't export to save symbols
-dnl    AC_SUBST(TCL_EXEC_PREFIX)
-
+    AC_SUBST(TCL_EXEC_PREFIX)
 
 dnl not used, don't export to save symbols
 dnl AC_SUBST(TCL_SHLIB_CFLAGS)
@@ -280,6 +287,9 @@ dnl AC_SUBST(TCL_RANLIB)
 SAVELIBS=$LIBS
 # eval used to expand out TCL_DBGX
 eval "LIBS=\"$TCL_BUILD_LIB_SPEC $TCL_LIBS\""
+AC_MSG_CHECKING([Tcl build library])
+AC_MSG_RESULT($LIBS)
+
 AC_CHECK_FUNC(Tcl_CreateCommand,[
 	AC_MSG_CHECKING([if Tcl library build specification is valid])
 	AC_MSG_RESULT(yes)
@@ -307,7 +317,7 @@ dnl    AC_SUBST(TCL_UNSHARED_LIB_SUFFIX)
 # so don't do changes to Tcl thinking you can cut and paste it do 
 # the Tk differences and later simply substitute "Tk" for "Tcl".
 # Known differences:
-#  - Acceptable Tcl major version #s is 7-9 while Tk is 4-9
+#  - Acceptable Tcl major version #s is 8.2-9.* while Tk is 8.2-9.*
 #  - Searching for Tcl includes looking for tclInt.h, Tk looks for tk.h
 #  - Computing major/minor versions is different because Tk depends on
 #    headers to Tcl, Tk, and X.
@@ -357,9 +367,12 @@ if test x"${ac_cv_c_tkh}" = x ; then
   for i in \
 		${srcdir}/../tk \
 		`ls -dr ${srcdir}/../tk[[4-9]].[[0-9]].[[0-9]] ${srcdir}/../tk[[4-9]].[[0-9]] 2>/dev/null` \
+		`ls -dr ${srcdir}/../tk[[4-9]].[[0-9]].[[0-9]] ${srcdir}/../tk[[4-9]].[[0-9]] 2>/dev/null` \
 		${srcdir}/../../tk \
 		`ls -dr ${srcdir}/../../tk[[4-9]].[[0-9]].[[0-9]] ${srcdir}/../../tk[[4-9]].[[0-9]] 2>/dev/null` \
+		`ls -dr ${srcdir}/../../tk[[4-9]].[[0-9]].[[0-9]] ${srcdir}/../../tk[[4-9]].[[0-9]] 2>/dev/null` \
 		${srcdir}/../../../tk \
+		`ls -dr ${srcdir}/../../../tk[[4-9]].[[0-9]].[[0-9]] ${srcdir}/../../../tk[[4-9]].[[0-9]] 2>/dev/null ` \
 		`ls -dr ${srcdir}/../../../tk[[4-9]].[[0-9]].[[0-9]] ${srcdir}/../../../tk[[4-9]].[[0-9]] 2>/dev/null ` ; do
     if test -f $i/generic/tk.h ; then
       ac_cv_c_tkh=`(cd $i/generic; pwd)`
@@ -373,6 +386,8 @@ fi
 if test x"${ac_cv_c_tkh}" = x ; then
   for i in \
 		`ls -dr /usr/local/src/tk[[4-9]].[[0-9]].[[0-9]] /usr/local/src/tk[[4-9]].[[0-9]] 2>/dev/null` \
+		`ls -dr /usr/local/src/tk[[4-9]].[[0-9]].[[0-9]] /usr/local/src/tk[[4-9]].[[0-9]] 2>/dev/null` \
+		`ls -dr /usr/local/lib/tk[[4-9]].[[0-9]].[[0-9]] /usr/local/lib/tk[[4-9]].[[0-9]] 2>/dev/null` \
 		`ls -dr /usr/local/lib/tk[[4-9]].[[0-9]].[[0-9]] /usr/local/lib/tk[[4-9]].[[0-9]] 2>/dev/null` \
 		/usr/local/src/tk \
 		/usr/local/lib/tk \
@@ -412,18 +427,18 @@ AC_DEFUN(CY_AC_PATH_TKCONFIG, [
 #
 # Ok, lets find the tk configuration
 # First, look for one uninstalled.  
-# the alternative search directory is invoked by --with-tkconfig
+# the alternative search directory is invoked by --with-tk
 #
 
 if test x"${no_tk}" = x ; then
   # we reset no_tk in case something fails here
   no_tk=true
-  AC_ARG_WITH(tkconfig, [  --with-tkconfig           directory containing tk configuration (tkConfig.sh)],
+  AC_ARG_WITH(tk, [  --with-tk           directory containing tk configuration (tkConfig.sh)],
          with_tkconfig=${withval})
   AC_MSG_CHECKING([for Tk configuration])
   AC_CACHE_VAL(ac_cv_c_tkconfig,[
 
-  # First check to see if --with-tkconfig was specified.
+  # First check to see if --with-tk was specified.
   if test x"${with_tkconfig}" != x ; then
     if test -f "${with_tkconfig}/tkConfig.sh" ; then
       ac_cv_c_tkconfig=`(cd ${with_tkconfig}; pwd)`
@@ -437,9 +452,12 @@ if test x"${no_tk}" = x ; then
     for i in \
 		../tk \
 		`ls -dr ../tk[[4-9]].[[0-9]].[[0-9]] ../tk[[4-9]].[[0-9]] 2>/dev/null` \
+		`ls -dr ../tk[[4-9]].[[0-9]].[[0-9]] ../tk[[4-9]].[[0-9]] 2>/dev/null` \
 		../../tk \
 		`ls -dr ../../tk[[4-9]].[[0-9]].[[0-9]] ../../tk[[4-9]].[[0-9]] 2>/dev/null` \
+		`ls -dr ../../tk[[4-9]].[[0-9]].[[0-9]] ../../tk[[4-9]].[[0-9]] 2>/dev/null` \
 		../../../tk \
+		`ls -dr ../../../tk[[4-9]].[[0-9]].[[0-9]] ../../../tk[[4-9]].[[0-9]] 2>/dev/null` \
 		`ls -dr ../../../tk[[4-9]].[[0-9]].[[0-9]] ../../../tk[[4-9]].[[0-9]] 2>/dev/null` ; do
       if test -f "$i/unix/tkConfig.sh" ; then
         ac_cv_c_tkconfig=`(cd $i/unix; pwd)`
@@ -460,6 +478,7 @@ if test x"${no_tk}" = x ; then
   if test x"${ac_cv_c_tkconfig}" = x ; then
     for i in \
 		${srcdir}/../tk \
+		`ls -dr ${srcdir}/../tk[[4-9]].[[0-9]].[[0-9]] ${srcdir}/../tk[[4-9]].[[0-9]] 2>/dev/null` \
 		`ls -dr ${srcdir}/../tk[[4-9]].[[0-9]].[[0-9]] ${srcdir}/../tk[[4-9]].[[0-9]] 2>/dev/null` ; do
       if test -f "$i/unix/tkConfig.sh" ; then
         ac_cv_c_tkconfig=`(cd $i/unix; pwd)`
@@ -493,6 +512,7 @@ dnl    AC_SUBST(TK_MAJOR_VERSION)
 dnl    AC_SUBST(TK_MINOR_VERSION)
     AC_SUBST(TK_DEFS)
 
+    AC_SUBST(TK_DBGX)
 dnl not used, don't export to save symbols
     dnl AC_SUBST(TK_LIB_FILE)
 
@@ -506,7 +526,77 @@ dnl    AC_SUBST(TK_EXEC_PREFIX)
 
     AC_SUBST(TK_XINCLUDES)
     AC_SUBST(TK_XLIBSW)
+
+# if Tk's build directory has been removed, TK_LIB_SPEC should
+# be used instead of TK_BUILD_LIB_SPEC
+SAVELIBS=$LIBS
+# eval used to expand out TK_DBGX
+eval "LIBS=\"$TK_BUILD_LIB_SPEC $TCL_BUILD_LIB_SPEC $TK_LIBS\""
+AC_CHECK_FUNC(Tk_Init,[
+	AC_MSG_CHECKING([if Tk library build specification is valid])
+	AC_MSG_RESULT(yes)
+],[
+	TK_BUILD_LIB_SPEC=$TK_LIB_SPEC
+	# Can't pull the following CHECKING call out since it will be
+	# broken up by the CHECK_FUNC just above.
+	AC_MSG_CHECKING([if Tk library build specification is valid])
+	AC_MSG_RESULT(no)
+])
+LIBS=$SAVELIBS
+
     AC_SUBST(TK_BUILD_LIB_SPEC)
     AC_SUBST(TK_LIB_SPEC)
 ])
 
+#------------------------------------------------------------------------
+# SC_ENABLE_THREADS --
+#
+#	Specify if thread support should be enabled
+#
+# Arguments:
+#	none
+#	
+# Results:
+#
+#	Adds the following arguments to configure:
+#		--enable-threads
+#
+#	Sets the following vars:
+#		THREADS_LIBS	Thread library(s)
+#
+#	Defines the following vars:
+#		TCL_THREADS
+#		_REENTRANT
+#
+#------------------------------------------------------------------------
+
+AC_DEFUN(SC_ENABLE_THREADS, [
+    AC_MSG_CHECKING(for building with threads)
+    AC_ARG_ENABLE(threads, [  --enable-threads        build with threads (not supported)],
+	[tcl_ok=$enableval], [tcl_ok=no])
+
+    if test "$tcl_ok" = "yes"; then
+	  AC_MSG_WARN([Expect is not fully thread-enabled.  Although significant work has been done towards that goal, it is not complete.  Continue compiling at your own risk.])
+    fi
+#    if test "$tcl_ok" = "yes"; then
+#	AC_MSG_RESULT(yes)
+#	TCL_THREADS=1
+#	AC_DEFINE(TCL_THREADS)
+#	AC_DEFINE(_REENTRANT)
+#
+#	AC_CHECK_LIB(pthread,pthread_mutex_init,tcl_ok=yes,tcl_ok=no)
+#	if test "$tcl_ok" = "yes"; then
+#	    # The space is needed
+#	    THREADS_LIBS=" -lpthread"
+#	else
+#	    TCL_THREADS=0
+#	    AC_MSG_WARN("Don t know how to find pthread lib on your system - you must disable thread support or edit the LIBS in the Makefile...")
+#	fi
+#    else
+#	TCL_THREADS=0
+#	AC_MSG_RESULT(no (default))
+#    fi
+
+    AC_MSG_RESULT(no (default))
+
+])

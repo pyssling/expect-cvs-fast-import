@@ -1,3 +1,5 @@
+#if 0 /*WHOLE FILE*/
+
 /*
  * regcomp and regexec -- regsub and regerror are elsewhere
  *
@@ -953,6 +955,8 @@ char *prog;
 				register int min;
 				int match_status;
 
+				if (*reginput == '\0') return EXP_CANMATCH;
+
 				/*
 				 * Lookahead to avoid useless match attempts
 				 * when we know what character comes next.
@@ -972,7 +976,8 @@ char *prog;
 						if (r == EXP_MATCH)
 							return(EXP_MATCH);
 						if (r == EXP_CANMATCH)
-							match_status = r;
+/*							match_status = r;*/
+							return(EXP_CANMATCH);
 					}
 					/* Couldn't or didn't -- back up. */
 					no--;
@@ -983,7 +988,13 @@ char *prog;
 			/* NOTREACHED */
 			break;
 		case END:
-			return(EXP_MATCH);	/* Success! */
+			/* Success! */
+			if (*reginput == '\0') {
+				return(EXP_CANMATCH);
+			} else {
+				return(EXP_MATCH);
+			}
+			/* return(EXP_CANMATCH);  Success! */
 			/* NOTREACHED */
 			break;
 		default:
@@ -1251,3 +1262,4 @@ char *s2;
 	return(count);
 }
 #endif
+#endif /* 0 WHOLE FILE */
