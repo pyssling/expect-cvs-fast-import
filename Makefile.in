@@ -425,12 +425,7 @@ install-binaries: expect expect_installed ${X11_PROGS_INSTALLED} $(SCRIPTS)
 # install Expectk (and man page) if present
 	-if [ -s expectk_installed ] ; then \
 	  $(INSTALL_PROGRAM) expectk_installed $(bindir)/expectk ; \
-	  $(INSTALL_DATA) $(srcdir)/expectk.man $(man1dir)/expectk.1 ; \
 	else true; fi
-# install Expect man page
-	$(INSTALL_DATA) $(srcdir)/expect.man $(man1dir)/expect.1
-# install man page for Expect and Expectk libraries
-	$(INSTALL_DATA) $(srcdir)/libexpect.man $(man3dir)/libexpect.3
 # install Expect's public include files
 #	$(INSTALL_DATA) expect_cf.h $(includedir)
 	$(INSTALL_DATA) $(srcdir)/expect.h $(includedir)
@@ -459,6 +454,15 @@ install-libraries:
 	done
 
 install-doc:
+	${srcdir}/mkinstalldirs $(man1dir) $(man3dir)
+# install Expectk man page if present
+	-if [ -s expectk_installed ] ; then \
+	  $(INSTALL_DATA) $(srcdir)/expectk.man $(man1dir)/expectk.1 ; \
+	else true; fi
+# install Expect man page
+	$(INSTALL_DATA) $(srcdir)/expect.man $(man1dir)/expect.1
+# install man page for Expect and Expectk libraries
+	$(INSTALL_DATA) $(srcdir)/libexpect.man $(man3dir)/libexpect.3
 	-for i in $(SCRIPT_MANPAGE_LIST) ; do \
 	  if [ -f $(srcdir)/example/$$i.man ] ; then \
 	    $(INSTALL_DATA) $(srcdir)/example/$$i.man $(man1dir)/$$i.1 ; \
