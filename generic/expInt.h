@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expInt.h,v 1.1.4.3 2002/02/10 12:04:22 davygrvy Exp $
+ * RCS: @(#) $Id: expInt.h,v 1.1.4.4 2002/02/13 02:39:41 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -39,7 +39,7 @@
 
 
 #undef TCL_STORAGE_CLASS
-#if defined(BUILD_spawndriver)
+#if defined(BUILD_slavedriver)
 #   define TCL_STORAGE_CLASS
 #elif defined(BUILD_exp)
 #   define TCL_STORAGE_CLASS DLLEXPORT

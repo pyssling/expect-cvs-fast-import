@@ -25,7 +25,7 @@
 #	   http://expect.sf.net/
 #	   http://bmrc.berkeley.edu/people/chaffee/expectnt.html
 # ----------------------------------------------------------------------------
-# RCS: @(#) $Id: exp.decls,v 1.1.4.4 2002/02/10 13:40:47 davygrvy Exp $
+# RCS: @(#) $Id: exp.decls,v 1.1.4.5 2002/02/13 02:39:41 davygrvy Exp $
 # ----------------------------------------------------------------------------
 
 library exp
@@ -488,9 +488,9 @@ declare 0 win {
 	Tcl_DString *fullPath)
 }
 declare 1 win {
-    DWORD ExpWinCreateProcess (int argc, char **argv, HANDLE inputHandle,
+    DWORD ExpWinCreateProcess (int argc, char *const *argv, HANDLE inputHandle,
 	HANDLE outputHandle, HANDLE errorHandle, int allocConsole,
-	int hideConsole, int debug, int newProcessGroup, Tcl_Pid *pidPtr,
+	int hideConsole, int debug, int newProcessGroup, HANDLE *processPtr,
 	PDWORD globalPidPtr)
 }
 declare 2 win {
@@ -509,7 +509,7 @@ declare 6 win {
     void ExpWinInit (void)
 }
 declare 7 win {
-    void BuildCommandLine (CONST char *executable, int argc, char **argv,
+    void BuildCommandLine (CONST char *executable, int argc, char *const *argv,
 	Tcl_DString *linePtr)
 }
 

@@ -22,13 +22,12 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expIntPlatDecls.h,v 1.1.4.2 2002/02/10 12:04:22 davygrvy Exp $
+ * RCS: @(#) $Id: expIntPlatDecls.h,v 1.1.4.3 2002/02/10 13:40:47 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
 #ifndef _EXPPLATINTDECLS
 #define _EXPPLATINTDECLS
-
 
 /* !BEGIN!: Do not edit below this line. */
 
@@ -43,10 +42,10 @@ TCL_EXTERN(DWORD)	ExpWinApplicationType _ANSI_ARGS_((
 				Tcl_DString * fullPath));
 /* 1 */
 TCL_EXTERN(DWORD)	ExpWinCreateProcess _ANSI_ARGS_((int argc, 
-				char ** argv, HANDLE inputHandle, 
+				char *const * argv, HANDLE inputHandle, 
 				HANDLE outputHandle, HANDLE errorHandle, 
 				int allocConsole, int hideConsole, int debug, 
-				int newProcessGroup, Tcl_Pid * pidPtr, 
+				int newProcessGroup, HANDLE * processPtr, 
 				PDWORD globalPidPtr));
 /* 2 */
 TCL_EXTERN(void)	ExpSyslog _ANSI_ARGS_(TCL_VARARGS(char *,fmt));
@@ -61,7 +60,7 @@ TCL_EXTERN(void)	ExpWinInit _ANSI_ARGS_((void));
 /* 7 */
 TCL_EXTERN(void)	BuildCommandLine _ANSI_ARGS_((
 				CONST char * executable, int argc, 
-				char ** argv, Tcl_DString * linePtr));
+				char *const * argv, Tcl_DString * linePtr));
 #endif /* __WIN32__ */
 
 typedef struct ExpIntPlatStubs {
@@ -70,13 +69,13 @@ typedef struct ExpIntPlatStubs {
 
 #ifdef __WIN32__
     DWORD (*expWinApplicationType) _ANSI_ARGS_((const char * originalName, Tcl_DString * fullPath)); /* 0 */
-    DWORD (*expWinCreateProcess) _ANSI_ARGS_((int argc, char ** argv, HANDLE inputHandle, HANDLE outputHandle, HANDLE errorHandle, int allocConsole, int hideConsole, int debug, int newProcessGroup, Tcl_Pid * pidPtr, PDWORD globalPidPtr)); /* 1 */
+    DWORD (*expWinCreateProcess) _ANSI_ARGS_((int argc, char *const * argv, HANDLE inputHandle, HANDLE outputHandle, HANDLE errorHandle, int allocConsole, int hideConsole, int debug, int newProcessGroup, HANDLE * processPtr, PDWORD globalPidPtr)); /* 1 */
     void (*expSyslog) _ANSI_ARGS_(TCL_VARARGS(char *,fmt)); /* 2 */
     void *reserved3;
     Tcl_Pid (*exp_WaitPid) _ANSI_ARGS_((Tcl_Pid pid, int * statPtr, int options)); /* 4 */
     void (*exp_KillProcess) _ANSI_ARGS_((Tcl_Pid pid)); /* 5 */
     void (*expWinInit) _ANSI_ARGS_((void)); /* 6 */
-    void (*buildCommandLine) _ANSI_ARGS_((CONST char * executable, int argc, char ** argv, Tcl_DString * linePtr)); /* 7 */
+    void (*buildCommandLine) _ANSI_ARGS_((CONST char * executable, int argc, char *const * argv, Tcl_DString * linePtr)); /* 7 */
 #endif /* __WIN32__ */
 } ExpIntPlatStubs;
 

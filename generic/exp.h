@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: exp.h,v 1.1.4.7 2002/02/11 02:19:53 davygrvy Exp $
+ * RCS: @(#) $Id: exp.h,v 1.1.4.8 2002/03/06 02:18:20 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -90,8 +90,6 @@
 #   endif
 #endif
 
-
-/* BEGIN -- Tcl header file bugs */
 
 /* Fix the Borland bug in tcl.h */
 #ifndef TCL_EXTERN
