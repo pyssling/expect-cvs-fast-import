@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinTestClientInteract.cpp,v 1.1.2.1 2002/06/28 01:26:57 davygrvy Exp $
+ * RCS: @(#) $Id: expWinTestClientInteract.cpp,v 1.1.2.2 2002/06/29 00:44:36 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -78,6 +78,7 @@ private:
 	    switch (Records[i].EventType) {
 	    case FOCUS_EVENT:
 	    case MENU_EVENT:
+	    case WINDOW_BUFFER_SIZE_EVENT:
 		// ignore these.
 		continue;
 
@@ -88,13 +89,16 @@ private:
 		}
 		lastMouse = Records[i].Event.MouseEvent;
 		break;
+
+	    case KEY_EVENT:
+		break;
 	    }
 	    msg = new Message;
 	    msg->type = Message::TYPE_INRECORD;
 	    msg->length = sizeof(INPUT_RECORD);
 	    record = new INPUT_RECORD;
 	    memcpy(record, &Records[i], sizeof(INPUT_RECORD));
-	    msg->bytes = (BYTE *)record;
+	    msg->bytes = record;
 	    mQ.Put(msg);
 	}
 	goto again;
