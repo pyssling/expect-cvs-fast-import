@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: exp.h,v 1.1.4.4 2002/02/10 10:17:04 davygrvy Exp $
+ * RCS: @(#) $Id: expWinCommand.c,v 1.1.2.1.2.10 2002/02/10 12:03:30 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -565,7 +565,7 @@ Exp_SpawnCmd(ClientData clientData,Tcl_Interp *interp,int argc,char **argv)
     if (!useSocket) {
 	HANDLE dupe;
 
-	masterRFile = TclWinMakeFile(hSlaveDrv);
+	masterRFile = tclWinMakeFileProc(hSlaveDrv);
 
 	/*
 	 *  We need to make a duplicate, because the handles are closed
@@ -575,7 +575,7 @@ Exp_SpawnCmd(ClientData clientData,Tcl_Interp *interp,int argc,char **argv)
 	DuplicateHandle(GetCurrentProcess(), hSlaveDrv,
 		GetCurrentProcess(), &dupe, 0, FALSE,
 		DUPLICATE_SAME_ACCESS);
-	masterWFile = TclWinMakeFile(dupe);
+	masterWFile = tclWinMakeFileProc(dupe);
 
 	channel = TclpCreateCommandChannel(masterRFile, masterWFile, NULL, 0, NULL);
     }

@@ -1,7 +1,7 @@
 /* ----------------------------------------------------------------------------
  * expWinInit.c --
  *
- *	OS specific inits.
+ *	Win OS specific inits.
  *
  * ----------------------------------------------------------------------------
  *
@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: exp.h,v 1.1.4.4 2002/02/10 10:17:04 davygrvy Exp $
+ * RCS: @(#) $Id: expWinInit.c,v 1.1.4.2 2002/02/10 12:03:30 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -67,6 +67,7 @@ static ExpWinProcs unicodeProcs = {
 };
 
 ExpWinProcs *expWinProcs = &asciiProcs;
+tclWinMakeFileProcType tclWinMakeFileProc;
 
 /*
  *----------------------------------------------------------------------
@@ -86,4 +87,8 @@ ExpWinInit(void)
     if (TclWinGetPlatformId() == VER_PLATFORM_WIN32_NT) {    
 	expWinProcs = &unicodeProcs;
     }
+
+    /* need TclWinMakeFile() from the outside... bastards! */
+    tclWinMakeFileProc = (tclWinMakeFileProcType)
+	    GetProcAddress(TclWinGetTclInstance(), "TclWinMakeFile");
 }

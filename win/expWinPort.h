@@ -23,7 +23,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinPort.h,v 1.1.2.1.2.2 2002/02/10 02:59:46 davygrvy Exp $
+ * RCS: @(#) $Id: expWinPort.h,v 1.1.2.1.2.3 2002/02/10 12:03:30 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -90,6 +90,9 @@
 #	define TCL_STORAGE_CLASS DLLIMPORT
 #   endif
 #endif
+
+typedef TclFile (__cdecl *tclWinMakeFileProcType)(HANDLE handle);
+extern tclWinMakeFileProcType tclWinMakeFileProc;
 
 
 #include "expPlatDecls.h"
