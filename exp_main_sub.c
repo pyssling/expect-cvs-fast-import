@@ -482,6 +482,7 @@ Tcl_Interp *interp;
 		exp_init_event();
 		exp_init_trap();
 		exp_init_unit_random();
+		exp_init_send();
 		exp_init_spawn_ids();
 
 		Tcl_CreateExitHandler(exp_exit_handlers,(ClientData)NULL);
@@ -500,7 +501,9 @@ Tcl_Interp *interp;
 	exp_init_tty_cmds(interp);	/* add tty      cmds to interpreter */
 	exp_init_interact_cmds(interp);	/* add interact cmds to interpreter */
 
+	/* initialize variables */
 	exp_init_spawn_id_vars(interp);
+	expInitExpectVars();
 
 	/*
 	 * For each of the the Tcl variables, "expect_library",

@@ -154,7 +154,7 @@ would appreciate credit if this program or parts of it are used.
 					/* TCL_RETURN*/
 
 #define EXP_TIME_INFINITY	-1
-#define EXP_SPAWN_ID_BAD	-1
+#define EXP_SPAWN_ID_BAD	((ExpState *)0)
 
 EXTERN int exp_is_debugging;
 EXTERN int exp_loguser;

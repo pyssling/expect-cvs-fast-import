@@ -82,7 +82,7 @@ int force_stdout;	/* override value of loguser */
 /* use this function for recording unusual things in the log */
 /*VARARGS*/
 void
-debuglog TCL_VARARGS_DEF(char *,arg1)
+exp_debuglog TCL_VARARGS_DEF(char *,arg1)
 /*debuglog(va_alist)*/
 /*va_dcl*/
 {

@@ -2,9 +2,8 @@
 
 Written by: Don Libes, NIST, 2/6/90
 
-Design and implementation of this program was paid for by U.S. tax
-dollars.  Therefore it is public domain.  However, the author and NIST
-would appreciate credit if this program or parts of it are used.
+I hereby place this software in the public domain.  However, the author and
+NIST would appreciate credit if this program or parts of it are used.
 
 */
 
@@ -16,7 +15,7 @@ descriptor, we'll never get called back, and thus, we'll hang forever
 
 Another possible problem: Tk does not do file callbacks round-robin.
 
-Another possible problem: Calling Create/DeleteFileHandler
+Another possible problem: Calling Create/DeleteChannelHandler
 before/after every Tcl_Eval... in expect/interact could be very
 expensive.
 
@@ -41,136 +40,124 @@ expensive.
 #include "exp_command.h"	/* for struct exp_f defs */
 #include "exp_event.h"
 
-/* Tcl_DoOneEvent will call our filehandler which will set the following */
-/* vars enabling us to know where and what kind of I/O we can do */
-/*#define EXP_SPAWN_ID_BAD	-1*/
-/*#define EXP_SPAWN_ID_TIMEOUT	-2*/	/* really indicates a timeout */
+typedef struct ThreadSpecificData {
+    /*
+     * List of all exp channels currently open.  This is per thread and is
+     * used to match up fd's to channels, which rarely occurs.
+     */
+    int ready_esPtr;
+    int ready_mask;
+    int rr;		/* round robin ptr */
+} ThreadSpecificData;
 
-static int ready_fd = EXP_SPAWN_ID_BAD;
-static int ready_mask;
+static Tcl_ThreadDataKey dataKey;
+
 static int default_mask = TCL_READABLE | TCL_EXCEPTION;
 
-
 void
-exp_event_disarm(fd)
-int fd;
+exp_event_disarm(esPtr)
+ExpState *esPtr;
 {
-	Tcl_DeleteFileHandler(fd);
+    Tcl_DeleteChannelHandler(esPtr->channel);
 
-	/* remember that filehandler has been disabled so that */
-	/* it can be turned on for fg expect's as well as bg */
-	exp_fs[fd].fg_armed = FALSE;
-}
-
-void
-exp_event_disarm_fast(fd,filehandler)
-int fd;
-Tcl_FileProc *filehandler;
-{
-	/* Temporarily delete the filehandler by assigning it a mask */
-	/* that permits no events! */
-	/* This reduces the calls to malloc/free inside Tcl_...FileHandler */
-	/* Tk insists on having a valid proc here even though it isn't used */
-	Tcl_CreateFileHandler(fd,0,filehandler,(ClientData)0);
-
-	/* remember that filehandler has been disabled so that */
-	/* it can be turned on for fg expect's as well as bg */
-	exp_fs[fd].fg_armed = FALSE;
+    /* remember that ChannelHandler has been disabled so that */
+    /* it can be turned on for fg expect's as well as bg */
+    esPtr->fg.armed = FALSE;
 }
 
 static void
-exp_arm_background_filehandler_force(m)
-int m;
+exp_arm_background_channelhandler_force(esPtr);
+ExpState *esPtr;
 {
-	Tcl_CreateFileHandler(m,
-		TCL_READABLE|TCL_EXCEPTION,
-		exp_background_filehandler,
-		(ClientData)(exp_fs[m].fd_ptr));
+    Tcl_CreateChannelHandler(esPtr->channel,
+	    TCL_READABLE|TCL_EXCEPTION,
+	    exp_background_channelhandler,
+	    (ClientData)esPtr);
 
-	exp_fs[m].bg_status = armed;
+    esPtr->bg_status = armed;
 }
 
 void
-exp_arm_background_filehandler(m)
-int m;
+exp_arm_background_channelhandler(esPtr)
+ExpState *esPtr;
 {
-	switch (exp_fs[m].bg_status) {
+    switch (esPtr->bg_status) {
 	case unarmed:
-		exp_arm_background_filehandler_force(m);
-		break;
+	    exp_arm_background_channelhandler_force(esPtr);
+	    break;
 	case disarm_req_while_blocked:
-		exp_fs[m].bg_status = blocked;	/* forget request */
-		break;
+	    esPtr->bg_status = blocked;	/* forget request */
+	    break;
 	case armed:
 	case blocked:
-		/* do nothing */
-		break;
-	}
+	    /* do nothing */
+	    break;
+    }
 }
 
 void
-exp_disarm_background_filehandler(m)
-int m;
+exp_disarm_background_channelhandler(esPtr)
+ExpState *esPtr;
 {
-	switch (exp_fs[m].bg_status) {
+    switch (esPtr->bg_status) {
 	case blocked:
-		exp_fs[m].bg_status = disarm_req_while_blocked;
-		break;
+	    esPtr->bg_status = disarm_req_while_blocked;
+	    break;
 	case armed:
-		exp_fs[m].bg_status = unarmed;
-		exp_event_disarm(m);
-		break;
+	    esPtr->bg_status = unarmed;
+	    exp_event_disarm(esPtr);
+	    break;
 	case disarm_req_while_blocked:
 	case unarmed:
-		/* do nothing */
-		break;
-	}
+	    /* do nothing */
+	    break;
+    }
 }
 
 /* ignore block status and forcibly disarm handler - called from exp_close. */
 /* After exp_close returns, we will not have an opportunity to disarm */
 /* because the fd will be invalid, so we force it here. */
 void
-exp_disarm_background_filehandler_force(m)
-int m;
+exp_disarm_background_channelhandler_force(esPtr)
+ExpState *esPtr;
 {
-	switch (exp_fs[m].bg_status) {
+    switch (esPtr->bg_status) {
 	case blocked:
 	case disarm_req_while_blocked:
 	case armed:
-		exp_fs[m].bg_status = unarmed;
-		exp_event_disarm(m);
-		break;
+	    esPtr->bg_status = unarmed;
+	    exp_event_disarm(esPtr);
+	    break;
 	case unarmed:
-		/* do nothing */
-		break;
-	}
+	    /* do nothing */
+	    break;
+    }
 }
 
 /* this can only be called at the end of the bg handler in which */
 /* case we know the status is some kind of "blocked" */
 void
-exp_unblock_background_filehandler(m)
-int m;
+exp_unblock_background_channelhandler(esPtr)
+    ExpState *esPtr;
 {
-	switch (exp_fs[m].bg_status) {
+    switch (esPtr->bg_status) {
 	case blocked:
-		exp_arm_background_filehandler_force(m);
-		break;
+	    exp_arm_background_channelhandler_force(esPtr);
+	    break;
 	case disarm_req_while_blocked:
-		exp_disarm_background_filehandler_force(m);
-		break;
-	}
+	    exp_disarm_background_channelhandler_force(esPtr);
+	    break;
+    }
 }
 
 /* this can only be called at the beginning of the bg handler in which */
 /* case we know the status must be "armed" */
 void
-exp_block_background_filehandler(m)
-int m;
+exp_block_background_channelhandler(esPtr)
+ExpState *esPtr;
 {
-	exp_fs[m].bg_status = blocked;
-	exp_event_disarm_fast(m,exp_background_filehandler);
+    esPtr->bg_status = blocked;
+    exp_event_disarm(esPtr,exp_background_channelhandler);
 }
 
 
@@ -179,202 +166,191 @@ static void
 exp_timehandler(clientData)
 ClientData clientData;
 {
-	*(int *)clientData = TRUE;	
+    *(int *)clientData = TRUE;	
 }
 
-static void exp_filehandler(clientData,mask)
+static void exp_channelhandler(clientData,mask)
 ClientData clientData;
 int mask;
 {
-	/* if input appears, record the fd on which it appeared */
+    ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
 
-	ready_fd = *(int *)clientData;
-	ready_mask = mask;
-	exp_event_disarm_fast(ready_fd,exp_filehandler);
+    /* if input appears, record the fd on which it appeared */
 
-#if 0
-	if (ready_fd == *(int *)clientData) {
-		/* if input appears from an fd which we've already heard */
-		/* forcibly tell it to shut up.  We could also shut up */
-		/* every instance, but it is more efficient to leave the */
-		/* fd enabled with the belief that we may rearm soon enough */
-		/* anyway. */
-
-		exp_event_disarm_fast(ready_fd,exp_filehandler);
-	} else {
-		ready_fd = *(int *)clientData;
-		ready_mask = mask;
-	}
-#endif
+    tsdPtr->ready_esPtr = *(ExpState *)clientData;
+    tsdPtr->ready_mask = mask;
+    exp_event_disarm(tsdPtr->ready_fd,exp_channelhandler);
 }
 
 /* returns status, one of EOF, TIMEOUT, ERROR or DATA */
 /* can now return RECONFIGURE, too */
 /*ARGSUSED*/
-int exp_get_next_event(interp,masters, n,master_out,timeout,key)
+int exp_get_next_event(interp,esPtrs,n,esPtrOut,timeout,key)
 Tcl_Interp *interp;
-int *masters;
+ExpState (*esPtrs)[];
 int n;			/* # of masters */
-int *master_out;	/* 1st ready master, not set if none */
+ExpState **esPtrOut;	/* 1st ready master, not set if none */
 int timeout;		/* seconds */
 int key;
 {
-	static rr = 0;	/* round robin ptr */
-	int i;	/* index into in-array */
+    ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
+
+    ExpState *esPtr;
+    int i;	/* index into in-array */
 #ifdef HAVE_PTYTRAP
-	struct request_info ioctl_info;
+    struct request_info ioctl_info;
 #endif
 
-	int old_configure_count = exp_configure_count;
+    int old_configure_count = exp_configure_count;
 
-	int timer_created = FALSE;
-	int timer_fired = FALSE;
-	Tcl_TimerToken timetoken;/* handle to Tcl timehandler descriptor */
+    int timer_created = FALSE;
+    int timer_fired = FALSE;
+    Tcl_TimerToken timetoken;/* handle to Tcl timehandler descriptor */
+
+    for (;;) {
+	int m;
+	struct exp_f *f;
+
+	/* if anything has been touched by someone else, report that */
+	/* an event has been received */
+
+	for (i=0;i<n;i++) {
+	    rr++;
+	    if (rr >= n) rr = 0;
+
+	    esPtr = esPtrs[rr];
+
+	    if (esPtr->key != key) {
+		esPtr->key = key;
+		esPtr->force_read = FALSE;
+		*esPtrOut = esPtr;
+		return(EXP_DATA_OLD);
+	    } else if ((!esPtr->force_read) && (esPtr->size != 0)) {
+		*esPtrOut = esPtr;
+		return(EXP_DATA_OLD);
+	    }
+	}
+
+	if (!timer_created) {
+	    if (timeout >= 0) {
+		timetoken = Tcl_CreateTimerHandler(1000*timeout,
+			exp_timehandler,
+			(ClientData)&timer_fired);
+		timer_created = TRUE;
+	    }
+	}
 
 	for (;;) {
-		int m;
-		struct exp_f *f;
+	    int j;
 
-		/* if anything has been touched by someone else, report that */
-		/* an event has been received */
+	    /* make sure that all fds that should be armed are */
+	    for (j=0;j<n;j++) {
+		esPtr = esPtrs[j];
 
-		for (i=0;i<n;i++) {
-			rr++;
-			if (rr >= n) rr = 0;
-
-			m = masters[rr];
-			f = exp_fs + m;
-
-			if (f->key != key) {
-				f->key = key;
-				f->force_read = FALSE;
-				*master_out = m;
-				return(EXP_DATA_OLD);
-			} else if ((!f->force_read) && (f->size != 0)) {
-				*master_out = m;
-				return(EXP_DATA_OLD);
-			}
+		if (!esPtr->fg_armed) {
+		    Tcl_CreateChannelHandler(
+			esPtr->channel,
+			default_mask,
+			exp_channelhandler,
+			(ClientData)esPtr);
+		    esPtr->fg_armed = TRUE;
 		}
+	    }
 
-		if (!timer_created) {
-			if (timeout >= 0) {
-				timetoken = Tcl_CreateTimerHandler(1000*timeout,
-						exp_timehandler,
-						(ClientData)&timer_fired);
-				timer_created = TRUE;
-			}
-		}
+	    Tcl_DoOneEvent(0);	/* do any event */
 
-		for (;;) {
-			int j;
+	    if (timer_fired) return(EXP_TIMEOUT);
 
-			/* make sure that all fds that should be armed are */
-			for (j=0;j<n;j++) {
-				int k = masters[j];
+	    if (old_configure_count != exp_configure_count) {
+		if (timer_created)
+		    Tcl_DeleteTimerHandler(timetoken);
+		return EXP_RECONFIGURE;
+	    }
 
-				if (!exp_fs[k].fg_armed) {
-					Tcl_CreateFileHandler(
-					     k,
-					     default_mask,
-					     exp_filehandler,
-					     (ClientData)exp_fs[k].fd_ptr);
-					exp_fs[k].fg_armed = TRUE;
-				}
-			}
+	    esPtr = tsdPtr->ready_esPtr;
 
-			Tcl_DoOneEvent(0);	/* do any event */
+	    if (esPtr) continue;
 
-			if (timer_fired) return(EXP_TIMEOUT);
+	    /* if it was from something we're not looking for at */
+	    /* the moment, ignore it */
+	    for (j=0;j<n;j++) {
+		if (esPtr == esPtrs[j]) goto found;
+	    }
 
-			if (old_configure_count != exp_configure_count) {
-				if (timer_created)
-					Tcl_DeleteTimerHandler(timetoken);
-				return EXP_RECONFIGURE;
-			}
+	    /* not found */
+	    exp_event_disarm(esPtr,exp_channelhandler);
+	    tsdPtr->ready_esPtr = 0;
+	    continue;
+	    found:
+	    *master_out = esPtr;
+	    tsdPtr->ready_esPtr = EXP_SPAWN_ID_BAD;
 
-			if (ready_fd == EXP_SPAWN_ID_BAD) continue;
+	    /* this test should be redundant but SunOS */
+	    /* raises both READABLE and EXCEPTION (for no */
+	    /* apparent reason) when selecting on a plain file */
+	    if (tsdPtr->ready_mask & TCL_READABLE) {
+		if (timer_created) Tcl_DeleteTimerHandler(timetoken);
+		return EXP_DATA_NEW;
+	    }
 
-			/* if it was from something we're not looking for at */
-			/* the moment, ignore it */
-			for (j=0;j<n;j++) {
-				if (ready_fd == masters[j]) goto found;
-			}
-
-			/* not found */
-			exp_event_disarm_fast(ready_fd,exp_filehandler);
-			ready_fd = EXP_SPAWN_ID_BAD;
-			continue;
-		found:
-			*master_out = ready_fd;
-			ready_fd = EXP_SPAWN_ID_BAD;
-
-			/* this test should be redundant but SunOS */
-			/* raises both READABLE and EXCEPTION (for no */
-			/* apparent reason) when selecting on a plain file */
-			if (ready_mask & TCL_READABLE) {
-				if (timer_created) Tcl_DeleteTimerHandler(timetoken);
-				return EXP_DATA_NEW;
-			}
-
-			/* ready_mask must contain TCL_EXCEPTION */
+	    /* ready_mask must contain TCL_EXCEPTION */
 #ifndef HAVE_PTYTRAP
-			if (timer_created) Tcl_DeleteTimerHandler(timetoken);
-			return(EXP_EOF);
+	    if (timer_created) Tcl_DeleteTimerHandler(timetoken);
+	    return(EXP_EOF);
 #else
-			if (ioctl(*master_out,TIOCREQCHECK,&ioctl_info) < 0) {
-				exp_debuglog("ioctl error on TIOCREQCHECK: %s", Tcl_PosixError(interp));
-				if (timer_created) Tcl_DeleteTimerHandler(timetoken);
-				return(EXP_TCLERROR);
-			}
-			if (ioctl_info.request == TIOCCLOSE) {
-				if (timer_created) Tcl_DeleteTimerHandler(timetoken);
-				return(EXP_EOF);
-			}
-			if (ioctl(*master_out, TIOCREQSET, &ioctl_info) < 0) {
-				exp_debuglog("ioctl error on TIOCREQSET after ioctl or open on slave: %s", Tcl_ErrnoMsg(errno));
-			}
-			/* presumably, we trapped an open here */
-			continue;
+	    if (ioctl(esPtr->fdin,TIOCREQCHECK,&ioctl_info) < 0) {
+		exp_debuglog("ioctl error on TIOCREQCHECK: %s", Tcl_PosixError(interp));
+		if (timer_created) Tcl_DeleteTimerHandler(timetoken);
+		return(EXP_TCLERROR);
+	    }
+	    if (ioctl_info.request == TIOCCLOSE) {
+		if (timer_created) Tcl_DeleteTimerHandler(timetoken);
+		return(EXP_EOF);
+	    }
+	    if (ioctl(esPtr->fdin, TIOCREQSET, &ioctl_info) < 0) {
+		exp_debuglog("ioctl error on TIOCREQSET after ioctl or open on slave: %s", Tcl_ErrnoMsg(errno));
+	    }
+	    /* presumably, we trapped an open here */
+	    continue;
 #endif /* !HAVE_PTYTRAP */
-		}
 	}
+    }
 }
 
-/* Having been told there was an event for a specific fd, get it */
-/* returns status, one of EOF, TIMEOUT, ERROR or DATA */
+/* Having been told there was an event for a specific ExpState, get it */
+/* This returns status, one of EOF, TIMEOUT, ERROR or DATA */
 /*ARGSUSED*/
 int
-exp_get_next_event_info(interp,fd,ready_mask)
+exp_get_next_event_info(interp,esPtr,ready_mask)
 Tcl_Interp *interp;
-int fd;
+ExpState *esPtr;
 int ready_mask;
 {
 #ifdef HAVE_PTYTRAP
-	struct request_info ioctl_info;
+    struct request_info ioctl_info;
 #endif
 
-	if (ready_mask & TCL_READABLE) return EXP_DATA_NEW;
+    if (ready_mask & TCL_READABLE) return EXP_DATA_NEW;
 
-	/* ready_mask must contain TCL_EXCEPTION */
-
+    /* ready_mask must contain TCL_EXCEPTION */
 #ifndef HAVE_PTYTRAP
-	return(EXP_EOF);
+    return(EXP_EOF);
 #else
-	if (ioctl(fd,TIOCREQCHECK,&ioctl_info) < 0) {
-		exp_debuglog("ioctl error on TIOCREQCHECK: %s",
-				Tcl_PosixError(interp));
-		return(EXP_TCLERROR);
-	}
-	if (ioctl_info.request == TIOCCLOSE) {
-		return(EXP_EOF);
-	}
-	if (ioctl(fd, TIOCREQSET, &ioctl_info) < 0) {
-		exp_debuglog("ioctl error on TIOCREQSET after ioctl or open on slave: %s", Tcl_ErrnoMsg(errno));
-	}
-	/* presumably, we trapped an open here */
-	/* call it an error for lack of anything more descriptive */
-	/* it will be thrown away by caller anyway */
-	return EXP_TCLERROR;
+    if (ioctl(esPtr->fdin,TIOCREQCHECK,&ioctl_info) < 0) {
+	exp_debuglog("ioctl error on TIOCREQCHECK: %s",
+		Tcl_PosixError(interp));
+	return(EXP_TCLERROR);
+    }
+    if (ioctl_info.request == TIOCCLOSE) {
+	return(EXP_EOF);
+    }
+    if (ioctl(esPtr->fdin, TIOCREQSET, &ioctl_info) < 0) {
+	exp_debuglog("ioctl error on TIOCREQSET after ioctl or open on slave: %s", Tcl_ErrnoMsg(errno));
+    }
+    /* presumably, we trapped an open here */
+    /* call it an error for lack of anything more descriptive */
+    /* it will be thrown away by caller anyway */
+    return EXP_TCLERROR;
 #endif
 }
 
@@ -384,43 +360,22 @@ exp_dsleep(interp,sec)
 Tcl_Interp *interp;
 double sec;
 {
-	int timer_fired = FALSE;
+    int timer_fired = FALSE;
 
-	Tcl_CreateTimerHandler((int)(sec*1000),exp_timehandler,(ClientData)&timer_fired);
+    ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
 
-	while (1) {
-		Tcl_DoOneEvent(0);
-		if (timer_fired) return TCL_OK;
+    Tcl_CreateTimerHandler((int)(sec*1000),exp_timehandler,(ClientData)&timer_fired);
 
-		if (ready_fd == EXP_SPAWN_ID_BAD) continue;
+    while (1) {
+	Tcl_DoOneEvent(0);
+	if (timer_fired) return TCL_OK;
 
-		exp_event_disarm_fast(ready_fd,exp_filehandler);
-		ready_fd = EXP_SPAWN_ID_BAD;
-	}
+	if (!tsdPtr->ready_esPtr) continue;
+
+	exp_event_disarm(tsd->ready_esPtr,exp_channelhandler);
+	tsd->ready_esPtr = EXP_SPAWN_ID_BAD;
+    }
 }
-
-#if 0
-/*ARGSUSED*/
-int	/* returns TCL_XXX */
-exp_usleep(interp,usec)
-Tcl_Interp *interp;
-long usec;
-{
-	int timer_fired = FALSE;
-
-	Tcl_CreateTimerHandler(usec/1000,exp_timehandler,(ClientData)&timer_fired);
-
-	while (1) {
-		Tcl_DoOneEvent(0);
-		if (timer_fired) return TCL_OK;
-
-		if (ready_fd == EXP_SPAWN_ID_BAD) continue;
-
-		exp_event_disarm_fast(ready_fd,exp_filehandler);
-		ready_fd = EXP_SPAWN_ID_BAD;
-	}
-}
-#endif
 
 static char destroy_cmd[] = "destroy .";
 
@@ -428,12 +383,17 @@ static void
 exp_event_exit_real(interp)
 Tcl_Interp *interp;
 {
-	Tcl_Eval(interp,destroy_cmd);
+    Tcl_Eval(interp,destroy_cmd);
 }
 
 /* set things up for later calls to event handler */
 void
 exp_init_event()
 {
-	exp_event_exit = exp_event_exit_real;
+    ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
+
+    tsdPtr->ready_esPtr = 0;
+    tsdPtr->rr = 0;
+
+    exp_event_exit = exp_event_exit_real;
 }

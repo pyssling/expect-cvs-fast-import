@@ -56,13 +56,23 @@ int exp_default_rm_nulls =	TRUE;
 #define EXPECT_TIMEOUT		"timeout"
 #define EXPECT_OUT		"expect_out"
 
+typedef struct ThreadSpecificData {
+    /*
+     * List of all exp channels currently open.  This is per thread and is
+     * used to match up fd's to channels, which rarely occurs.
+     */
+    int timeout;
+} ThreadSpecificData;
+
+static Tcl_ThreadDataKey dataKey;
+
 /* 1 ecase struct is reserved for each case in the expect command.  Note that
 eof/timeout don't use any of theirs, but the algorithm is simpler this way. */
 
 struct ecase {	/* case for expect command */
 	struct exp_i	*i_list;
-	char *pat;	/* original pattern spec */
-	char *body;	/* ptr to body to be executed upon match */
+	Tcl_Obj *pat;	/* original pattern spec */
+	Tcl_Obj *body;	/* ptr to body to be executed upon match */
 #define PAT_EOF		1
 #define PAT_TIMEOUT	2
 #define PAT_DEFAULT	3
@@ -84,7 +94,6 @@ struct ecase {	/* case for expect command */
 #define CASE_NORM	1
 #define CASE_LOWER	2
 	int Case;	/* convert case before doing match? */
-	Tcl_RegExp re;	/* if this is 0, then pattern match via glob */
 };
 
 /* descriptions of the pattern types, used for debugging */
@@ -136,7 +145,7 @@ static int env_valid = FALSE;	/* whether we can longjmp or not */
 static int alarm_fired;	/* if alarm occurs */
 #endif
 
-void exp_background_filehandlers_run_all();
+void exp_background_channelhandlers_run_all();
 
 /* exp_indirect_updateX is called by Tcl when an indirect variable is set */
 static char *exp_indirect_update1();	/* 1-part Tcl variable names */
@@ -247,11 +256,9 @@ Tcl_Interp *interp;
 struct ecase *ec;
 int free_ilist;		/* if we should free ilist */
 {
-	if (ec->re) ckfree((char *)ec->re);
-
 	if (ec->i_list->duration == EXP_PERMANENT) {
-		if (ec->pat) ckfree(ec->pat);
-		if (ec->body) ckfree(ec->body);
+		if (ec->pat) Tcl_DecrRefCount(ec->pat);
+		if (ec->body) Tcl_DecrRefCount(ec->body);
 	}
 
 	if (free_ilist) {
@@ -401,7 +408,6 @@ struct ecase *ec;
 /*	ec->iwrite = FALSE;*/
 	ec->iread = FALSE;
 	ec->timestamp = FALSE;
-	ec->re = 0;
 	ec->Case = CASE_NORM;
 	ec->use = PAT_GLOB;
 }
@@ -442,19 +448,31 @@ The exp_i chain can be broken by the caller if desired.
 */
 
 static int
-parse_expect_args(interp,eg,default_spawn_id,argc,argv)
+parse_expect_args(interp,eg,default_esPtr,objc,objv)
 Tcl_Interp *interp;
 struct exp_cmd_descriptor *eg;
-int default_spawn_id;	/* suggested master if called as expect_user or _tty */
-int argc;
-char **argv;
+ExpState *default_esPtr;	/* suggested master if called as expect_user or _tty */
+int objc;
+Tcl_Obj *CONST objv[];		/* Argument objects. */
 {
 	int i;
 	char *arg;
 	struct ecase ec;	/* temporary to collect args */
 
-	argv++;
-	argc--;
+	static char *options[] = {
+	    "timeout", "eof", "full_buffer", "default", "null", "--",
+	    "-glob", "-regexp", "-exact", "-notransfer", "-nocase",
+	    "-i", "-indices", "-iwrite", "-iread", "-timestamp", "-timeout",
+	    "-nobrace", (char *) NULL
+	};
+	enum options {
+	    EXP_ARG_TIMEOUT, EXP_ARG_EOF, EXP_ARG_FULL_BUFFER,
+	    EXP_ARG_DEFAULT, EXP_ARG_NULL, EXP_ARG_DASH, EXP_ARG_GLOB,
+	    EXP_ARG_REGEXP, EXP_ARG_EXACT, EXP_ARG_NOTRANSFER, EXP_ARG_NOCASE,
+	    EXP_ARG_SPAWN_ID, EXP_ARG_INDICES, EXP_ARG_IWRITE, EXP_ARG_IREAD,
+	    EXP_ARG_TIMESTAMP, EXP_ARG_DASH_TIMEOUT, EXP_ARG_NOBRACE
+	};
+	int index;
 
 	eg->timeout_specified_by_flag = FALSE;
 
@@ -465,143 +483,175 @@ char **argv;
 	/* but won't affect anything. */
 
 	eg->ecd.cases = (struct ecase **)ckalloc(
-		sizeof(struct ecase *) * (1+(argc/2)));
+		sizeof(struct ecase *) * (1+(objc/2)));
 
 	eg->ecd.count = 0;
 
-	for (i = 0;i<argc;i++) {
-		arg = argv[i];
-	
-		if (exp_flageq("timeout",arg,7)) {
+	for (i = 1;i<objc;i++) {
+	    if (Tcl_GetIndexFromObj(interp, objv[i], options, "option", 0,
+		    &index) == TCL_OK) {
+		switch ((enum options) index) {
+		    case EXP_ARG_TIMEOUT:
 			ec.use = PAT_TIMEOUT;
-		} else if (exp_flageq("eof",arg,3)) {
+			goto pattern;
+		    case EXP_ARG_EOF:
 			ec.use = PAT_EOF;
-		} else if (exp_flageq("full_buffer",arg,11)) {
+			goto pattern;
+		    case EXP_ARG_FULL_BUFFER:
 			ec.use = PAT_FULLBUFFER;
-		} else if (exp_flageq("default",arg,7)) {
+			goto pattern;
+		    case EXP_ARG_DEFAULT:
 			ec.use = PAT_DEFAULT;
-		} else if (exp_flageq("null",arg,4)) {
+			goto pattern;
+		    case EXP_ARG_NULL:
 			ec.use = PAT_NULL;
-		} else if (arg[0] == '-') {
-			arg++;
-			if (exp_flageq1('-',arg)		/* "--" is deprecated */
-			  || exp_flageq("glob",arg,2)) {
-				i++;
-				/* assignment here is not actually necessary */
-				/* since cases are initialized this way above */
-				/* ec.use = PAT_GLOB; */
-			} else if (exp_flageq("regexp",arg,2)) {
-				i++;
-				ec.use = PAT_RE;
-				TclRegError((char *)0);
-				if (!(ec.re = TclRegComp(argv[i]))) {
-					exp_error(interp,"bad regular expression: %s",
-								TclGetRegError());
-					goto error;
-				}
-			} else if (exp_flageq("exact",arg,2)) {
-				i++;
-				ec.use = PAT_EXACT;
-			} else if (exp_flageq("notransfer",arg,1)) {
-				ec.transfer = 0;
-				continue;
-			} else if (exp_flageq("nocase",arg,3)) {
-				ec.Case = CASE_LOWER;
-				continue;
-			} else if (exp_flageq1('i',arg)) {
-				i++;
-				if (i>=argc) {
-					exp_error(interp,"-i requires following spawn_id");
-					goto error;
-				}
+			goto pattern;
+		    case EXP_ARG_DASH:
+		    case EXP_ARG_GLOB:
+			/* assignment here is not actually necessary */
+			/* since cases are initialized this way above */
+			/* ec.use = PAT_GLOB; */
+			goto pattern;
+		    case EXP_ARG_REGEXP:
+			if (i >= objc-1) {
+			    Tcl_WrongNumArgs(interp, 1, objv,
+				    "-regexp regexp");
+			    return TCL_ERROR;
+			}
+			ec.use = PAT_RE;
 
-				ec.i_list = exp_new_i_complex(interp,argv[i],
-					eg->duration,exp_indirect_update2);
+			/*
+			 * Try compiling the expression so we can report
+			 * any errors now rather then when we first try to
+			 * use it.
+			 */
 
-				ec.i_list->cmdtype = eg->cmdtype;
+			if (!(Tcl_GetRegExpFromObj(interp, objv[i+1],
+				REG_ADVANCED))) {
+			    goto error;
+			}
+			goto pattern;
+		    case EXP_ARG_EXACT:
+			ec.use = PAT_EXACT;
+			goto pattern;
+
+		    case EXP_ARG_NOTRANSFER:
+			ec.transfer = 0;
+			break;
+		    case EXP_ARG_NOCASE:
+			ec.Case = CASE_LOWER;
+			break;
+		    case EXP_ARG_SPAWN_ID:
+			i++;
+			if (i>=objc) {
+			    exp_error(interp,"-i requires following spawn_id");
+			    goto error;
+			}
+
+			ec.i_list = exp_new_i_complex(interp,
+				Tcl_GetString(objv[i]),
+				eg->duration, exp_indirect_update2);
+
+			ec.i_list->cmdtype = eg->cmdtype;
 
 				/* link new i_list to head of list */
-				ec.i_list->next = eg->i_list;
-				eg->i_list = ec.i_list;
-
-				continue;
-			} else if (exp_flageq("indices",arg,2)) {
-				ec.indices = TRUE;
-				continue;
-			} else if (exp_flageq("iwrite",arg,2)) {
+			ec.i_list->next = eg->i_list;
+			eg->i_list = ec.i_list;
+			break;
+		    case EXP_ARG_INDICES:
+			ec.indices = TRUE;
+			break;
+		    case EXP_ARG_IWRITE:
 /*				ec.iwrite = TRUE;*/
-				continue;
-			} else if (exp_flageq("iread",arg,2)) {
-				ec.iread = TRUE;
-				continue;
-			} else if (exp_flageq("timestamp",arg,2)) {
-				ec.timestamp = TRUE;
-				continue;
-			} else if (exp_flageq("timeout",arg,2)) {
-				i++;
-				if (i>=argc) {
-					exp_error(interp,"-timeout requires following # of seconds");
-					goto error;
-				}
-
-				eg->timeout = atoi(argv[i]);
-				eg->timeout_specified_by_flag = TRUE;
-				continue;
-			} else if (exp_flageq("nobrace",arg,7)) {
+			break;
+		    case EXP_ARG_IREAD:
+			ec.iread = TRUE;
+			break;
+		    case EXP_ARG_TIMESTAMP:
+			ec.timestamp = TRUE;
+			break;
+		    case EXP_ARG_DASH_TIMEOUT:
+			i++;
+			if (i>=objc) {
+			    exp_error(interp,"-timeout requires following # of seconds");
+			    goto error;
+			}
+			if (Tcl_GetIntFromObj(interp, objv[i],
+				&eg->timeout) != TCL_OK) {
+			    goto error;
+			}
+			eg->timeout_specified_by_flag = TRUE;
+			break;
+		    case EXP_ARG_NOBRACE:
 				/* nobrace does nothing but take up space */
 				/* on the command line which prevents */
 				/* us from re-expanding any command lines */
 				/* of one argument that looks like it should */
 				/* be expanded to multiple arguments. */
-				continue;
-			} else {
-				exp_error(interp,"usage: unrecognized flag <%s>",arg);
-				goto error;
-			}
+			break;
 		}
+		/*
+		 * Keep processing arguments, we aren't ready for the
+		 * pattern yet.
+		 */
+		continue;
+	    }
 
-		/* if no -i, use previous one */
-		if (!ec.i_list) {
-			/* if no -i flag has occurred yet, use default */
-			if (!eg->i_list) {
-				if (default_spawn_id != EXP_SPAWN_ID_BAD) {
-					eg->i_list = exp_new_i_simple(default_spawn_id,eg->duration);
-				} else {
-					/* it'll be checked later, if used */
-					(void) exp_update_master(interp,&default_spawn_id,0,0);
-					eg->i_list = exp_new_i_simple(default_spawn_id,eg->duration);
-				}
-			}
-			ec.i_list = eg->i_list;
+	    /*
+	     * We have a pattern of some kind.
+	     */
+
+	    pattern:
+	    /* if no -i, use previous one */
+	    if (!ec.i_list) {
+		/* if no -i flag has occurred yet, use default */
+		if (!eg->i_list) {
+		    if (default_esPtr != EXP_SPAWN_ID_BAD) {
+			eg->i_list = exp_new_i_simple(default_esPtr,eg->duration);
+		    } else {
+			/* it'll be checked later, if used */
+			*default_esPtr = expGetCurrentState(interp,0,0);
+			eg->i_list = exp_new_i_simple(default_esPtr,eg->duration);
+		    }
 		}
-		ec.i_list->ecount++;
+		ec.i_list = eg->i_list;
+	    }
+	    ec.i_list->ecount++;
 
-		/* save original pattern spec */
-		/* keywords such as "-timeout" are saved as patterns here */
-		/* useful for debugging but not otherwise used */
-		save_str(&ec.pat,argv[i],eg->duration == EXP_TEMPORARY);
-		save_str(&ec.body,argv[i+1],eg->duration == EXP_TEMPORARY);
-			
-		i++;
+	    /* save original pattern spec */
+	    /* keywords such as "-timeout" are saved as patterns here */
+	    /* useful for debugging but not otherwise used */
 
-		*(eg->ecd.cases[eg->ecd.count] = ecase_new()) = ec;
+	    i++;
+	    ec.pat = objv[i];
+	    Tcl_IncrRefCount(ec.pat);
+
+	    i++;
+	    if (i < objc) {
+		ec.body = objv[i];
+		Tcl_IncrRefCount(ec.body);
+	    } else {
+		ec.body = NULL;
+	    }
+
+	    *(eg->ecd.cases[eg->ecd.count] = ecase_new()) = ec;
 
 		/* clear out for next set */
-		ecase_clear(&ec);
+	    ecase_clear(&ec);
 
-		eg->ecd.count++;
+	    eg->ecd.count++;
 	}
 
 	/* if no patterns at all have appeared force the current */
 	/* spawn id to be added to list anyway */
 
 	if (eg->i_list == 0) {
-		if (default_spawn_id != EXP_SPAWN_ID_BAD) {
-			eg->i_list = exp_new_i_simple(default_spawn_id,eg->duration);
+		if (default_esPtr != EXP_SPAWN_ID_BAD) {
+			eg->i_list = exp_new_i_simple(default_esPtr,eg->duration);
 		} else {
-			/* it'll be checked later, if used */
-			(void) exp_update_master(interp,&default_spawn_id,0,0);
-			eg->i_list = exp_new_i_simple(default_spawn_id,eg->duration);
+		    /* it'll be checked later, if used */
+		    *default_esPtr = expGetCurrentState(interp,0,0);
+		    eg->i_list = exp_new_i_simple(default_esPtr,eg->duration);
 		}
 	}
 
@@ -613,14 +663,6 @@ char **argv;
 
 	/* note that i_list must be avail to free ecases! */
 	free_ecases(interp,eg,0);
-
-	/* undo temporary ecase */
-	/* free_ecase doesn't quite handle this right, so do it by hand */
-	if (ec.re) ckfree((char *)ec.re);
-	if (eg->duration == EXP_PERMANENT) {
-		if (ec.pat) ckfree(ec.pat);
-		if (ec.body) ckfree(ec.body);
-	}
 
 	if (eg->i_list)
 		exp_free_i(interp,eg->i_list,exp_indirect_update2);
@@ -634,108 +676,188 @@ static char no[] = "no\r\n";
 
 /* this describes status of a successful match */
 struct eval_out {
-	struct ecase *e;		/* ecase that matched */
-	struct exp_f *f;			/* struct exp_f that matched */
-	char *buffer;			/* buffer that matched */
-	int match;			/* # of chars in buffer that matched */
-					/* or # of chars in buffer at EOF */
+    struct ecase *e;		/* ecase that matched */
+    ExpState *esPtr;		/* ExpState that matched */
+    Tcl_Obj *buffer;		/* buffer that matched */
+    int match;			/* # of chars in buffer that matched */
+			        /* or # of chars in buffer at EOF */
 };
 
+
+
+
+/*
+ *----------------------------------------------------------------------
+ *
+ * string_case_first --
+ *
+ *	Find the first instance of a pattern in a string.
+ *
+ * Results:
+ *	Returns the pointer to the first instance of the pattern
+ *	in the given string, or NULL if no match was found.
+ *
+ * Side effects:
+ *	None.
+ *
+ *----------------------------------------------------------------------
+ */
+
+char *
+string_case_first(string,pattern)	/* INTL */
+    register char *string;	/* String. */
+    register char *pattern;	/* Pattern, which may contain
+				 * special characters. */
+{
+    char *s, *p;
+    int offset;
+    Tcl_UniChar ch1, ch2;
+    
+    while (*string != 0) {
+	s = string;
+	p = pattern;
+	while (*s) {
+	    s += Tcl_UtfToUniChar(s, &ch1);
+	    offset = Tcl_UtfToUniChar(p, &ch2);
+	    if (Tcl_UniCharToLower(ch1) != Tcl_UniCharToLower(ch2)) {
+		break;
+	    }
+	    p += offset;
+	}
+	if (*p == '\0') {
+	    return string;
+	}
+	string++;
+    }
+    return NULL;
+}
 
 /* like eval_cases, but handles only a single cases that needs a real */
 /* string match */
 /* returns EXP_X where X is MATCH, NOMATCH, FULLBUFFER, TCLERRROR */
 static int
-eval_case_string(interp,e,m,o,last_f,last_case,suffix)
+eval_case_string(interp,e,esPtr,o,last_esPtr,last_case,suffix)
 Tcl_Interp *interp;
 struct ecase *e;
-int m;
+ExpState *esPtr;
 struct eval_out *o;		/* 'output' - i.e., final case of interest */
 /* next two args are for debugging, when they change, reprint buffer */
-struct exp_f **last_f;
+ExpState **last_esPtr;
 int *last_case;
 char *suffix;
 {
-	struct exp_f *f = exp_fs + m;
-	char *buffer;
+	Tcl_Obj *buffer;
+	Tcl_RegExp re;
+	Tcl_RegExpInfo info;
+	char *str;
+	int length, flags;
 
-	/* if -nocase, use the lowerized buffer */
-	buffer = ((e->Case == CASE_NORM)?f->buffer:f->lower);
+	buffer = esPtr->buffer;
+	str = Tcl_GetStringFromObj(buffer, &length);
 
 	/* if master or case changed, redisplay debug-buffer */
-	if ((f != *last_f) || e->Case != *last_case) {
-		debuglog("\r\nexpect%s: does \"%s\" (spawn_id %d) match %s ",
-			 	suffix,
-				dprintify(buffer),f-exp_fs,
-				pattern_style[e->use]);
-		*last_f = f;
+	if ((f != *last_esPtr) || e->Case != *last_case) {
+		debuglog("\r\nexpect%s: does \"%s\" (spawn_id %s) match %s ",
+			suffix,
+			dprintify(buffer),esPtr->name,
+			pattern_style[e->use]);
+		*last_esPtr = esPtr;
 		*last_case = e->Case;
 	}
 
 	if (e->use == PAT_RE) {
-		debuglog("\"%s\"? ",dprintify(e->pat));
-		TclRegError((char *)0);
-		if (buffer && TclRegExec(e->re,buffer,buffer)) {
-			o->e = e;
-			o->match = e->re->endp[0]-buffer;
-			o->buffer = buffer;
-			o->f = f;
-			debuglog(yes);
-			return(EXP_MATCH);
-		} else {
-			debuglog(no);
-			if (TclGetRegError()) {
-			    exp_error(interp,"-re failed: %s",TclGetRegError());
-			    return(EXP_TCLERROR);
-		        }
-		    }
-	} else if (e->use == PAT_GLOB) {
-		int match; /* # of chars that matched */
+	    debuglog("\"%s\"? ",dprintify(e->pat));
+	    if (e->Case == CASE_NORM) {
+		flags = TCL_REG_ADVANCED;
+	    } else {
+		flags = TCL_REG_ADVANCED | TCL_REG_NOCASE;
+	    }
+		    
+	    re = Tcl_GetRegExpFromObj(interp, e->pat, flags);
 
-	        debuglog("\"%s\"? ",dprintify(e->pat));
-		if (buffer && (-1 != (match = Exp_StringMatch(
-				buffer,e->pat,&e->simple_start)))) {
-			o->e = e;
-			o->match = match;
-			o->buffer = buffer;
-			o->f = f;
-			debuglog(yes);
-			return(EXP_MATCH);
-		} else debuglog(no);
-	} else if (e->use == PAT_EXACT) {
-		char *p = strstr(buffer,e->pat);
-	        debuglog("\"%s\"? ",dprintify(e->pat));
-		if (p) {
-			e->simple_start = p - buffer;
-			o->e = e;
-			o->match = strlen(e->pat);
-			o->buffer = buffer;
-			o->f = f;
-			debuglog(yes);
-			return(EXP_MATCH);
-		} else debuglog(no);
-	} else if (e->use == PAT_NULL) {
-		int i = 0;
-		debuglog("null? ");
-		for (;i<f->size;i++) {
-			if (buffer[i] == 0) {
-				o->e = e;
-				o->match = i+1;	/* in this case, match is */
-						/* just the # of chars + 1 */
-						/* before the null */
-				o->buffer = buffer;
-				o->f = f;
-				debuglog(yes);
-				return EXP_MATCH;
-			}
-		}
+	    if (!buffer) {
 		debuglog(no);
-	} else if ((f->size == f->msize) && (f->size > 0)) {
+	    } else if (Tcl_RegExpMatchObj(interp, re, buffer, 0) < 0) {
+		debuglog(no);
+		return(EXP_TCLERROR);
+	    } else {
+
+		o->e = e;
+
+		/*
+		 * Retrieve the byte offset of the end of the
+		 * matched string.  
+		 */
+
+		Tcl_RegExpGetInfo(re, &info);
+		o->match = Tcl_UtfAtIndex(str, info.matches[0].end) - str;
+		o->buffer = buffer;
+		o->esPtr = esPtr;
+		debuglog(yes);
+		return(EXP_MATCH);
+	    }
+	} else if (e->use == PAT_GLOB) {
+	    int match; /* # of chars that matched */
+
+	    debuglog("\"%s\"? ",dprintify(e->pat));
+	    if (buffer) {
+		match = Exp_StringCaseMatch(Tcl_GetString(buffer),
+			Tcl_GetString(e->pat),
+			(e->Case == CASE_NORM) ? 0 : 1,
+			&e->simple_start);
+		if (match != -1) {
+		    o->e = e;
+		    o->match = match;
+		    o->buffer = buffer;
+		    o->esPtr = esPtr;
+		    debuglog(yes);
+		    return(EXP_MATCH);
+		}
+	    }
+	    debuglog(no);
+	} else if (e->use == PAT_EXACT) {
+	    int patLength;
+	    char *pat = Tcl_GetStringFromObj(e->pat, &patLength);
+	    int size = (patLength < length) ? patLength : length;
+	    char *p;
+
+	    if (e->Case == CASE_NORM) {
+		p = strstr(str, pat);
+	    } else {
+		p = string_case_first(str, pat);
+	    }	    
+
+	    debuglog("\"%s\"? ",dprintify(pat));
+	    if (p) {
+		e->simple_start = p - str;
+		o->e = e;
+		o->match = e->simple_start + patLength;
+		o->buffer = buffer;
+		o->esPtr = esPtr;
+		debuglog(yes);
+		return(EXP_MATCH);
+	    } else debuglog(no);
+	} else if (e->use == PAT_NULL) {
+	    Tcl_UniChar ch;
+	    char *p;
+	    debuglog("null? ");
+	    p = Tcl_UtfFindFirst(str, 0);
+
+	    if (p) {
+		o->e = e;
+		o->match = p-str;
+		o->buffer = buffer;
+		o->esPtr = esPtr;
+		debuglog(yes);
+		return EXP_MATCH;
+	    }
+	    debuglog(no);
+	} else if ((length == esPtr->msize) && (length > 0)) {
 		debuglog("%s? ",e->pat);
 		o->e = e;
-		o->match = f->umsize;
-		o->buffer = f->buffer;
-		o->f = f;
+		o->match = length;
+		o->buffer = esPtr->buffer;
+		o->esPtr = esPtr;
 		debuglog(yes);
 		return(EXP_FULLBUFFER);
 	}
@@ -745,13 +867,13 @@ char *suffix;
 /* sets o.e if successfully finds a matching pattern, eof, timeout or deflt */
 /* returns original status arg or EXP_TCLERROR */
 static int
-eval_cases(interp,eg,m,o,last_f,last_case,status,masters,mcount,suffix)
+eval_cases(interp,eg,esPtr,o,last_esPtr,last_case,status,masters,mcount,suffix)
 Tcl_Interp *interp;
 struct exp_cmd_descriptor *eg;
-int m;
+ExpState *esPtr;
 struct eval_out *o;		/* 'output' - i.e., final case of interest */
 /* next two args are for debugging, when they change, reprint buffer */
-struct exp_f **last_f;
+ExpState **last_esPtr;
 int *last_case;
 int status;
 int *masters;
@@ -777,11 +899,11 @@ char *suffix;
 		for (i=0;i<eg->ecd.count;i++) {
 			e = eg->ecd.cases[i];
 			if (e->use == PAT_EOF || e->use == PAT_DEFAULT) {
-				struct exp_fd_list *fdl;
+				struct exp_state_list *slPtr;
 
-				for (fdl=e->i_list->fd_list; fdl ;fdl=fdl->next) {
-					em = fdl->fd;
-					if (em == EXP_SPAWN_ID_ANY || em == m) {
+				for (slPtr=e->i_list->state_list; slPtr ;slPtr=slPtr->next) {
+					em = slPtr->esPtr;
+					if (expIsStateAny(em) || em == m) {
 						o->e = e;
 						return(status);
 					}
@@ -797,7 +919,7 @@ char *suffix;
 	/* The bufferful condition does not prevent a pattern match from */
 	/* occurring and vice versa, so it is scanned with patterns */
 	for (i=0;i<eg->ecd.count;i++) {
-		struct exp_fd_list *fdl;
+		struct exp_state_list *slPtr;
 		int j;
 
 		e = eg->ecd.cases[i];
@@ -805,21 +927,21 @@ char *suffix;
 		    e->use == PAT_DEFAULT ||
 		    e->use == PAT_EOF) continue;
 
-		for (fdl = e->i_list->fd_list; fdl; fdl = fdl->next) {
-			em = fdl->fd;
+		for (slPtr = e->i_list->state_list; slPtr; slPtr = slPtr->next) {
+			em = slPtr->esPtr;
 			/* if em == EXP_SPAWN_ID_ANY, then user is explicitly asking */
 			/* every case to be checked against every master */
-			if (em == EXP_SPAWN_ID_ANY) {
+			if (expIsStateAny(em)) {
 				/* test against each spawn_id */
 				for (j=0;j<mcount;j++) {
-					status = eval_case_string(interp,e,masters[j],o,last_f,last_case,suffix);
+					status = eval_case_string(interp,e,masters[j],o,last_esPtr,last_case,suffix);
 					if (status != EXP_NOMATCH) return(status);
 				}
 			} else {
 				/* reject things immediately from wrong spawn_id */
 				if (em != m) continue;
 
-				status = eval_case_string(interp,e,m,o,last_f,last_case,suffix);
+				status = eval_case_string(interp,e,m,o,last_esPtr,last_case,suffix);
 				if (status != EXP_NOMATCH) return(status);
 			}
 		}
@@ -891,79 +1013,79 @@ struct exp_i *exp_i;
 
 /* remove ecases tied to a single direct spawn id */
 static void
-ecmd_remove_fd(interp,ecmd,m,direct)
+ecmd_remove_state(interp,ecmd,esPtr,direct)
 Tcl_Interp *interp;
 struct exp_cmd_descriptor *ecmd;
-int m;
+ExpState *esPtr;
 int direct;
 {
-	struct exp_i *exp_i, *next;
-	struct exp_fd_list **fdl;
+    struct exp_i *exp_i, *next;
+    struct exp_state_list **slPtr;
 
-	for (exp_i=ecmd->i_list;exp_i;exp_i=next) {
-		next = exp_i->next;
+    for (exp_i=ecmd->i_list;exp_i;exp_i=next) {
+	next = exp_i->next;
 
-		if (!(direct & exp_i->direct)) continue;
+	if (!(direct & exp_i->direct)) continue;
 
-		for (fdl = &exp_i->fd_list;*fdl;) {
-			if (m == ((*fdl)->fd)) {
-				struct exp_fd_list *tmp = *fdl;
-				*fdl = (*fdl)->next;
-				exp_free_fd_single(tmp);
+	for (slPtr = &exp_i->state_list;*slPtr;) {
+	    if (esPtr == ((*slPtr)->esPtr)) {
+		struct exp_state_list *tmp = *slPtr;
+		*slPtr = (*slPtr)->next;
+		exp_free_state_single(tmp);
 
-				/* if last bg ecase, disarm spawn id */
-				if ((ecmd->cmdtype == EXP_CMD_BG) && (m != EXP_SPAWN_ID_ANY)) {
-					exp_fs[m].bg_ecount--;
-					if (exp_fs[m].bg_ecount == 0) {
-						exp_disarm_background_filehandler(m);
-						exp_fs[m].bg_interp = 0;
-					}
-				}
-
-				continue;
-			}
-			fdl = &(*fdl)->next;
+		/* if last bg ecase, disarm spawn id */
+		if ((ecmd->cmdtype == EXP_CMD_BG) && (expIsStateAny(esPtr))) {
+		    esPtr->bg_ecount--;
+		    if (esPtr->bg_ecount == 0) {
+			exp_disarm_background_channelhandler(esPtr);
+			esPtr->bg_interp = 0;
+		    }
 		}
-
-		/* if left with no fds (and is direct), get rid of it */
-		/* and any dependent ecases */
-		if (exp_i->direct == EXP_DIRECT && !exp_i->fd_list) {
-			exp_i_remove_with_ecases(interp,ecmd,exp_i);
-		}
+		
+		continue;
+	    }
+	    slPtr = &(*slPtr)->next;
 	}
+
+	/* if left with no ExpStates (and is direct), get rid of it */
+	/* and any dependent ecases */
+	if (exp_i->direct == EXP_DIRECT && !exp_i->state_list) {
+	    exp_i_remove_with_ecases(interp,ecmd,exp_i);
+	}
+    }
 }
 
-/* this is called from exp_close to clean up the fd */
+/* this is called from exp_close to clean up the ExpState */
 void
-exp_ecmd_remove_fd_direct_and_indirect(interp,m)
+exp_ecmd_remove_state_direct_and_indirect(interp,esPtr)
 Tcl_Interp *interp;
-int m;
+ExpState *esPtr;
 {
-	ecmd_remove_fd(interp,&exp_cmds[EXP_CMD_BEFORE],m,EXP_DIRECT|EXP_INDIRECT);
-	ecmd_remove_fd(interp,&exp_cmds[EXP_CMD_AFTER],m,EXP_DIRECT|EXP_INDIRECT);
-	ecmd_remove_fd(interp,&exp_cmds[EXP_CMD_BG],m,EXP_DIRECT|EXP_INDIRECT);
+	ecmd_remove_state(interp,&exp_cmds[EXP_CMD_BEFORE],esPtr,EXP_DIRECT|EXP_INDIRECT);
+	ecmd_remove_state(interp,&exp_cmds[EXP_CMD_AFTER],esPtr,EXP_DIRECT|EXP_INDIRECT);
+	ecmd_remove_state(interp,&exp_cmds[EXP_CMD_BG],esPtr,EXP_DIRECT|EXP_INDIRECT);
 
 	/* force it - explanation in exp_tk.c where this func is defined */
-	exp_disarm_background_filehandler_force(m);
+	exp_disarm_background_channelhandler_force(esPtr);
 }
 
-/* arm a list of background fd's */
+/* arm a list of background ExpState's */
 static void
-fd_list_arm(interp,fdl)
+state_list_arm(interp,slPtr)
 Tcl_Interp *interp;
-struct exp_fd_list *fdl;
+struct exp_state_list *slPtr;
 {
-	/* for each spawn id in list, arm if necessary */
-	for (;fdl;fdl=fdl->next) {
-		int m = fdl->fd;
-		if (m == EXP_SPAWN_ID_ANY) continue;
+    /* for each spawn id in list, arm if necessary */
+    for (;slPtr;slPtr=slPtr->next) {
+	ExpState *esPtr = slPtr->esPtr;    
+	if (expIsStateAny(esPtr)) continue;
 
-		if (exp_fs[m].bg_ecount == 0) {
-			exp_arm_background_filehandler(m);
-			exp_fs[m].bg_interp = interp;
-		}
-		exp_fs[m].bg_ecount++;
+	if (esPtr->bg_ecount == 0) {
+	    exp_arm_background_channelhandler(esPtr);
+	    esPtr->bg_interp = interp;
 	}
+	esPtr->bg_ecount++;
+    }
 }
 
 /* return TRUE if this ecase is used by this fd */
@@ -972,10 +1094,10 @@ exp_i_uses_fd(exp_i,fd)
 struct exp_i *exp_i;
 int fd;
 {
-	struct exp_fd_list *fdp;
+	struct exp_state_list *fdp;
 
-	for (fdp = exp_i->fd_list;fdp;fdp=fdp->next) {
-		if (fdp->fd == fd) return 1;
+	for (fdp = exp_i->state_list;fdp;fdp=fdp->next) {
+		if (fdp->esPtr == fd) return 1;
 	}
 	return 0;
 }
@@ -990,11 +1112,11 @@ struct ecase *ec;
 /*	if (ec->iwrite) Tcl_AppendElement(interp,"-iwrite");*/
 	if (!ec->Case) Tcl_AppendElement(interp,"-nocase");
 
-	if (ec->re) Tcl_AppendElement(interp,"-re");
+	if (ec->use == PAT_RE) Tcl_AppendElement(interp,"-re");
 	else if (ec->use == PAT_GLOB) Tcl_AppendElement(interp,"-gl");
 	else if (ec->use == PAT_EXACT) Tcl_AppendElement(interp,"-ex");
-	Tcl_AppendElement(interp,ec->pat);
-	Tcl_AppendElement(interp,ec->body?ec->body:"");
+	Tcl_AppendElement(interp,Tcl_GetString(ec->pat));
+	Tcl_AppendElement(interp,ec->body?Tcl_GetString(ec->body):"");
 }
 
 /* append all ecases that match this exp_i */
@@ -1021,98 +1143,22 @@ struct exp_i *exp_i;
 	if (exp_i->direct == EXP_INDIRECT) {
 		Tcl_AppendElement(interp,exp_i->variable);
 	} else {
-		struct exp_fd_list *fdp;
+		struct exp_state_list *fdp;
 
 		/* if more than one element, add braces */
-		if (exp_i->fd_list->next)
+		if (exp_i->state_list->next)
 			Tcl_AppendResult(interp," {",(char *)0);
 
-		for (fdp = exp_i->fd_list;fdp;fdp=fdp->next) {
+		for (fdp = exp_i->state_list;fdp;fdp=fdp->next) {
 			char buf[10];	/* big enough for a small int */
-			sprintf(buf,"%d",fdp->fd);
+			sprintf(buf,"%d",fdp->esPtr);
 			Tcl_AppendElement(interp,buf);
 		}
 
-		if (exp_i->fd_list->next)
+		if (exp_i->state_list->next)
 			Tcl_AppendResult(interp,"} ",(char *)0);
 	}
 }
-
-#if 0
-/* delete ecases based on named -i descriptors */
-int
-expect_delete(interp,ecmd,argc,argv)
-Tcl_Interp *interp;
-struct exp_cmd_descriptor *ecmd;
-int argc;
-char **argv;
-{
-	while (*argv) {
-		if (streq(argv[0],"-i") && argv[1]) {
-			iflag = argv[1];
-			argc-=2; argv+=2;
-		} else if (streq(argv[0],"-all")) {
-			all = TRUE;
-			argc--; argv++;
-		} else if (streq(argv[0],"-noindirect")) {
-			direct &= ~EXP_INDIRECT;
-			argc--; argv++;
-		} else {
-			exp_error(interp,"usage: -delete [-all | -i spawn_id]\n");
-			return TCL_ERROR;
-		}
-	}
-
-	if (all) {
-		/* same logic as at end of regular expect cmd */
-		free_ecases(interp,ecmd,0);
-		exp_free_i(interp,ecmd->i_list,exp_indirect_update2);
-		return TCL_OK;
-	}
-
-	if (!iflag) {
-		if (0 == exp_update_master(interp,&m,0,0)) {
-			return TCL_ERROR;
-		}
-	} else if (Tcl_GetInt(interp,iflag,&m) != TCL_OK) {
-		/* handle as in indirect */
-
-		struct exp_i **old_i;
-
-		for (old_i=&ecmd->i_list;*old_i;) {
-			struct exp_i *tmp;
-
-			if ((*old_i)->direct == EXP_DIRECT) continue;
-			if (!streq((*old_i)->variable,iflag)) continue;
-
-			ecases_remove_by_expi(interp,ecmd,*old_i);
-
-			/* unlink from middle of list */
-			tmp = *old_i;
-			*old_i = tmp->next;
-			tmp->next = 0;
-			exp_free_i(interp,tmp_i,exp_indirect_update2);
-		} else {
-			old_i = &(*old_i)->next;
-		}
-		return TCL_OK;
-	}
-
-	/* delete ecases of this direct_fd */
-	/* unfinish after this ... */
-	for (exp_i=ecmd->i_list;exp_i;exp_i=exp_i->next) {
-		if (!(direct & exp_i->direct)) continue;
-		if (!exp_i_uses_fd(exp_i,m)) continue;
-
-		/* delete each ecase that uses this exp_i */
-
-
-		ecase_by_exp_i_append(interp,ecmd,exp_i);
-	}
-
-	return TCL_OK;
-}
-#endif
 
 /* return current setting of the permanent expect_before/after/bg */
 int
@@ -1127,7 +1173,7 @@ char **argv;
 	int direct = EXP_DIRECT|EXP_INDIRECT;
 	char *iflag = 0;
 	int all = FALSE;	/* report on all fds */
-	int m;
+	ExpState *esPtr = 0;
 
 	while (*argv) {
 		if (streq(argv[0],"-i") && argv[1]) {
@@ -1160,11 +1206,13 @@ char **argv;
 	}
 
 	if (!iflag) {
-		if (0 == exp_update_master(interp,&m,0,0)) {
-			return TCL_ERROR;
-		}
-	} else if (Tcl_GetInt(interp,iflag,&m) != TCL_OK) {
-		/* handle as in indirect */
+	    if (!(esPtr = expGetCurrentState(interp,0,0))) {
+		return TCL_ERROR;
+	    }
+	} else {
+	    if (!(esPtr = expGetState(interp,iflag,0,0,"dummy"))) {
+		/* if this is not a valid ExpState, then assume it is an
+		   indirect */
 		Tcl_ResetResult(interp);
 		for (i=0;i<ecmd->ecd.count;i++) {
 			if (ecmd->ecd.cases[i]->i_list->direct == EXP_INDIRECT &&
@@ -1178,7 +1226,7 @@ char **argv;
 	/* print ecases of this direct_fd */
 	for (exp_i=ecmd->i_list;exp_i;exp_i=exp_i->next) {
 		if (!(direct & exp_i->direct)) continue;
-		if (!exp_i_uses_fd(exp_i,m)) continue;
+		if (!exp_i_uses_state(exp_i,esPtr)) continue;
 		ecase_by_exp_i_append(interp,ecmd,exp_i);
 	}
 
@@ -1194,232 +1242,237 @@ Tcl_Interp *interp;
 int argc;
 char **argv;
 {
-	int result = TCL_OK;
-	struct exp_i *exp_i, **eip;
-	struct exp_fd_list *fdl;	/* temp for interating over fd_list */
-	struct exp_cmd_descriptor eg;
-	int count;
+    int result = TCL_OK;
+    struct exp_i *exp_i, **eip;
+    struct exp_state_list *slPtr;	/* temp for interating over state_list */
+    struct exp_cmd_descriptor eg;
+    int count;
 
-	struct exp_cmd_descriptor *ecmd = (struct exp_cmd_descriptor *) clientData;
+    struct exp_cmd_descriptor *ecmd = (struct exp_cmd_descriptor *) clientData;
 
-	if ((argc == 2) && exp_one_arg_braced(argv[1])) {
-		return(exp_eval_with_one_arg(clientData,interp,argv));
-	} else if ((argc == 3) && streq(argv[1],"-brace")) {
-		char *new_argv[2];
-		new_argv[0] = argv[0];
-		new_argv[1] = argv[2];
-		return(exp_eval_with_one_arg(clientData,interp,new_argv));
-	}
+    if ((argc == 2) && exp_one_arg_braced(argv[1])) {
+	return(exp_eval_with_one_arg(clientData,interp,argv));
+    } else if ((argc == 3) && streq(argv[1],"-brace")) {
+	char *new_argv[2];
+	new_argv[0] = argv[0];
+	new_argv[1] = argv[2];
+	return(exp_eval_with_one_arg(clientData,interp,new_argv));
+    }
 
-	if (argc > 1 && (argv[1][0] == '-')) {
-		if (exp_flageq("info",&argv[1][1],4)) {
-			return(expect_info(interp,ecmd,argc-2,argv+2));
-		} 
-	}
+    if (argc > 1 && (argv[1][0] == '-')) {
+	if (exp_flageq("info",&argv[1][1],4)) {
+	    return(expect_info(interp,ecmd,argc-2,argv+2));
+	} 
+    }
 
-	exp_cmd_init(&eg,ecmd->cmdtype,EXP_PERMANENT);
+    exp_cmd_init(&eg,ecmd->cmdtype,EXP_PERMANENT);
 
-	if (TCL_ERROR == parse_expect_args(interp,&eg,EXP_SPAWN_ID_BAD,
-					argc,argv)) {
-		return TCL_ERROR;
-	}
+    if (TCL_ERROR == parse_expect_args(interp,&eg,EXP_SPAWN_ID_BAD,
+	    argc,argv)) {
+	return TCL_ERROR;
+    }
 
-	/*
-	 * visit each NEW direct exp_i looking for spawn ids.
-	 * When found, remove them from any OLD exp_i's.
-	 */
+    /*
+     * visit each NEW direct exp_i looking for spawn ids.
+     * When found, remove them from any OLD exp_i's.
+     */
 
-	/* visit each exp_i */
-	for (exp_i=eg.i_list;exp_i;exp_i=exp_i->next) {
-		if (exp_i->direct == EXP_INDIRECT) continue;
+    /* visit each exp_i */
+    for (exp_i=eg.i_list;exp_i;exp_i=exp_i->next) {
+	if (exp_i->direct == EXP_INDIRECT) continue;
 
-		/* for each spawn id, remove it from ecases */
-		for (fdl=exp_i->fd_list;fdl;fdl=fdl->next) {
-			int m = fdl->fd;
+	/* for each spawn id, remove it from ecases */
+	for (slPtr=exp_i->state_list;slPtr;slPtr=slPtr->next) {
+	    int m = slPtr->esPtr;
 
-			/* validate all input descriptors */
-			if (m != EXP_SPAWN_ID_ANY) {
-				if (!exp_fd2f(interp,m,1,1,"expect")) {
-					result = TCL_ERROR;
-					goto cleanup;
-				}
-			}
-
-			/* remove spawn id from exp_i */
-			ecmd_remove_fd(interp,ecmd,m,EXP_DIRECT);
+	    /* validate all input descriptors */
+	    if (!expIsStateAny(esPtr)) {
+		if (!exp_fd2f(interp,m,1,1,"expect")) {
+		    result = TCL_ERROR;
+		    goto cleanup;
 		}
+	    }
+	    
+	    /* remove spawn id from exp_i */
+	    ecmd_remove_state(interp,ecmd,m,EXP_DIRECT);
 	}
+    }
 	
-	/*
-	 * For each indirect variable, release its old ecases and 
-	 * clean up the matching spawn ids.
-	 * Same logic as in "expect_X delete" command.
-	 */
+    /*
+     * For each indirect variable, release its old ecases and 
+     * clean up the matching spawn ids.
+     * Same logic as in "expect_X delete" command.
+     */
 
-	for (exp_i=eg.i_list;exp_i;exp_i=exp_i->next) {
-		struct exp_i **old_i;
+    for (exp_i=eg.i_list;exp_i;exp_i=exp_i->next) {
+	struct exp_i **old_i;
 
-		if (exp_i->direct == EXP_DIRECT) continue;
+	if (exp_i->direct == EXP_DIRECT) continue;
 
-		for (old_i = &ecmd->i_list;*old_i;) {
-			struct exp_i *tmp;
+	for (old_i = &ecmd->i_list;*old_i;) {
+	    struct exp_i *tmp;
 
-			if (((*old_i)->direct == EXP_DIRECT) ||
-			    (!streq((*old_i)->variable,exp_i->variable))) {
-				old_i = &(*old_i)->next;
-				continue;
-			}
+	    if (((*old_i)->direct == EXP_DIRECT) ||
+		    (!streq((*old_i)->variable,exp_i->variable))) {
+		old_i = &(*old_i)->next;
+		continue;
+	    }
 
-			ecases_remove_by_expi(interp,ecmd,*old_i);
-
-			/* unlink from middle of list */
-			tmp = *old_i;
-			*old_i = tmp->next;
-			tmp->next = 0;
-			exp_free_i(interp,tmp,exp_indirect_update2);
-		}
-
-		/* if new one has ecases, update it */
-		if (exp_i->ecount) {
-			char *msg = exp_indirect_update1(interp,ecmd,exp_i);
-			if (msg) {
-				/* unusual way of handling error return */
-				/* because of Tcl's variable tracing */
-				strcpy(interp->result,msg);
-				result = TCL_ERROR;
-				goto indirect_update_abort;
-			}
-		}
+	    ecases_remove_by_expi(interp,ecmd,*old_i);
+	    
+	    /* unlink from middle of list */
+	    tmp = *old_i;
+	    *old_i = tmp->next;
+	    tmp->next = 0;
+	    exp_free_i(interp,tmp,exp_indirect_update2);
 	}
-	/* empty i_lists have to be removed from global eg.i_list */
-	/* before returning, even if during error */
+
+	/* if new one has ecases, update it */
+	if (exp_i->ecount) {
+	    char *msg = exp_indirect_update1(interp,ecmd,exp_i);
+	    if (msg) {
+		/* unusual way of handling error return */
+		/* because of Tcl's variable tracing */
+		strcpy(interp->result,msg);
+		result = TCL_ERROR;
+		goto indirect_update_abort;
+	    }
+	}
+    }
+    /* empty i_lists have to be removed from global eg.i_list */
+    /* before returning, even if during error */
  indirect_update_abort:
 
-	/*
-	 * New exp_i's that have 0 ecases indicate fd/vars to be deleted.
-	 * Now that the deletions have been done, discard the new exp_i's.
-	 */
+    /*
+     * New exp_i's that have 0 ecases indicate fd/vars to be deleted.
+     * Now that the deletions have been done, discard the new exp_i's.
+     */
+
+    for (exp_i=eg.i_list;exp_i;) {
+	struct exp_i *next = exp_i->next;
+
+	if (exp_i->ecount == 0) {
+	    exp_i_remove(interp,&eg.i_list,exp_i);
+	}
+	exp_i = next;
+    }
+    if (result == TCL_ERROR) goto cleanup;
+
+    /*
+     * arm all new bg direct fds
+     */
+
+    if (ecmd->cmdtype == EXP_CMD_BG) {
+	for (exp_i=eg.i_list;exp_i;exp_i=exp_i->next) {
+	    if (exp_i->direct == EXP_DIRECT) {
+		state_list_arm(interp,exp_i->state_list);
+	    }
+	}
+    }
+
+    /*
+     * now that old ecases are gone, add new ecases and exp_i's (both
+     * direct and indirect).
+     */
+
+    /* append ecases */
+
+    count = ecmd->ecd.count + eg.ecd.count;
+    if (eg.ecd.count) {
+	int start_index; /* where to add new ecases in old list */
+
+	if (ecmd->ecd.count) {
+	    /* append to end */
+	    ecmd->ecd.cases = (struct ecase **)ckrealloc((char *)ecmd->ecd.cases, count * sizeof(struct ecase *));
+	    start_index = ecmd->ecd.count;
+	} else {
+	    /* append to beginning */
+	    ecmd->ecd.cases = (struct ecase **)ckalloc(eg.ecd.count * sizeof(struct ecase *));
+	    start_index = 0;
+	}
+	memcpy(&ecmd->ecd.cases[start_index],eg.ecd.cases,
+		eg.ecd.count*sizeof(struct ecase *));
+	ecmd->ecd.count = count;
+    }
+
+    /* append exp_i's */
+    for (eip = &ecmd->i_list;*eip;eip = &(*eip)->next) {
+	/* empty loop to get to end of list */
+    }
+    /* *exp_i now points to end of list */
+
+    *eip = eg.i_list;	/* connect new list to end of current list */
+
+  cleanup:
+    if (result == TCL_ERROR) {
+	/* in event of error, free any unreferenced ecases */
+	/* but first, split up i_list so that exp_i's aren't */
+	/* freed twice */
 
 	for (exp_i=eg.i_list;exp_i;) {
-		struct exp_i *next = exp_i->next;
-
-		if (exp_i->ecount == 0) {
-			exp_i_remove(interp,&eg.i_list,exp_i);
-		}
-		exp_i = next;
+	    struct exp_i *next = exp_i->next;
+	    exp_i->next = 0;
+	    exp_i = next;
 	}
-	if (result == TCL_ERROR) goto cleanup;
+	free_ecases(interp,&eg,1);
+    } else {
+	if (eg.ecd.cases) ckfree((char *)eg.ecd.cases);
+    }
 
-	/*
-	 * arm all new bg direct fds
-	 */
+    if (ecmd->cmdtype == EXP_CMD_BG) {
+	exp_background_channelhandlers_run_all();
+    }
 
-	if (ecmd->cmdtype == EXP_CMD_BG) {
-		for (exp_i=eg.i_list;exp_i;exp_i=exp_i->next) {
-			if (exp_i->direct == EXP_DIRECT) {
-				fd_list_arm(interp,exp_i->fd_list);
-			}
-		}
-	}
-
-	/*
-	 * now that old ecases are gone, add new ecases and exp_i's (both
-	 * direct and indirect).
-	 */
-
-	/* append ecases */
-
-	count = ecmd->ecd.count + eg.ecd.count;
-	if (eg.ecd.count) {
-		int start_index; /* where to add new ecases in old list */
-
-		if (ecmd->ecd.count) {
-			/* append to end */
-			ecmd->ecd.cases = (struct ecase **)ckrealloc((char *)ecmd->ecd.cases, count * sizeof(struct ecase *));
-			start_index = ecmd->ecd.count;
-		} else {
-			/* append to beginning */
-			ecmd->ecd.cases = (struct ecase **)ckalloc(eg.ecd.count * sizeof(struct ecase *));
-			start_index = 0;
-		}
-		memcpy(&ecmd->ecd.cases[start_index],eg.ecd.cases,
-					eg.ecd.count*sizeof(struct ecase *));
-		ecmd->ecd.count = count;
-	}
-
-	/* append exp_i's */
-	for (eip = &ecmd->i_list;*eip;eip = &(*eip)->next) {
-		/* empty loop to get to end of list */
-	}
-	/* *exp_i now points to end of list */
-
-	*eip = eg.i_list;	/* connect new list to end of current list */
-
- cleanup:
-	if (result == TCL_ERROR) {
-		/* in event of error, free any unreferenced ecases */
-		/* but first, split up i_list so that exp_i's aren't */
-		/* freed twice */
-
-		for (exp_i=eg.i_list;exp_i;) {
-			struct exp_i *next = exp_i->next;
-			exp_i->next = 0;
-			exp_i = next;
-		}
-		free_ecases(interp,&eg,1);
-	} else {
-		if (eg.ecd.cases) ckfree((char *)eg.ecd.cases);
-	}
-
-	if (ecmd->cmdtype == EXP_CMD_BG) {
-		exp_background_filehandlers_run_all();
-	}
-
-	return(result);
+    return(result);
 }
 
 /* adjusts file according to user's size request */
 void
-exp_adjust(f)
-struct exp_f *f;
+exp_adjust(esPtr)
+ExpState *esPtr;
 {
-	int new_msize;
+    int new_msize;
+    int length;
+    Tcl_Obj *newObj;
+    char *string;
 
-	/* get the latest buffer size.  Double the user input for */
-	/* two reasons.  1) Need twice the space in case the match */
-	/* straddles two bufferfuls, 2) easier to hack the division */
-	/* by two when shifting the buffers later on.  The extra  */
-	/* byte in the malloc's is just space for a null we can slam on the */
-	/* end.  It makes the logic easier later.  The -1 here is so that */
-	/* requests actually come out to even/word boundaries (if user */
-	/* gives "reasonable" requests) */
-	new_msize = f->umsize*2 - 1;
-	if (new_msize != f->msize) {
-		if (!f->buffer) {
-			/* allocate buffer space for 1st time */
-			f->buffer = ckalloc((unsigned)new_msize+1);
-			f->lower = ckalloc((unsigned)new_msize+1);
-			f->size = 0;
-		} else {
-			/* buffer already exists - resize */
+    /* get the latest buffer size.  Double the user input for */
+    /* two reasons.  1) Need twice the space in case the match */
+    /* straddles two bufferfuls, 2) easier to hack the division */
+    /* by two when shifting the buffers later on.  The extra  */
+    /* byte in the malloc's is just space for a null we can slam on the */
+    /* end.  It makes the logic easier later.  The -1 here is so that */
+    /* requests actually come out to even/word boundaries (if user */
+    /* gives "reasonable" requests) */
+    new_msize = esPtr->umsize*2 - 1;
+    if (new_msize != esPtr->msize) {
+	if (!esPtr->buffer) {
+	    esPtr->buffer = Tcl_NewObj();
+	    Tcl_IncrRefCount(esPtr->buffer);
+	} else {
+	    /* buffer already exists - resize */
+	    string = Tcl_GetStringFromObj(esPtr->buffer, &length);
+		
+	    /* if truncated, forget about some data */
+	    if (length > new_msize) {
+		newObj = Tcl_NewStringObj(string, new_msize);
+		Tcl_IncrRefCount(newObj);
+		Tcl_DecrRefCount(esPtr->buffer);
+		esPtr->buffer = newObj;
+	    } else {
+		/*
+		 * Force the object to allocate a buffer at least
+		 * new_msize bytes long, then reset the correct string
+		 * length.
+		 */
 
-			/* if truncated, forget about some data */
-			if (f->size > new_msize) {
-				/* copy end of buffer down */
-				memmove(f->buffer,f->buffer+(f->size - new_msize),new_msize);
-				memmove(f->lower, f->lower +(f->size - new_msize),new_msize);
-				f->size = new_msize;
-
-				f->key = expect_key++;
-			}
-
-			f->buffer = ckrealloc(f->buffer,new_msize+1);
-			f->lower = ckrealloc(f->lower,new_msize+1);
-		}
-		f->msize = new_msize;
-		f->buffer[f->size] = '\0';
-		f->lower[f->size] = '\0';
+		Tcl_SetObjLength(esPtr->buffer, new_msize);
+		Tcl_SetObjLength(esPtr->buffer, length);
+	    }
+	    esPtr->key = expect_key++;
 	}
+	esPtr->msize = new_msize;
+    }
 }
 
 
@@ -1441,173 +1494,171 @@ needing to pattern match against it).
 /* if it returns a non-negative number, it means there is data */
 /* (0 means nothing new was actually read, but it should be looked at again) */
 int
-expect_read(interp,masters,masters_max,m,timeout,key)
+expect_read(interp,masters,masters_max,esPtrOut,timeout,key)
 Tcl_Interp *interp;
-int *masters;			/* If 0, then m is already known and set. */
+ExpState (*esPtrs)[];		/* If 0, then m is already known and set. */
 int masters_max;		/* If *masters is not-zero, then masters_max */
 				/* is the number of masters. */
 				/* If *masters is zero, then masters_max */
 				/* is used as the mask (ready vs except). */
 				/* Crude but simplifies the interface. */
-int *m;				/* Out variable to leave new master. */
+ExpState **esPtrOut;		/* Out variable to leave new master. */
 int timeout;
 int key;
 {
-	struct exp_f *f;
-	int cc;
-	int write_count;
-	int tcl_set_flags;	/* if we have to discard chars, this tells */
-				/* whether to show user locally or globally */
+    ExpState *esPtr;
+    int cc;
+    int write_count;
+    int tcl_set_flags;	/* if we have to discard chars, this tells */
+			/* whether to show user locally or globally */
 
-	if (masters == 0) {
-		/* we already know the master, just find out what happened */
-		cc = exp_get_next_event_info(interp,*m,masters_max);
-		tcl_set_flags = TCL_GLOBAL_ONLY;
+    if (esPtrs == 0) {
+	/* we already know the master, just find out what happened */
+	cc = exp_get_next_event_info(interp,&esPtr,masters_max);
+	tcl_set_flags = TCL_GLOBAL_ONLY;
+    } else {
+	cc = exp_get_next_event(interp,esPtrs,masters_max,&esPtr,timeout,key);
+	tcl_set_flags = 0;
+    }
+
+    if (cc == EXP_DATA_NEW) {
+	/* try to read it */
+	
+	cc = exp_i_read(interp,esPtr,timeout,tcl_set_flags);
+	
+	/* the meaning of 0 from i_read means eof.  Muck with it a */
+	/* little, so that from now on it means "no new data arrived */
+	/* but it should be looked at again anyway". */
+	if (cc == 0) {
+	    cc = EXP_EOF;
+	} else if (cc > 0) {
+	    esPtr->buffer[esPtr->size += cc] = '\0';
+	    
+	    /* strip parity if requested */
+	    if (esPtr->parity == 0) {
+		/* do it from end backwards */
+		char *p = esPtr->buffer + esPtr->size - 1;
+		int count = cc;
+		while (count--) {
+		    *p-- &= 0x7f;
+		}
+	    }
+	} /* else {
+	     assert(cc < 0) in which case some sort of error was
+	     encountered such as an interrupt with that forced an
+	     error return
+	     } */
+    } else if (cc == EXP_DATA_OLD) {
+	cc = 0;
+    } else if (cc == EXP_RECONFIGURE) {
+	return EXP_RECONFIGURE;
+    }
+
+    if (cc == EXP_ABEOF) {	/* abnormal EOF */
+	/* On many systems, ptys produce EIO upon EOF - sigh */
+	if (i_read_errno == EIO) {
+	    /* Sun, Cray, BSD, and others */
+	    cc = EXP_EOF;
+	} else if (i_read_errno == EINVAL) {
+	    /* Solaris 2.4 occasionally returns this */
+	    cc = EXP_EOF;
 	} else {
-		cc = exp_get_next_event(interp,masters,masters_max,m,timeout,key);
-		tcl_set_flags = 0;
+	    if (i_read_errno == EBADF) {
+		exp_error(interp,"bad spawn_id (process died earlier?)");
+	    } else {
+		exp_error(interp,"i_read(spawn_id fd=%d): %s",esPtr->fdin,
+			Tcl_PosixError(interp));
+		exp_close(interp,esPtr);
+	    }
+	    return(EXP_TCLERROR);
+	    /* was goto error; */
 	}
+    }
 
-	if (cc == EXP_DATA_NEW) {
-		/* try to read it */
+    /* EOF, TIMEOUT, and ERROR return here */
+    /* In such cases, there is no need to update screen since, if there */
+    /* was prior data read, it would have been sent to the screen when */
+    /* it was read. */
+    if (cc < 0) return (cc);
 
-		cc = exp_i_read(interp,*m,timeout,tcl_set_flags);
+    /* update display */
 
-		/* the meaning of 0 from i_read means eof.  Muck with it a */
-		/* little, so that from now on it means "no new data arrived */
-		/* but it should be looked at again anyway". */
-		if (cc == 0) {
-			cc = EXP_EOF;
-		} else if (cc > 0) {
-			f = exp_fs + *m;
-			f->buffer[f->size += cc] = '\0';
-
-			/* strip parity if requested */
-			if (f->parity == 0) {
-				/* do it from end backwards */
-				char *p = f->buffer + f->size - 1;
-				int count = cc;
-				while (count--) {
-					*p-- &= 0x7f;
-				}
-			}
-		} /* else {
-			assert(cc < 0) in which case some sort of error was
-			encountered such as an interrupt with that forced an
-			error return
-		} */
-	} else if (cc == EXP_DATA_OLD) {
-		f = exp_fs + *m;
-		cc = 0;
-	} else if (cc == EXP_RECONFIGURE) {
-		return EXP_RECONFIGURE;
+    if (esPtr->size) write_count = esPtr->size - esPtr->printed;
+    else write_count = 0;
+    
+    if (write_count) {
+	if (logfile_all || (loguser && logfile)) {
+	    fwrite(esPtr->buffer + esPtr->printed,1,write_count,logfile);
 	}
-
-	if (cc == EXP_ABEOF) {	/* abnormal EOF */
-		/* On many systems, ptys produce EIO upon EOF - sigh */
-		if (i_read_errno == EIO) {
-			/* Sun, Cray, BSD, and others */
-			cc = EXP_EOF;
-		} else if (i_read_errno == EINVAL) {
-			/* Solaris 2.4 occasionally returns this */
-			cc = EXP_EOF;
-		} else {
-			if (i_read_errno == EBADF) {
-				exp_error(interp,"bad spawn_id (process died earlier?)");
-			} else {
-				exp_error(interp,"i_read(spawn_id=%d): %s",*m,
-					Tcl_PosixError(interp));
-				exp_close(interp,*m);
-			}
-			return(EXP_TCLERROR);
-			/* was goto error; */
-		}
+	/* don't write to user if they're seeing it already, */
+	/* that is, typing it! */
+	if (loguser && !expIsStateStdinout(esPtr) && !expIsStateDevtty(esPtr))
+	    fwrite(esPtr->buffer + esPtr->printed,
+		    1,write_count,stdout);
+	if (debugfile) fwrite(esPtr->buffer + esPtr->printed,
+		1,write_count,debugfile);
+	    
+	/* remove nulls from input, since there is no way */
+	/* for Tcl to deal with such strings.  Doing it here */
+	/* lets them be sent to the screen, just in case */
+	/* they are involved in formatting operations */
+	if (esPtr->rm_nulls) {
+	    esPtr->size -= rm_nulls(esPtr->buffer + esPtr->printed,write_count);
 	}
-
-	/* EOF, TIMEOUT, and ERROR return here */
-	/* In such cases, there is no need to update screen since, if there */
-	/* was prior data read, it would have been sent to the screen when */
-	/* it was read. */
-	if (cc < 0) return (cc);
-
-	/* update display */
-
-	if (f->size) write_count = f->size - f->printed;
-	else write_count = 0;
-
-	if (write_count) {
-		if (logfile_all || (loguser && logfile)) {
-			fwrite(f->buffer + f->printed,1,write_count,logfile);
-		}
-		/* don't write to user if they're seeing it already, */
-		/* that is, typing it! */
-		if (loguser && !exp_is_stdinfd(*m) && !exp_is_devttyfd(*m))
-			fwrite(f->buffer + f->printed,
-					1,write_count,stdout);
-		if (debugfile) fwrite(f->buffer + f->printed,
-					1,write_count,debugfile);
-
-		/* remove nulls from input, since there is no way */
-		/* for Tcl to deal with such strings.  Doing it here */
-		/* lets them be sent to the screen, just in case */
-		/* they are involved in formatting operations */
-		if (f->rm_nulls) {
-			f->size -= rm_nulls(f->buffer + f->printed,write_count);
-		}
-		f->buffer[f->size] = '\0';
-
-		/* copy to lowercase buffer */
-		exp_lowmemcpy(f->lower+f->printed,
-			      f->buffer+f->printed,
-					1 + f->size - f->printed);
-
-		f->printed = f->size; /* count'm even if not logging */
-	}
-	return(cc);
+	esPtr->buffer[esPtr->size] = '\0';
+	
+	/* copy to lowercase buffer */
+	exp_lowmemcpy(esPtr->lower+esPtr->printed,
+		esPtr->buffer+esPtr->printed,
+		1 + esPtr->size - esPtr->printed);
+	    
+	esPtr->printed = esPtr->size; /* count'm even if not logging */
+    }
+    return(cc);
 }
 
 /* when buffer fills, copy second half over first and */
 /* continue, so we can do matches over multiple buffers */
 void
-exp_buffer_shuffle(interp,f,save_flags,array_name,caller_name)
+exp_buffer_shuffle(interp,esPtr,save_flags,array_name,caller_name)
 Tcl_Interp *interp;
-struct exp_f *f;
+ExpState *esPtr;
 int save_flags;
 char *array_name;
 char *caller_name;
 {
-	char spawn_id[10];	/* enough for a %d */
 	char match_char;	/* place to hold char temporarily */
 				/* uprooted by a NULL */
 
-	int first_half = f->size/2;
-	int second_half = f->size - first_half;
+	int first_half = esPtr->size/2;
+	int second_half = esPtr->size - first_half;
 
 	/*
 	 * allow user to see data we are discarding
 	 */
 
-	sprintf(spawn_id,"%d",f-exp_fs);
 	debuglog("%s: set %s(spawn_id) \"%s\"\r\n",
-		 caller_name,array_name,dprintify(spawn_id));
-	Tcl_SetVar2(interp,array_name,"spawn_id",spawn_id,save_flags);
+		 caller_name,array_name,esPtr->name);
+	Tcl_SetVar2(interp,array_name,"spawn_id",esPtr->name,save_flags);
+
+/*SCOTT*/
 
 	/* temporarily null-terminate buffer in middle */
-	match_char = f->buffer[first_half];
-	f->buffer[first_half] = 0;
+	match_char = esPtr->buffer[first_half];
+	esPtr->buffer[first_half] = 0;
 
 	debuglog("%s: set %s(buffer) \"%s\"\r\n",
-		 caller_name,array_name,dprintify(f->buffer));
-	Tcl_SetVar2(interp,array_name,"buffer",f->buffer,save_flags);
+		 caller_name,array_name,dprintify(esPtr->buffer));
+	Tcl_SetVar2(interp,array_name,"buffer",esPtr->buffer,save_flags);
 
 	/* remove middle-null-terminator */
-	f->buffer[first_half] = match_char;
+	esPtr->buffer[first_half] = match_char;
 
-	memcpy(f->buffer,f->buffer+first_half,second_half);
-	memcpy(f->lower, f->lower +first_half,second_half);
-	f->size = second_half;
-	f->printed -= first_half;
-	if (f->printed < 0) f->printed = 0;
+	memcpy(esPtr->buffer,esPtr->buffer+first_half,second_half);
+	memcpy(esPtr->lower, esPtr->lower +first_half,second_half);
+	esPtr->size = second_half;
+	esPtr->printed -= first_half;
+	if (esPtr->printed < 0) esPtr->printed = 0;
 }
 
 /* map EXP_ style return value to TCL_ style return value */
@@ -1649,54 +1700,49 @@ int x;
 /* the read will complete immediately. */
 /*ARGSUSED*/
 static int
-exp_i_read(interp,m,timeout,save_flags)
+exp_i_read(interp,esPtr,timeout,save_flags)
 Tcl_Interp *interp;
-int m;
+ExpState *esPtr;
 int timeout;
 int save_flags;
 {
-	struct exp_f *f;
-	int cc = EXP_TIMEOUT;
+    int cc = EXP_TIMEOUT;
 
-	f = exp_fs + m;
-	if (f->size == f->msize) 
-		exp_buffer_shuffle(interp,f,save_flags,EXPECT_OUT,"expect");
+    if (esPtr->size == esPtr->msize) 
+	exp_buffer_shuffle(interp,f,save_flags,EXPECT_OUT,"expect");
 
 #ifdef SIMPLE_EVENT
  restart:
 
-	alarm_fired = FALSE;
+    alarm_fired = FALSE;
 
-	if (timeout > -1) {
-		signal(SIGALRM,sigalarm_handler);
-		alarm((timeout > 0)?timeout:1);
-	}
+    if (timeout > -1) {
+	signal(SIGALRM,sigalarm_handler);
+	alarm((timeout > 0)?timeout:1);
+    }
 #endif
 
-	cc = read(m,f->buffer+f->size, f->msize-f->size);
-	i_read_errno = errno;
+/*SCOTT*/
+    cc = Tcl_ReadChars(m,esPtr->buffer+esPtr->size, esPtr->msize-esPtr->size);
+    i_read_errno = errno;
 
 #ifdef SIMPLE_EVENT
-	alarm(0);
+    alarm(0);
 
-	if (cc == -1) {
-		/* check if alarm went off */
-		if (i_read_errno == EINTR) {
-			if (alarm_fired) {
-				return EXP_TIMEOUT;
-			} else {
-				if (Tcl_AsyncReady()) {
-					int rc = Tcl_AsyncInvoke(interp,TCL_OK);
-					if (rc != TCL_OK) return(exp_tcl2_returnvalue(rc));
-				}
-				if (!f->valid) {
-					exp_error(interp,"spawn_id %d no longer valid",f-exp_fs);
-					return EXP_TCLERROR;
-				}
-				goto restart;
-			}
+    if (cc == -1) {
+	/* check if alarm went off */
+	if (i_read_errno == EINTR) {
+	    if (alarm_fired) {
+		return EXP_TIMEOUT;
+	    } else {
+		if (Tcl_AsyncReady()) {
+		    int rc = Tcl_AsyncInvoke(interp,TCL_OK);
+		    if (rc != TCL_OK) return(exp_tcl2_returnvalue(rc));
 		}
+		goto restart;
+	    }
 	}
+    }
 #endif
 	return(cc);
 }
@@ -1711,58 +1757,58 @@ exp_get_var(interp,var)
 Tcl_Interp *interp;
 char *var;
 {
-	char *val;
+    char *val;
 
-	if (NULL != (val = Tcl_GetVar(interp,var,0 /* local */)))
-		return(val);
-	return(Tcl_GetVar(interp,var,TCL_GLOBAL_ONLY));
+    if (NULL != (val = Tcl_GetVar(interp,var,0 /* local */)))
+	return(val);
+    return(Tcl_GetVar(interp,var,TCL_GLOBAL_ONLY));
 }
 
 static int
 get_timeout(interp)
 Tcl_Interp *interp;
 {
-	static int timeout = INIT_EXPECT_TIMEOUT;
- 	char *t;
+    ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
+    char *t;
 
-	if (NULL != (t = exp_get_var(interp,EXPECT_TIMEOUT))) {
-		timeout = atoi(t);
-	}
-	return(timeout);
+    if (NULL != (t = exp_get_var(interp,EXPECT_TIMEOUT))) {
+	tsdPtr->timeout = atoi(t);
+    }
+    return(tsdPtr->timeout);
 }
 
 /* make a copy of a linked list (1st arg) and attach to end of another (2nd
 arg) */
 static int
-update_expect_fds(i_list,fd_union)
+update_expect_states(i_list,i_union)
 struct exp_i *i_list;
-struct exp_fd_list **fd_union;
+struct exp_state_list **i_union;
 {
-	struct exp_i *p;
+    struct exp_i *p;
 
-	/* for each i_list in an expect statement ... */
-	for (p=i_list;p;p=p->next) {
-		struct exp_fd_list *fdl;
+    /* for each i_list in an expect statement ... */
+    for (p=i_list;p;p=p->next) {
+	struct exp_state_list *slPtr;
 
-		/* for each fd in the i_list */
-		for (fdl=p->fd_list;fdl;fdl=fdl->next) {
-			struct exp_fd_list *tmpfdl;
-			struct exp_fd_list *u;
+	/* for each esPtr in the i_list */
+	for (slPtr=p->state_list;slPtr;slPtr=slPtr->next) {
+	    struct exp_state_list *tmpslPtr;
+	    struct exp_state_list *u;
 
-			if (fdl->fd == EXP_SPAWN_ID_ANY) continue;
-
-			/* check this one against all so far */
-			for (u = *fd_union;u;u=u->next) {
-				if (fdl->fd == u->fd) goto found;
-			}
-			/* if not found, link in as head of list */
-			tmpfdl = exp_new_fd(fdl->fd);
-			tmpfdl->next = *fd_union;
-			*fd_union = tmpfdl;
-		found:;
-		}
+	    if (expIsStateAny(slPtr->esPtr)) continue;
+	    
+	    /* check this one against all so far */
+	    for (u = *i_union;u;u=u->next) {
+		if (slPtr->esPtr == u->esPtr) goto found;
+	    }
+	    /* if not found, link in as head of list */
+	    tmpslPtr = exp_new_state(slPtr->esPtr);
+	    tmpslPtr->next = *i_union;
+	    *i_union = tmpslPtr;
+	    found:;
 	}
-	return TCL_OK;
+    }
+    return TCL_OK;
 }
 
 char *
@@ -1797,7 +1843,7 @@ int flags;		/* Information about what happened. */
 	exp_configure_count++;
 	msg = exp_indirect_update1(interp,&exp_cmds[exp_i->cmdtype],exp_i);
 
-	exp_background_filehandlers_run_all();
+	exp_background_channelhandlers_run_all();
 
 	return msg;
 }
@@ -1808,34 +1854,34 @@ Tcl_Interp *interp;
 struct exp_cmd_descriptor *ecmd;
 struct exp_i *exp_i;
 {
-	struct exp_fd_list *fdl;	/* temp for interating over fd_list */
+	struct exp_state_list *slPtr;	/* temp for interating over state_list */
 
 	/*
-	 * disarm any fd's that lose all their ecases
+	 * disarm any ExpState's that lose all their ecases
 	 */
 
 	if (ecmd->cmdtype == EXP_CMD_BG) {
 		/* clean up each spawn id used by this exp_i */
-		for (fdl=exp_i->fd_list;fdl;fdl=fdl->next) {
-			int m = fdl->fd;
+		for (slPtr=exp_i->state_list;slPtr;slPtr=slPtr->next) {
+			int m = slPtr->esPtr;
 
-			if (m == EXP_SPAWN_ID_ANY) continue;
+			if (expIsStateAny(esPtr)) continue;
 
 			/* silently skip closed or preposterous fds */
 			/* since we're just disabling them anyway */
 			/* preposterous fds will have been reported */
 			/* by code in next section already */
-			if (!exp_fd2f(interp,fdl->fd,1,0,"")) continue;
+			if (!expCheckState(interp,slPtr->esPtr,1,0,"")) continue;
 
 			/* check before decrementing, ecount may not be */
 			/* positive if update is called before ecount is */
 			/* properly synchronized */
-			if (exp_fs[m].bg_ecount > 0) {
-				exp_fs[m].bg_ecount--;
+			if (esPtr->bg_ecount > 0) {
+				esPtr->bg_ecount--;
 			}
-			if (exp_fs[m].bg_ecount == 0) {
-				exp_disarm_background_filehandler(m);
-				exp_fs[m].bg_interp = 0;
+			if (esPtr->bg_ecount == 0) {
+				exp_disarm_background_channelhandler(esPtr);
+				esPtr->bg_interp = 0;
 			}
 		}
 	}
@@ -1850,11 +1896,12 @@ struct exp_i *exp_i;
 	 * check validity of all fd's in variable
 	 */
 
-	for (fdl=exp_i->fd_list;fdl;fdl=fdl->next) {
-		/* validate all input descriptors */
-		if (fdl->fd == EXP_SPAWN_ID_ANY) continue;
+	for (slPtr=exp_i->state_list;slPtr;slPtr=slPtr->next) {
+	    /* validate all input descriptors */
 
-		if (!exp_fd2f(interp,fdl->fd,1,1,
+	    if (expIsStateAny(slPtr->esPtr)) continue;
+
+		if (!exp_fd2f(interp,slPtr->esPtr,1,1,
 				exp_cmdtype_printable(ecmd->cmdtype))) {
 			static char msg[200];
 			sprintf(msg,"%s from indirect variable (%s)",
@@ -1865,102 +1912,82 @@ struct exp_i *exp_i;
 
 	/* for each spawn id in list, arm if necessary */
 	if (ecmd->cmdtype == EXP_CMD_BG) {
-		fd_list_arm(interp,exp_i->fd_list);
+		state_list_arm(interp,exp_i->state_list);
 	}
 
 	return (char *)0;
 }
 
-void
-exp_background_filehandlers_run_all()
-{
-	int m;
-	struct exp_f *f;
-
-	/* kick off any that already have input waiting */
-	for (m=0;m<=exp_fd_max;m++) {
-		f = exp_fs + m;
-		if (!f->valid) continue;
-
-		/* is bg_interp the best way to check if armed? */
-		if (f->bg_interp && (f->size > 0)) {
-			exp_background_filehandler((ClientData)f->fd_ptr,0/*ignored*/);
-		}
-	}
-}
-
 /* this function is called from the background when input arrives */
 /*ARGSUSED*/
 void
-exp_background_filehandler(clientData,mask)
+exp_background_channelhandler(clientData,mask)
 ClientData clientData;
 int mask;
 {
-	int m;
+    ExpState *esPtr;
 
-	Tcl_Interp *interp;
-	int cc;			/* number of chars returned in a single read */
+    Tcl_Interp *interp;
+    int cc;			/* number of chars returned in a single read */
 				/* or negative EXP_whatever */
-	struct exp_f *f;		/* file associated with master */
 
-	int i;			/* trusty temporary */
+    int i;			/* trusty temporary */
 
-	struct eval_out eo;	/* final case of interest */
-	struct exp_f *last_f;	/* for differentiating when multiple f's */
+    struct eval_out eo;	/* final case of interest */
+    ExpState *last_esPtr;	/* for differentiating when multiple f's */
 				/* to print out better debugging messages */
-	int last_case;		/* as above but for case */
+    int last_case;		/* as above but for case */
 
-	/* restore our environment */
-	m = *(int *)clientData;
-	f = exp_fs + m;
-	interp = f->bg_interp;
+    /* restore our environment */
+    esPtr = *(ExpState *)clientData;
+    interp = esPtr->bg_interp;
 
-	/* temporarily prevent this handler from being invoked again */
-	exp_block_background_filehandler(m);
+    /* temporarily prevent this handler from being invoked again */
+    exp_block_background_channelhandler(esPtr);
 
-	/* if mask == 0, then we've been called because the patterns changed */
-	/* not because the waiting data has changed, so don't actually do */
-	/* any I/O */
+    /* if mask == 0, then we've been called because the patterns changed */
+    /* not because the waiting data has changed, so don't actually do */
+    /* any I/O */
 
-	if (mask == 0) {
-		cc = 0;
-	} else {
-		cc = expect_read(interp,(int *)0,mask,&m,EXP_TIME_INFINITY,0);
-	}
+    if (mask == 0) {
+	cc = 0;
+    } else {
+	cc = expect_read(interp,(ExpState **)0,mask,&esPtr,EXP_TIME_INFINITY,0);
+    }
 
 do_more_data:
-	eo.e = 0;		/* no final case yet */
-	eo.f = 0;		/* no final file selected yet */
-	eo.match = 0;		/* nothing matched yet */
+    eo.e = 0;		/* no final case yet */
+    eo.f = 0;		/* no final file selected yet */
+    eo.match = 0;		/* nothing matched yet */
 
-	/* force redisplay of buffer when debugging */
-	last_f = 0;
+    /* force redisplay of buffer when debugging */
+    last_esPtr = 0;
 
-	if (cc == EXP_EOF) {
-		/* do nothing */
-	} else if (cc < 0) { /* EXP_TCLERROR or any other weird value*/
-		goto finish;
-		/* if we were going to do this right, we should */
-		/* differentiate between things like HP ioctl-open-traps */
-		/* that fall out here and should rightfully be ignored */
-		/* and real errors that should be reported.  Come to */
-		/* think of it, the only errors will come from HP */
-		/* ioctl handshake botches anyway. */
-	} else {
-		/* normal case, got data */
-		/* new data if cc > 0, same old data if cc == 0 */
+    if (cc == EXP_EOF) {
+	/* do nothing */
+    } else if (cc < 0) { /* EXP_TCLERROR or any other weird value*/
+	goto finish;
+	/* if we were going to do this right, we should */
+	/* differentiate between things like HP ioctl-open-traps */
+	/* that fall out here and should rightfully be ignored */
+	/* and real errors that should be reported.  Come to */
+	/* think of it, the only errors will come from HP */
+	/* ioctl handshake botches anyway. */
+    } else {
+	/* normal case, got data */
+	/* new data if cc > 0, same old data if cc == 0 */
 
-		/* below here, cc as general status */
-		cc = EXP_NOMATCH;
-	}
+	/* below here, cc as general status */
+	cc = EXP_NOMATCH;
+    }
 
-	cc = eval_cases(interp,&exp_cmds[EXP_CMD_BEFORE],
-			m,&eo,&last_f,&last_case,cc,&m,1,"_background");
-	cc = eval_cases(interp,&exp_cmds[EXP_CMD_BG],
-			m,&eo,&last_f,&last_case,cc,&m,1,"_background");
-	cc = eval_cases(interp,&exp_cmds[EXP_CMD_AFTER],
-			m,&eo,&last_f,&last_case,cc,&m,1,"_background");
-	if (cc == EXP_TCLERROR) {
+    cc = eval_cases(interp,&exp_cmds[EXP_CMD_BEFORE],
+	    esPtr,&eo,&last_esPtr,&last_case,cc,&esPtr,1,"_background");
+    cc = eval_cases(interp,&exp_cmds[EXP_CMD_BG],
+	    esPtr,&eo,&last_esPtr,&last_case,cc,&esPtr,1,"_background");
+    cc = eval_cases(interp,&exp_cmds[EXP_CMD_AFTER],
+	    esPtr,&eo,&last_esPtr,&last_case,cc,&esPtr,1,"_background");
+    if (cc == EXP_TCLERROR) {
 		/* only likely problem here is some internal regexp botch */
 		Tcl_BackgroundError(interp);
 		goto finish;
@@ -1969,8 +1996,8 @@ do_more_data:
 	/* or above, because it would then be executed several times */
 	if (cc == EXP_EOF) {
 		eo.f = exp_fs + m;
-		eo.match = eo.f->size;
-		eo.buffer = eo.f->buffer;
+		eo.match = eo.esPtr->size;
+		eo.buffer = eo.esPtr->buffer;
 		debuglog("expect_background: read eof\r\n");
 		goto matched;
 	}
@@ -1984,7 +2011,6 @@ do_more_data:
 						dprintify(val)); \
 		    Tcl_SetVar2(interp,EXPECT_OUT,i,val,TCL_GLOBAL_ONLY);
 	{
-/*		int iwrite = FALSE;*/	/* write spawn_id? */
 		char *body = 0;
 		char *buffer;	/* pointer to normal or lowercased data */
 		struct ecase *e = 0;	/* points to current ecase */
@@ -1996,30 +2022,14 @@ do_more_data:
 		if (eo.e) {
 			e = eo.e;
 			body = e->body;
-/*			iwrite = e->iwrite;*/
 			if (cc != EXP_TIMEOUT) {
-				f = eo.f;
+				esPtr = eo.esPtr;
 				match = eo.match;
 				buffer = eo.buffer;
 			}
-#if 0
-			if (e->timestamp) {
-				char value[20];
-
-				time(&current_time);
-				elapsed_time = current_time - start_time;
-				elapsed_time_total = current_time - start_time_total;
-				sprintf(value,"%d",elapsed_time);
-				out("seconds",value);
-				sprintf(value,"%d",elapsed_time_total);
-				out("seconds_total",value);
-				/* deprecated */
-				exp_timestamp(interp,&current_time,EXPECT_OUT);
-			}
-#endif
 		} else if (cc == EXP_EOF) {
 			/* read an eof but no user-supplied case */
-			f = eo.f;
+			esPtr = eo.esPtr;
 			match = eo.match;
 			buffer = eo.buffer;
 		}			
@@ -2076,7 +2086,7 @@ do_more_data:
 				}
 
 				/* string itself */
-				str = f->buffer + e->simple_start;
+				str = esPtr->buffer + e->simple_start;
 				/* temporarily null-terminate in middle */
 				match_char = str[match];
 				str[match] = 0;
@@ -2103,30 +2113,28 @@ do_more_data:
 		if (eo.f) {
 			char spawn_id[10];	/* enough for a %d */
 
-/*			if (iwrite) {*/
-				sprintf(spawn_id,"%d",f-exp_fs);
-				out("spawn_id",spawn_id);
-/*			}*/
+			sprintf(spawn_id,"%d",f-exp_fs);
+			out("spawn_id",spawn_id);
 
 			/* save buf[0..match] */
 			/* temporarily null-terminate string in middle */
-			match_char = f->buffer[match];
-			f->buffer[match] = 0;
-			out("buffer",f->buffer);
+			match_char = esPtr->buffer[match];
+			esPtr->buffer[match] = 0;
+			out("buffer",esPtr->buffer);
 			/* remove middle-null-terminator */
-			f->buffer[match] = match_char;
+			esPtr->buffer[match] = match_char;
 
 			/* "!e" means no case matched - transfer by default */
 			if (!e || e->transfer) {
 				/* delete matched chars from input buffer */
-				f->size -= match;
-				f->printed -= match;
-				if (f->size != 0) {
-				   memmove(f->buffer,f->buffer+match,f->size);
-				   memmove(f->lower,f->lower+match,f->size);
+				esPtr->size -= match;
+				esPtr->printed -= match;
+				if (esPtr->size != 0) {
+				   memmove(esPtr->buffer,esPtr->buffer+match,esPtr->size);
+				   memmove(esPtr->lower,esPtr->lower+match,esPtr->size);
 				}
-				f->buffer[f->size] = '\0';
-				f->lower[f->size] = '\0';
+				esPtr->buffer[esPtr->size] = '\0';
+				esPtr->lower[esPtr->size] = '\0';
 			}
 
 			if (cc == EXP_EOF) {
@@ -2156,16 +2164,16 @@ do_more_data:
 		 * pending but it has already arrived.  bg_status will be
 		 * "blocked" only if armed.
 		 */
-		if (exp_fs[m].valid && (exp_fs[m].bg_status == blocked)
-		 && (f->size > 0)) {
-			cc = f->size;
+		if (esPtr->valid && (esPtr->bg_status == blocked)
+		 && (esPtr->size > 0)) {
+			cc = esPtr->size;
 			goto do_more_data;
 		}
 	}
  finish:
 	/* fd could have gone away, so check before using */
-	if (exp_fs[m].valid)
-		exp_unblock_background_filehandler(m);
+	if (esPtr->valid)
+		exp_unblock_background_channelhandler(esPtr);
 }
 #undef out
 
@@ -2179,14 +2187,12 @@ char **argv;
 {
 	int cc;			/* number of chars returned in a single read */
 				/* or negative EXP_whatever */
-	int m;			/* before doing an actual read, attempt */
-				/* to match upon any spawn_id */
-	struct exp_f *f;		/* file associated with master */
+	ExpState *esPtr = 0;	/* ExpState associated with master */
 
 	int i;			/* trusty temporary */
 	struct exp_cmd_descriptor eg;
-	struct exp_fd_list *fd_list;	/* list of masters to watch */
-	struct exp_fd_list *fdl;	/* temp for interating over fd_list */
+	struct exp_state_list *state_list;	/* list of masters to watch */
+	struct exp_state_list *slPtr;	/* temp for interating over state_list */
 	int *masters;		/* array of masters to watch */
 	int mcount;		/* number of masters to watch */
 
@@ -2201,7 +2207,7 @@ char **argv;
 	time_t elapsed_time_total;/* time from now to match/fail/timeout */
 	time_t elapsed_time;	/* time from restart to (ditto) */
 
-	struct exp_f *last_f;	/* for differentiating when multiple f's */
+	ExpState *last_esPtr;	/* for differentiating when multiple f's */
 				/* to print out better debugging messages */
 	int last_case;		/* as above but for case */
 	int first_time = 1;	/* if not "restarted" */
@@ -2230,19 +2236,19 @@ char **argv;
 	/* do it dynamically, since expect can be called recursively */
 
 	exp_cmd_init(&eg,EXP_CMD_FG,EXP_TEMPORARY);
-	fd_list = 0;
+	state_list = 0;
 	masters = 0;
 	if (TCL_ERROR == parse_expect_args(interp,&eg,
-					*(int *)clientData,argc,argv))
+					(ExpState *)clientData,argc,argv))
 		return TCL_ERROR;
 
  restart_with_update:
 	/* validate all descriptors */
-	/* and flatten fds into array */
+	/* and flatten ExpStates into array */
 
-	if ((TCL_ERROR == update_expect_fds(exp_cmds[EXP_CMD_BEFORE].i_list,&fd_list))
-	 || (TCL_ERROR == update_expect_fds(exp_cmds[EXP_CMD_AFTER].i_list, &fd_list))
-	 || (TCL_ERROR == update_expect_fds(eg.i_list,&fd_list))) {
+	if ((TCL_ERROR == update_expect_states(exp_cmds[EXP_CMD_BEFORE].i_list,&state_list))
+	 || (TCL_ERROR == update_expect_states(exp_cmds[EXP_CMD_AFTER].i_list, &state_list))
+	 || (TCL_ERROR == update_expect_states(eg.i_list,&state_list))) {
 		result = TCL_ERROR;
 		goto cleanup;
 	}
@@ -2250,21 +2256,21 @@ char **argv;
 	/* declare ourselves "in sync" with external view of close/indirect */
 	configure_count = exp_configure_count;
 
-	/* count and validate fd_list */
+	/* count and validate state_list */
 	mcount = 0;
-	for (fdl=fd_list;fdl;fdl=fdl->next) {
+	for (slPtr=state_list;slPtr;slPtr=slPtr->next) {
 		mcount++;
 		/* validate all input descriptors */
-		if (!exp_fd2f(interp,fdl->fd,1,1,"expect")) {
+		if (!exp_fd2f(interp,slPtr->esPtr,1,1,"expect")) {
 			result = TCL_ERROR;
 			goto cleanup;
 		}
 	}
 
 	/* make into an array */
-	masters = (int *)ckalloc(mcount * sizeof(int));
-	for (fdl=fd_list,i=0;fdl;fdl=fdl->next,i++) {
-		masters[i] = fdl->fd;
+	masters = (ExpState **)ckalloc(mcount * sizeof(ExpState *));
+	for (slPtr=state_list,i=0;slPtr;slPtr=slPtr->next,i++) {
+		masters[i] = slPtr->esPtr;
 	}
 
      restart:
@@ -2281,12 +2287,12 @@ char **argv;
 	key = expect_key++;
 
 	result = TCL_OK;
-	last_f = 0;
+z	last_esPtr = 0;
 
 	/* end of restart code */
 
 	eo.e = 0;		/* no final case yet */
-	eo.f = 0;		/* no final file selected yet */
+	eo.esPtr = 0;		/* no final ExpState selected yet */
 	eo.match = 0;		/* nothing matched yet */
 
 	/* timeout code is a little tricky, be very careful changing it */
@@ -2307,7 +2313,7 @@ char **argv;
 		if ((timeout != EXP_TIME_INFINITY) && (remtime < 0)) {
 			cc = EXP_TIMEOUT;
 		} else {
-			cc = expect_read(interp,masters,mcount,&m,remtime,key);
+			cc = expect_read(interp,masters,mcount,&esPtr,remtime,key);
 		}
 
 		/*SUPPRESS 530*/
@@ -2323,28 +2329,26 @@ char **argv;
 		} else {
 			/* new data if cc > 0, same old data if cc == 0 */
 
-			f = exp_fs + m;
-
 			/* below here, cc as general status */
 			cc = EXP_NOMATCH;
 
 			/* force redisplay of buffer when debugging */
-			last_f = 0;
+			last_esPtr = 0;
 		}
 
 		cc = eval_cases(interp,&exp_cmds[EXP_CMD_BEFORE],
-			m,&eo,&last_f,&last_case,cc,masters,mcount,"");
+			esPtr,&eo,&last_esPtr,&last_case,cc,masters,mcount,"");
 		cc = eval_cases(interp,&eg,
-			m,&eo,&last_f,&last_case,cc,masters,mcount,"");
+			esPtr,&eo,&last_esPtr,&last_case,cc,masters,mcount,"");
 		cc = eval_cases(interp,&exp_cmds[EXP_CMD_AFTER],
-			m,&eo,&last_f,&last_case,cc,masters,mcount,"");
+			esPtr,&eo,&last_esPtr,&last_case,cc,masters,mcount,"");
 		if (cc == EXP_TCLERROR) goto error;
 		/* special eof code that cannot be done in eval_cases */
 		/* or above, because it would then be executed several times */
 		if (cc == EXP_EOF) {
-			eo.f = exp_fs + m;
-			eo.match = eo.f->size;
-			eo.buffer = eo.f->buffer;
+			eo.esPtr = esPtr;
+			eo.match = eo.esPtr->size;
+			eo.buffer = eo.esPtr->buffer;
 			debuglog("expect: read eof\r\n");
 			break;
 		} else if (cc == EXP_TIMEOUT) break;
@@ -2353,7 +2357,7 @@ char **argv;
 		if (eo.e) break;
 
 		/* no match was made with current data, force a read */
-		f->force_read = TRUE;
+		esPtr->force_read = TRUE;
 
 		if (timeout != EXP_TIME_INFINITY) {
 			time(&current_time);
@@ -2385,7 +2389,7 @@ error:
 			body = e->body;
 /*			iwrite = e->iwrite;*/
 			if (cc != EXP_TIMEOUT) {
-				f = eo.f;
+				esPtr = eo.esPtr;
 				match = eo.match;
 				buffer = eo.buffer;
 			}
@@ -2405,7 +2409,7 @@ error:
 			}
 		} else if (cc == EXP_EOF) {
 			/* read an eof but no user-supplied case */
-			f = eo.f;
+			esPtr = eo.esPtr;
 			match = eo.match;
 			buffer = eo.buffer;
 		}			
@@ -2462,7 +2466,7 @@ error:
 				}
 
 				/* string itself */
-				str = f->buffer + e->simple_start;
+				str = esPtr->buffer + e->simple_start;
 				/* temporarily null-terminate in middle */
 				match_char = str[match];
 				str[match] = 0;
@@ -2487,32 +2491,27 @@ error:
 		/* this is broken out of (match > 0) (above) since it can */
 		/* that an EOF occurred with match == 0 */
 		if (eo.f) {
-			char spawn_id[10];	/* enough for a %d */
-
-/*			if (iwrite) {*/
-				sprintf(spawn_id,"%d",f-exp_fs);
-				out("spawn_id",spawn_id);
-/*			}*/
+			out("spawn_id",esPtr->name);
 
 			/* save buf[0..match] */
 			/* temporarily null-terminate string in middle */
-			match_char = f->buffer[match];
-			f->buffer[match] = 0;
-			out("buffer",f->buffer);
+			match_char = esPtr->buffer[match];
+			esPtr->buffer[match] = 0;
+			out("buffer",esPtr->buffer);
 			/* remove middle-null-terminator */
-			f->buffer[match] = match_char;
+			esPtr->buffer[match] = match_char;
 
 			/* "!e" means no case matched - transfer by default */
 			if (!e || e->transfer) {
 				/* delete matched chars from input buffer */
-				f->size -= match;
-				f->printed -= match;
-				if (f->size != 0) {
-				   memmove(f->buffer,f->buffer+match,f->size);
-				   memmove(f->lower,f->lower+match,f->size);
+				esPtr->size -= match;
+				esPtr->printed -= match;
+				if (esPtr->size != 0) {
+				   memmove(esPtr->buffer,esPtr->buffer+match,esPtr->size);
+				   memmove(esPtr->lower,esPtr->lower+match,esPtr->size);
 				}
-				f->buffer[f->size] = '\0';
-				f->lower[f->size] = '\0';
+				esPtr->buffer[esPtr->size] = '\0';
+				esPtr->lower[esPtr->size] = '\0';
 			}
 
 			if (cc == EXP_EOF) {
@@ -2524,9 +2523,8 @@ error:
 					body = eof_body;
 				}
 
-				exp_close(interp,f - exp_fs);
+				exp_close(interp,esPtr);
 			}
-
 		}
 
 		if (body) {
@@ -2548,9 +2546,9 @@ error:
 		goto restart;
 	}
 
-	if (fd_list) {
-		exp_free_fd(fd_list);
-		fd_list = 0;
+	if (state_list) {
+		exp_free_state(state_list);
+		state_list = 0;
 	}
 	if (masters) {
 		ckfree((char *)masters);
@@ -2694,8 +2692,9 @@ int argc;
 char **argv;
 {
 	int size = -1;
+	ExpState *esPtr = 0;
 	int m = -1;
-	struct exp_f *f;
+	ExpState *f;
 	int Default = FALSE;
 
 	argc--; argv++;
@@ -2715,10 +2714,10 @@ char **argv;
 
 	if (!Default) {
 		if (m == -1) {
-			if (!(f = exp_update_master(interp,&m,0,0)))
+			if (!(f = exp_update_master(interp,&esPtr,0,0)))
 				return(TCL_ERROR);
 		} else {
-			if (!(f = exp_fd2f(interp,m,0,0,"match_max")))
+			if (!(f = exp_fd2f(interp,esPtr,0,0,"match_max")))
 				return(TCL_ERROR);
 		}
 	} else if (m != -1) {
@@ -2730,7 +2729,7 @@ char **argv;
 		if (Default) {
 			size = exp_default_match_max;
 		} else {
-			size = f->umsize;
+			size = esPtr->umsize;
 		}
 		sprintf(interp->result,"%d",size);
 		return(TCL_OK);
@@ -2749,7 +2748,7 @@ char **argv;
 	}
 
 	if (Default) exp_default_match_max = size;
-	else f->umsize = size;
+	else esPtr->umsize = size;
 
 	return(TCL_OK);
 }
@@ -2764,7 +2763,7 @@ char **argv;
 {
 	int value = -1;
 	int m = -1;
-	struct exp_f *f;
+	ExpState *f;
 	int Default = FALSE;
 
 	argc--; argv++;
@@ -2784,10 +2783,10 @@ char **argv;
 
 	if (!Default) {
 		if (m == -1) {
-			if (!(f = exp_update_master(interp,&m,0,0)))
+			if (!(f = exp_update_master(interp,&esPtr,0,0)))
 				return(TCL_ERROR);
 		} else {
-			if (!(f = exp_fd2f(interp,m,0,0,"remove_nulls")))
+			if (!(f = exp_fd2f(interp,esPtr,0,0,"remove_nulls")))
 				return(TCL_ERROR);
 		}
 	} else if (m != -1) {
@@ -2799,7 +2798,7 @@ char **argv;
 		if (Default) {
 			value = exp_default_match_max;
 		} else {
-			value = f->rm_nulls;
+			value = esPtr->rm_nulls;
 		}
 		sprintf(interp->result,"%d",value);
 		return(TCL_OK);
@@ -2818,7 +2817,7 @@ char **argv;
 	}
 
 	if (Default) exp_default_rm_nulls = value;
-	else f->rm_nulls = value;
+	else esPtr->rm_nulls = value;
 
 	return(TCL_OK);
 }
@@ -2831,73 +2830,75 @@ Tcl_Interp *interp;
 int argc;
 char **argv;
 {
-	int parity;
-	int m = -1;
-	struct exp_f *f;
-	int Default = FALSE;
+    int parity;
+    ExpState *esPtr = 0;
+    char *chanName = 0;
+    int Default = FALSE;
 
-	argc--; argv++;
+    argc--; argv++;
 
-	for (;argc>0;argc--,argv++) {
-		if (streq(*argv,"-d")) {
-			Default = TRUE;
-		} else if (streq(*argv,"-i")) {
-			argc--;argv++;
-			if (argc < 1) {
-				exp_error(interp,"-i needs argument");
-				return(TCL_ERROR);
-			}
-			m = atoi(*argv);
-		} else break;
-	}
-
-	if (!Default) {
-		if (m == -1) {
-			if (!(f = exp_update_master(interp,&m,0,0)))
-				return(TCL_ERROR);
-		} else {
-			if (!(f = exp_fd2f(interp,m,0,0,"parity")))
-				return(TCL_ERROR);
-		}
-	} else if (m != -1) {
-		exp_error(interp,"cannot do -d and -i at the same time");
+    for (;argc>0;argc--,argv++) {
+	if (streq(*argv,"-d")) {
+	    Default = TRUE;
+	} else if (streq(*argv,"-i")) {
+	    argc--;argv++;
+	    if (argc < 1) {
+		exp_error(interp,"-i needs argument");
 		return(TCL_ERROR);
+	    }
+	    chanName = *argv;
+	} else break;
+    }
+
+    if (!Default) {
+	if (!chanName) {
+	    if (!(esPtr = expGetCurrentState(interp,0,0))) {
+		return(TCL_ERROR);
+	    }
+	} else {
+	    if (!(esPtr = expGetState(interp,chanName,0,0,"parity"))) {
+		return(TCL_ERROR);
+	    }
 	}
+    } else if (chanName) {
+	exp_error(interp,"cannot do -d and -i at the same time");
+	return(TCL_ERROR);
+    }
 
-	if (argc == 0) {
-		if (Default) {
-			parity = exp_default_parity;
-		} else {
-			parity = f->parity;
-		}
-		sprintf(interp->result,"%d",parity);
-		return(TCL_OK);
+    if (argc == 0) {
+	if (Default) {
+	    parity = exp_default_parity;
+	} else {
+	    parity = esPtr->parity;
 	}
-
-	if (argc > 1) {
-		exp_error(interp,"too many arguments");
-		return(TCL_OK);
-	}
-
-	/* all that's left is to set the parity */
-	parity = atoi(argv[0]);
-
-	if (Default) exp_default_parity = parity;
-	else f->parity = parity;
-
+	sprintf(interp->result,"%d",parity);
 	return(TCL_OK);
+    }
+
+    if (argc > 1) {
+	exp_error(interp,"too many arguments");
+	return(TCL_OK);
+    }
+
+    /* all that's left is to set the parity */
+    parity = atoi(argv[0]);
+
+    if (Default) exp_default_parity = parity;
+    else esPtr->parity = parity;
+
+    return(TCL_OK);
 }
 
 #if DEBUG_PERM_ECASES
 /* This big chunk of code is just for debugging the permanent */
 /* expect cases */
 void
-exp_fd_print(fdl)
-struct exp_fd_list *fdl;
+exp_fd_print(slPtr)
+struct exp_state_list *slPtr;
 {
-	if (!fdl) return;
-	printf("%d ",fdl->fd);
-	exp_fd_print(fdl->next);
+	if (!slPtr) return;
+	printf("%d ",slPtr->esPtr);
+	exp_fd_print(slPtr->next);
 }
 
 void
@@ -2912,8 +2913,8 @@ struct exp_i *exp_i;
 	printf("variable %s, value %s\n",
 		((exp_i->variable)?exp_i->variable:"--"),
 		((exp_i->value)?exp_i->value:"--"));
-	printf("fds: ");
-	exp_fd_print(exp_i->fd_list); printf("\n");
+	printf("ExpStates: ");
+	exp_fd_print(exp_i->state_list); printf("\n");
 	exp_i_print(exp_i->next);
 }
 
@@ -2967,6 +2968,14 @@ char **argv;
 }
 #endif /*DEBUG_PERM_ECASES*/
 
+void
+expInitExpectVars()
+{
+    ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
+
+    tsdPtr->timeout = INIT_EXPECT_TIMEOUT;
+}
+
 /* need address for passing into cmdExpect */
 static int spawn_id_bad = EXP_SPAWN_ID_BAD;
 static int spawn_id_user = EXP_SPAWN_ID_USER;
@@ -2992,7 +3001,6 @@ Tcl_Interp *interp;
 	exp_create_commands(interp,cmd_data);
 
 	Tcl_SetVar(interp,EXPECT_TIMEOUT,INIT_EXPECT_TIMEOUT_LIT,0);
-	Tcl_SetVar(interp,EXP_SPAWN_ID_ANY_VARNAME,EXP_SPAWN_ID_ANY_LIT,0);
 
 	exp_cmd_init(&exp_cmds[EXP_CMD_BEFORE],EXP_CMD_BEFORE,EXP_PERMANENT);
 	exp_cmd_init(&exp_cmds[EXP_CMD_AFTER ],EXP_CMD_AFTER, EXP_PERMANENT);
