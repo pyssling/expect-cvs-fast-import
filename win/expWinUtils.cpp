@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinUtils.cpp,v 1.1.2.5 2002/03/12 07:59:14 davygrvy Exp $
+ * RCS: @(#) $Id: expWinUtils.cpp,v 1.1.2.6 2002/03/16 00:37:01 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -328,7 +328,7 @@ ExpWinSyslog (DWORD errCode, ...)
     LocalFree(errMsg);
 }
 
-char *ExpSyslogGetSysMsg (DWORD id)
+char *GetSysMsg (DWORD id)
 {
     int chars;
 

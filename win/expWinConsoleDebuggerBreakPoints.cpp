@@ -24,7 +24,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinConsoleDebuggerBreakPoints.cpp,v 1.1.2.9 2002/03/13 03:52:57 davygrvy Exp $
+ * RCS: @(#) $Id: expWinConsoleDebuggerBreakPoints.cpp,v 1.1.2.10 2002/03/15 07:41:45 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -76,6 +76,25 @@ ConsoleDebugger::CreateVtSequence(Process *proc, COORD newPos, DWORD n)
     CursorPosition = newPos;
 
     WriteMaster(buf, count);
+}
+
+/*
+ *-----------------------------------------------------------------------------
+ *
+ * ConsoleDebugger::OnAllocConsole --
+ *
+ * Results:
+ *	None
+ *
+ * Notes:
+ *
+ *-----------------------------------------------------------------------------
+ */
+
+void
+ConsoleDebugger::OnAllocConsole(Process *proc, ThreadInfo *threadInfo,
+    Breakpoint *brkpt, PDWORD returnValue, DWORD direction)
+{
 }
 
 /*
@@ -256,7 +275,7 @@ ConsoleDebugger::OnFillConsoleOutputCharacter(Process *proc,
     if (GetConsoleScreenBufferInfo(hMasterConsole, &info) == FALSE) {
 	char errbuf[200];
 	wsprintfA(errbuf, "handle=0x%08x", hMasterConsole);
-	EXP_LOG2(MSG_DT_SCREENBUF, errbuf, ExpSyslogGetSysMsg(GetLastError()));
+	EXP_LOG2(MSG_DT_SCREENBUF, errbuf, GetSysMsg(GetLastError()));
     } else {
 	CursorPosition = info.dwCursorPosition;
 	wsprintfA(&buf[bufpos], "\033[%d;%dH",
@@ -265,6 +284,25 @@ ConsoleDebugger::OnFillConsoleOutputCharacter(Process *proc,
 	CursorKnown = TRUE;
     }
     WriteMaster(buf, bufpos);
+}
+
+/*
+ *-----------------------------------------------------------------------------
+ *
+ * ConsoleDebugger::OnFreeConsole --
+ *
+ * Results:
+ *	None
+ *
+ * Notes:
+ *
+ *-----------------------------------------------------------------------------
+ */
+
+void
+ConsoleDebugger::OnFreeConsole(Process *proc, ThreadInfo *threadInfo,
+    Breakpoint *brkpt, PDWORD returnValue, DWORD direction)
+{
 }
 
 /*
@@ -374,30 +412,6 @@ ConsoleDebugger::OnOpenConsoleW(Process *proc, ThreadInfo *threadInfo,
 /*
  *----------------------------------------------------------------------
  *
- * ConsoleDebugger::OnReadConsoleInput --
- *
- *	This function gets called when a ReadConsoleInput breakpoint
- *	is hit.
- *
- * Results:
- *	None
- *
- * Notes:
- *	If this is ever used for real, there need to be ASCII
- *	and UNICODE versions.
- *
- *----------------------------------------------------------------------
- */
-
-void
-ConsoleDebugger::OnReadConsoleInput(Process *proc, ThreadInfo *threadInfo,
-    Breakpoint *brkpt, PDWORD returnValue, DWORD direction)
-{
-}
-
-/*
- *----------------------------------------------------------------------
- *
  * ConsoleDebugger::OnScrollConsoleScreenBuffer --
  *
  *	This funtions gets called when a ScrollConsoleScreenBuffer
@@ -472,46 +486,6 @@ ConsoleDebugger::OnScrollConsoleScreenBuffer(Process *proc,
 /*
  *----------------------------------------------------------------------
  *
- * ConsoleDebugger::OnSetConsoleMode --
- *
- *	This function gets called when a SetConsoleMode breakpoint
- *	is hit.
- *
- * Results:
- *	None
- *
- * Side Effects:
- *	Sets some flags that are used in determining echoing
- *	characteristics of the slave driver.
- *
- *----------------------------------------------------------------------
- */
-
-void
-ConsoleDebugger::OnSetConsoleMode(Process *proc, ThreadInfo *threadInfo,
-    Breakpoint *brkpt, PDWORD returnValue, DWORD direction)
-{
-    DWORD i;
-    BOOL found;
-
-    // The console mode seems to get set even if the return value is FALSE
-    if (*returnValue == FALSE) {
-	return;
-    }
-    for (found = FALSE, i = 0; i < proc->consoleHandlesMax; i++) {
-	if (threadInfo->args[0] == proc->consoleHandles[i]) {
-	    found = TRUE;
-	    break;
-	}
-    }
-    if (found) {
-	MasterConsoleInputMode = threadInfo->args[1];
-    }
-}
-
-/*
- *----------------------------------------------------------------------
- *
  * ConsoleDebugger::OnSetConsoleActiveScreenBuffer --
  *
  *	This function gets called when a SetConsoleActiveScreenBuffer
@@ -540,7 +514,57 @@ ConsoleDebugger::OnSetConsoleActiveScreenBuffer(Process *proc,
 }
 
 /*
- *----------------------------------------------------------------------
+ *-----------------------------------------------------------------------------
+ *
+ * ConsoleDebugger::OnSetConsoleCP --
+ *
+ * Results:
+ *	None
+ *
+ * Notes:
+ *
+ *-----------------------------------------------------------------------------
+ */
+
+void
+ConsoleDebugger::OnSetConsoleCP(Process *proc, ThreadInfo *threadInfo,
+    Breakpoint *brkpt, PDWORD returnValue, DWORD direction)
+{
+    if (*returnValue == FALSE) {
+	return;
+    }
+    ConsoleCP = (UINT) threadInfo->args[0];
+}
+
+/*
+ *-----------------------------------------------------------------------------
+ *
+ * ConsoleDebugger::OnSetConsoleCursorInfo --
+ *
+ * Results:
+ *	None
+ *
+ * Notes:
+ *	Updates the current console's cursor info.
+ *
+ *-----------------------------------------------------------------------------
+ */
+
+void
+ConsoleDebugger::OnSetConsoleCursorInfo(Process *proc, ThreadInfo *threadInfo,
+    Breakpoint *brkpt, PDWORD returnValue, DWORD direction)
+{
+    PVOID ptr;
+
+    if (*returnValue == FALSE) {
+	return;
+    }
+    ptr = (PVOID) threadInfo->args[1];
+    ReadSubprocessMemory(proc, ptr, &CursorInfo, sizeof(CONSOLE_CURSOR_INFO));
+}
+
+/*
+ *-----------------------------------------------------------------------------
  *
  * ConsoleDebugger::OnSetConsoleCursorPosition --
  *
@@ -551,9 +575,9 @@ ConsoleDebugger::OnSetConsoleActiveScreenBuffer(Process *proc,
  *	None
  *
  * Side Effects:
- *	Updates the current console cursor position
+ *	Updates the current console's cursor position
  *
- *----------------------------------------------------------------------
+ *-----------------------------------------------------------------------------
  */
 
 void
@@ -561,7 +585,7 @@ ConsoleDebugger::OnSetConsoleCursorPosition(Process *proc,
     ThreadInfo *threadInfo, Breakpoint *brkpt, PDWORD returnValue,
     DWORD direction)
 {
-    CHAR buf[50];
+    static CHAR buf[50];
     DWORD count;
 
     if (*returnValue == FALSE) {
@@ -569,13 +593,75 @@ ConsoleDebugger::OnSetConsoleCursorPosition(Process *proc,
     }
     CursorPosition = *((PCOORD) &threadInfo->args[1]);
 
-    wsprintfA(buf, "\033[%d;%dH", CursorPosition.Y+1, CursorPosition.X+1);
-    count = strlen(buf);
+    count = wsprintf(buf, "\033[%d;%dH", CursorPosition.Y+1, CursorPosition.X+1);
     WriteMaster(buf, count);
 }
 
 /*
- *----------------------------------------------------------------------
+ *-----------------------------------------------------------------------------
+ *
+ * ConsoleDebugger::OnSetConsoleMode --
+ *
+ *	This function gets called when a SetConsoleMode breakpoint
+ *	is hit.
+ *
+ * Results:
+ *	None
+ *
+ * Side Effects:
+ *	Sets some flags that are used in determining echoing
+ *	characteristics of the slave driver.
+ *
+ *-----------------------------------------------------------------------------
+ */
+
+void
+ConsoleDebugger::OnSetConsoleMode(Process *proc, ThreadInfo *threadInfo,
+    Breakpoint *brkpt, PDWORD returnValue, DWORD direction)
+{
+    DWORD i;
+    BOOL found;
+
+    // The console mode seems to get set even if the return value is FALSE
+    if (*returnValue == FALSE) {
+	return;
+    }
+    for (found = FALSE, i = 0; i < proc->consoleHandlesMax; i++) {
+	if (threadInfo->args[0] == proc->consoleHandles[i]) {
+	    found = TRUE;
+	    break;
+	}
+    }
+    if (found) {
+	MasterConsoleInputMode = threadInfo->args[1];
+    }
+}
+
+/*
+ *-----------------------------------------------------------------------------
+ *
+ * ConsoleDebugger::OnSetConsoleOutputCP --
+ *
+ * Results:
+ *	None
+ *
+ * Notes:
+ *
+ *-----------------------------------------------------------------------------
+ */
+
+void
+ConsoleDebugger::OnSetConsoleOutputCP(Process *proc, ThreadInfo *threadInfo,
+    Breakpoint *brkpt, PDWORD returnValue, DWORD direction)
+{
+    if (*returnValue == FALSE) {
+	return;
+    }
+    ConsoleOutputCP = (UINT) threadInfo->args[0];
+}
+
+/*
+ *-----------------------------------------------------------------------------
  *
  * ConsoleDebugger::OnSetConsoleWindowInfo --
  *
@@ -588,7 +674,7 @@ ConsoleDebugger::OnSetConsoleCursorPosition(Process *proc,
  * Side Effects:
  *	Updates the current console cursor position
  *
- *----------------------------------------------------------------------
+ *-----------------------------------------------------------------------------
  */
 
 void
@@ -599,7 +685,7 @@ ConsoleDebugger::OnSetConsoleWindowInfo(Process *proc,
 }
 
 /*
- *----------------------------------------------------------------------
+ *-----------------------------------------------------------------------------
  *
  * ConsoleDebugger::OnWriteConsoleA --
  *
@@ -613,7 +699,7 @@ ConsoleDebugger::OnSetConsoleWindowInfo(Process *proc,
  * Side Effects:
  *	Prints some output.
  *
- *----------------------------------------------------------------------
+ *-----------------------------------------------------------------------------
  */
 
 void
@@ -643,7 +729,6 @@ ConsoleDebugger::OnWriteConsoleA(Process *proc, ThreadInfo *threadInfo,
 
     ptr = (PVOID) threadInfo->args[1];
     ReadSubprocessMemory(proc, ptr, p, n * sizeof(CHAR));
-//    ResetEvent(proc->overlapped.hEvent);
     WriteMaster(p, n);
 
     if (p != buf) {
@@ -653,7 +738,7 @@ ConsoleDebugger::OnWriteConsoleA(Process *proc, ThreadInfo *threadInfo,
 }
 
 /*
- *----------------------------------------------------------------------
+ *-----------------------------------------------------------------------------
  *
  * ConsoleDebugger::OnWriteConsoleW --
  *
@@ -666,7 +751,7 @@ ConsoleDebugger::OnWriteConsoleA(Process *proc, ThreadInfo *threadInfo,
  * Side Effects:
  *	Prints some output.
  *
- *----------------------------------------------------------------------
+ *-----------------------------------------------------------------------------
  */
 
 void
@@ -699,7 +784,6 @@ ConsoleDebugger::OnWriteConsoleW(Process *proc, ThreadInfo *threadInfo,
 	asize = sizeof(ansi);
     }
     ReadSubprocessMemory(proc, ptr, p, n * sizeof(WCHAR));
-//    ResetEvent(proc->overlapped.hEvent);
 
     // Convert to ASCII and write the intercepted data to the pipe.
     //
@@ -713,7 +797,7 @@ ConsoleDebugger::OnWriteConsoleW(Process *proc, ThreadInfo *threadInfo,
 }
 
 /*
- *----------------------------------------------------------------------
+ *-----------------------------------------------------------------------------
  *
  * ConsoleDebugger::OnWriteConsoleOutputA --
  *
@@ -727,7 +811,7 @@ ConsoleDebugger::OnWriteConsoleW(Process *proc, ThreadInfo *threadInfo,
  * Side Effects:
  *	Prints some output.
  *
- *----------------------------------------------------------------------
+ *-----------------------------------------------------------------------------
  */
 
 void
@@ -781,7 +865,6 @@ ConsoleDebugger::OnWriteConsoleOutputA(Process *proc,
 	for (x = 0; x <= writeRegion.Right - writeRegion.Left; x++, pcb++) {
 	    *p++ = pcb->Char.AsciiChar;
 	    if (p == end) {
-//		ResetEvent(proc->overlapped.hEvent);
 		WriteMaster(buf, maxbuf);
 		p = buf;
 	    }
@@ -790,7 +873,6 @@ ConsoleDebugger::OnWriteConsoleOutputA(Process *proc,
 	curr.Y = writeRegion.Top + y;
 	n = writeRegion.Right - writeRegion.Left;
 	CreateVtSequence(proc, curr, n);
-//	ResetEvent(proc->overlapped.hEvent);
 
 	maxbuf = p - buf;
 	WriteMaster(buf, maxbuf);
@@ -801,7 +883,7 @@ ConsoleDebugger::OnWriteConsoleOutputA(Process *proc,
 }
 
 /*
- *----------------------------------------------------------------------
+ *-----------------------------------------------------------------------------
  *
  * ConsoleDebugger::OnWriteConsoleOutputW --
  *
@@ -815,7 +897,7 @@ ConsoleDebugger::OnWriteConsoleOutputA(Process *proc,
  * Side Effects:
  *	Prints some output.
  *
- *----------------------------------------------------------------------
+ *-----------------------------------------------------------------------------
  */
 
 void
@@ -869,7 +951,6 @@ ConsoleDebugger::OnWriteConsoleOutputW(Process *proc,
 	for (x = 0; x <= writeRegion.Right - writeRegion.Left; x++, pcb++) {
 	    *p++ = (CHAR) (pcb->Char.UnicodeChar & 0xff);
 	    if (p == end) {
-//		ResetEvent(proc->overlapped.hEvent);
 		WriteMaster((char *)buf, maxbuf);
 		p = buf;
 	    }
@@ -878,7 +959,6 @@ ConsoleDebugger::OnWriteConsoleOutputW(Process *proc,
 	curr.Y = writeRegion.Top + y;
 	n = writeRegion.Right - writeRegion.Left;
 	CreateVtSequence(proc, curr, n);
-//	ResetEvent(proc->overlapped.hEvent);
 
 	maxbuf = p - buf;
 	WriteMaster((char *)buf, maxbuf);
@@ -889,7 +969,7 @@ ConsoleDebugger::OnWriteConsoleOutputW(Process *proc,
 }
 
 /*
- *----------------------------------------------------------------------
+ *-----------------------------------------------------------------------------
  *
  * ConsoleDebugger::OnWriteConsoleOutputCharacterA --
  *
@@ -903,7 +983,7 @@ ConsoleDebugger::OnWriteConsoleOutputW(Process *proc,
  * Side Effects:
  *	Prints some output.
  *
- *----------------------------------------------------------------------
+ *-----------------------------------------------------------------------------
  */
 
 void
@@ -936,8 +1016,6 @@ ConsoleDebugger::OnWriteConsoleOutputCharacterA(Process *proc,
 
     ptr = (PVOID) threadInfo->args[1];
     ReadSubprocessMemory(proc, ptr, p, n * sizeof(CHAR));
-//    ResetEvent(proc->overlapped.hEvent);
-
     WriteMaster(p, n);
 
     if (p != buf) {
@@ -947,7 +1025,7 @@ ConsoleDebugger::OnWriteConsoleOutputCharacterA(Process *proc,
 }
 
 /*
- *----------------------------------------------------------------------
+ *-----------------------------------------------------------------------------
  *
  * ConsoleDebugger::OnWriteConsoleOutputCharacterW --
  *
@@ -960,7 +1038,7 @@ ConsoleDebugger::OnWriteConsoleOutputCharacterA(Process *proc,
  * Side Effects:
  *	Prints some output.
  *
- *----------------------------------------------------------------------
+ *-----------------------------------------------------------------------------
  */
 
 void
@@ -1002,7 +1080,6 @@ ConsoleDebugger::OnWriteConsoleOutputCharacterW(Process *proc,
 
     ptr = (PVOID) threadInfo->args[1];
     ReadSubprocessMemory(proc, ptr, p, n * sizeof(WCHAR));
-//    ResetEvent(proc->overlapped.hEvent);
 
     // Convert to ASCI and Write the intercepted data to the pipe.
     w = WideCharToMultiByte(CP_ACP, 0, p, n, a, asize, 0L, 0L);
@@ -1015,7 +1092,7 @@ ConsoleDebugger::OnWriteConsoleOutputCharacterW(Process *proc,
 }
 
 /*
- *----------------------------------------------------------------------
+ *-----------------------------------------------------------------------------
  *
  * ConsoleDebugger::OnIsWindowVisible --
  *
@@ -1030,7 +1107,7 @@ ConsoleDebugger::OnWriteConsoleOutputCharacterW(Process *proc,
  * Results:
  *	None
  *
- *----------------------------------------------------------------------
+ *-----------------------------------------------------------------------------
  */
 
 void

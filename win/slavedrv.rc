@@ -22,15 +22,16 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: slavedrv.rc,v 1.1.2.1 2002/03/09 01:42:25 davygrvy Exp $
+ * RCS: @(#) $Id: slavedrv.rc,v 1.1.2.2 2002/03/12 07:59:14 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
 #include <winver.h>
+#include "exp.h"
 
 VS_VERSION_INFO VERSIONINFO
-    FILEVERSION	    6,0,0,0
-    PRODUCTVERSION  6,0,0,0
+    FILEVERSION	    1,0,0,0
+    PRODUCTVERSION  EXP_MAJOR_VERSION,EXP_MINOR_VERSION,EXP_RELEASE_LEVEL,EXP_RELEASE_SERIAL
     FILEFLAGSMASK   VS_FFI_FILEFLAGSMASK
 
 #if defined(_DEBUG)
@@ -46,14 +47,14 @@ BEGIN
     BEGIN
         BLOCK "040904b0" /* LANG_ENGLISH/SUBLANG_ENGLISH_US, Unicode CP */
         BEGIN
-            VALUE "FileDescription", "Spawn Driver helper application for overseeing Win32 consoles.\0"
-            VALUE "OriginalFilename", "spawndrv.exe\0"
-            VALUE "CompanyName", "Telindustrie, LLC\0"
-            VALUE "FileVersion", "6.0a0" "\0"
-            VALUE "LegalCopyright", "Copyright \251 Telindustrie, LLC 2002\0"
-            VALUE "ProductName", "Expect " "6.0" " for Win32\0"
-            VALUE "ProductVersion", "6.0a0" "\0"
-	    VALUE "Comments", "Expect was written for Unix by Don Libes at NIST.\r\n" "Gordon Chaffee ported it to WinNT for Mitel Corporation in 1997.\r\n" "David Gravereaux merged Gordon's port back into the official sources for Telindustrie LLC in Oct. 2001.\0"
+            VALUE "FileDescription",	"Spawn Driver test application for overseeing Win32 consoles.\0"
+            VALUE "OriginalFilename",	"spawndrv.exe\0"
+            VALUE "CompanyName",	"Telindustrie, LLC\0"
+            VALUE "FileVersion",	"1.0a0" "\0"
+            VALUE "LegalCopyright",	"Copyright \251 Telindustrie, LLC 2002\0"
+            VALUE "ProductName",	"Expect " EXP_VERSION " for Win32\0"
+            VALUE "ProductVersion",	EXP_PATCH_LEVEL "\0"
+	    VALUE "Comments",		"Expect was written for Unix by Don Libes at NIST.\r\n" "Gordon Chaffee ported it to WinNT for Mitel Corporation in 1997.\r\n" "David Gravereaux merged Gordon's port back into the official sources for Telindustrie LLC in Oct. 2001.\0"
         END
     END
     BLOCK "VarFileInfo"
@@ -65,4 +66,5 @@ END
 
 // Include the Message Table that lists the error codes and textual replies.
 // This is output from the message compiler and found in the temp build directory.
+
 #include "slavedrvmc.rc"

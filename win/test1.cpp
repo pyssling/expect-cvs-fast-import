@@ -43,6 +43,7 @@ int main (void)
     SetConsoleActiveScreenBuffer(ConOut);
     SetConsoleMode(ConIn, ENABLE_WINDOW_INPUT|ENABLE_MOUSE_INPUT);
     SetConsoleCursorInfo(ConOut, &cci);
+    SetConsoleOutputCP(437); // us-ascii code page.
 
     // Index 0, highest priority goes first.
     groupedHandles.AddObject(stop);
@@ -79,13 +80,8 @@ again:
 	case WINDOW_BUFFER_SIZE_EVENT:
 	    HandleWindow(&Records[i].Event.WindowBufferSizeEvent);
 	    break;
-	case MENU_EVENT:
-	case FOCUS_EVENT:
-	    // internal use. DNU.
-	    break;
 	}
     }
-
     goto again;
 }
 
@@ -93,12 +89,13 @@ void
 HandleKey(KEY_EVENT_RECORD *ker)
 {
     // exit on esc.
-    if (ker->wVirtualKeyCode == VK_ESCAPE) stop.Set();
+    if (ker->wVirtualKeyCode == VK_ESCAPE && ker->bKeyDown) stop.Set();
 }
 
 void
 HandleMouse(MOUSE_EVENT_RECORD *mer)
 {
+    // put the cursor where the mouse is.
     SetConsoleCursorPosition(ConOut, mer->dwMousePosition);
 }
 

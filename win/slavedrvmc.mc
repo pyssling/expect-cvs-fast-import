@@ -22,7 +22,7 @@
 ; *	    http://expect.sf.net/
 ; *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
 ; * ----------------------------------------------------------------------------
-; * RCS: @(#) $Id: slavedrvmc.mc,v 1.1.2.1 2002/03/09 01:42:00 davygrvy Exp $
+; * RCS: @(#) $Id: slavedrvmc.mc,v 1.1.2.2 2002/03/10 01:02:37 davygrvy Exp $
 ; * ----------------------------------------------------------------------------
 ; */
 
@@ -110,7 +110,7 @@ Language=English
 
 
 MessageId=0x1
-Severity=Error
+Severity=Fatal
 Facility=Io
 SymbolicName=MSG_IO_ARGSWRONG
 Language=English
@@ -126,7 +126,7 @@ Language=English
 .
 
 MessageId=0x2
-Severity=Error
+Severity=Fatal
 Facility=Io
 SymbolicName=MSG_IO_UNEXPECTED
 Language=English
@@ -152,7 +152,7 @@ Language=English
 
 
 MessageId=0x0
-Severity=Error
+Severity=Fatal
 Facility=Mailbox
 SymbolicName=MSG_MB_CANTOPENCLIENT1
 Language=English
@@ -160,7 +160,7 @@ Language=English
 .
 
 MessageId=0x1
-Severity=Error
+Severity=Fatal
 Facility=Mailbox
 SymbolicName=MSG_MB_CANTOPENCLIENT2
 Language=English
@@ -213,7 +213,7 @@ Language=English
 .
 
 MessageId=0x2
-Severity=Error
+Severity=Fatal
 Facility=MasterSlave_Protocol
 SymbolicName=MSG_MS_BADSTATE
 Language=English
@@ -224,7 +224,7 @@ Language=English
 
 
 MessageId=0x1
-Severity=Error
+Severity=Fatal
 Facility=NamedPipe
 SymbolicName=MSG_NP_CANTOPEN
 Language=English
@@ -232,7 +232,7 @@ Language=English
 .
 
 MessageId=0x2
-Severity=Error
+Severity=Fatal
 Facility=NamedPipe
 SymbolicName=MSG_NP_BADTYPE
 Language=English
@@ -241,7 +241,7 @@ Language=English
 
 
 MessageId=0x1
-Severity=Error
+Severity=Fatal
 Facility=WinSock
 SymbolicName=MSG_WS_CANTSTART
 Language=English
@@ -249,7 +249,7 @@ Language=English
 .
 
 MessageId=0x2
-Severity=Error
+Severity=Fatal
 Facility=WinSock
 SymbolicName=MSG_WS_CANTCREATEMASTERSOCK
 Language=English
@@ -257,7 +257,7 @@ Language=English
 .
 
 MessageId=0x3
-Severity=Error
+Severity=Fatal
 Facility=WinSock
 SymbolicName=MSG_WS_CANTCONNECTMASTERSOCK
 Language=English
@@ -265,7 +265,7 @@ Language=English
 .
 
 MessageId=0x4
-Severity=Error
+Severity=Fatal
 Facility=WinSock
 SymbolicName=MSG_WS_PORTOUTOFRANGE
 Language=English
@@ -276,7 +276,7 @@ Language=English
 
 
 MessageId=0x1
-Severity=Error
+Severity=Fatal
 Facility=DbgTrap
 SymbolicName=MSG_DT_CANTGETCONSOLEHANDLE
 Language=English
@@ -308,25 +308,49 @@ Language=English
 .
 
 MessageId=0x5
-Severity=Warning
+Severity=Fatal
 Facility=DbgTrap
 SymbolicName=MSG_DT_CANTREADSPMEM
 Language=English
-%1 : %2 (%3,%4): Error reading from subprocess memory
+%1 : %2 (%3,%4): Error reading from subprocess memory, %5
 .
 
 MessageId=0x6
-Severity=Warning
+Severity=Fatal
 Facility=DbgTrap
 SymbolicName=MSG_DT_CANTWRITESPMEM
 Language=English
-%1 : %2 (%3,%4): Error writing to subprocess memory
+%1 : %2 (%3,%4): Error writing to subprocess memory, %5
 .
 
 MessageId=0x7
+Severity=Fatal
+Facility=DbgTrap
+SymbolicName=MSG_DT_CANTMAKENTSPMEM
+Language=English
+%1 : %2 (%3,%4): Error creating subprocess memory.  VirtualAllocEx() failed, %5
+.
+
+MessageId=0x8
+Severity=Fatal
+Facility=DbgTrap
+SymbolicName=MSG_DT_CANTMAKE95SPMEM
+Language=English
+%1 : %2 (%3,%4): Error creating subprocess memory, %5
+.
+
+MessageId=0x9
 Severity=Warning
 Facility=DbgTrap
 SymbolicName=MSG_DT_SCREENBUF
 Language=English
 %1 : %2 (%3,%4): Call to GetConsoleScreenBufferInfo() failed with %5, %6
+.
+
+MessageId=0xa
+Severity=Fatal
+Facility=DbgTrap
+SymbolicName=MSG_DT_BADDEBUGGEE
+Language=English
+%1 : %2 (%3,%4): Unable to start debuggee from commandline: "%5", %6
 .

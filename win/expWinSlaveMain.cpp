@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinSlaveMain.cpp,v 1.1.4.16 2002/03/15 07:41:45 davygrvy Exp $
+ * RCS: @(#) $Id: expWinSlaveMain.cpp,v 1.1.4.17 2002/03/16 00:37:01 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -252,7 +252,7 @@ MsvcDbg_GetCommandLine(void)
     RegOpenKeyEx(HKEY_LOCAL_MACHINE, "Software\\Tomasoft\\MsDevDbgCtrl",
 	    0, KEY_ALL_ACCESS, &root);
     RegQueryValueEx(root, pidChar, 0, &type, 0L, &size);
-    buf = (CHAR *) HeapAlloc(GetProcessHeap(), 0, size);
+    buf = new CHAR [size];
     RegQueryValueEx(root, pidChar, 0, &type, (LPBYTE) buf, &size);
     RegDeleteValue(root, pidChar);
     RegCloseKey(root);

@@ -13,7 +13,7 @@
 #define EXP_LOG2(errCode, arg1, arg2)	ExpWinSyslog(errCode, __FILE__, (int)__LINE__, arg1, arg2, 0)
 
 void ExpWinSyslog (DWORD errCode, ...);
-char *ExpSyslogGetSysMsg (DWORD id);
+char *GetSysMsg (DWORD id);
 
 class ArgMaker
 {

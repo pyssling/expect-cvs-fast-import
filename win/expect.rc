@@ -22,14 +22,12 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: exp.h,v 1.1.4.4 2002/02/10 10:17:04 davygrvy Exp $
+ * RCS: @(#) $Id: expect.rc,v 1.1.2.1.2.4 2002/02/10 12:03:30 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
 #include <winver.h>
 #include <winnt.h>
-
-#define RESOURCE_INCLUDED  /* needed for tcl.h, only */
 #include "exp.h"
 
 #ifdef DEBUG
@@ -62,14 +60,14 @@ VS_VERSION_INFO VERSIONINFO
 	BEGIN
 	    BLOCK "040904b0" /* LANG_ENGLISH/SUBLANG_ENGLISH_US, Unicode CP */
 	    BEGIN
-		VALUE "FileDescription", "Expect DLL\0"
-		VALUE "OriginalFilename", "expect" STRINGIFY(EXP_MAJOR_VERSION) STRINGIFY(EXP_MINOR_VERSION) SUFFIX ".dll\0"
-		VALUE "CompanyName", "Teleindustrie, LLC\0"
-		VALUE "FileVersion", EXP_PATCH_LEVEL
-		VALUE "LegalCopyright", "Copyright \251 Teleindustrie, LLC 2002\0"
-		VALUE "ProductName", "Expect " EXP_VERSION " for Win32\0"
-		VALUE "ProductVersion", EXP_PATCH_LEVEL
-		VALUE "Comments", "Expect was written for Unix by Don Libes at NIST.  This is the Win32 port.\0"
+		VALUE "FileDescription",    "Expect Tcl extension DLL\0"
+		VALUE "OriginalFilename",   "expect" EXP_VERSION SUFFIX ".dll\0"
+		VALUE "CompanyName",	    "Teleindustrie, LLC\0"
+		VALUE "FileVersion",	    EXP_PATCH_LEVEL
+		VALUE "LegalCopyright",	    "Copyright \251 Teleindustrie, LLC 2002\0"
+		VALUE "ProductName",	    "Expect " EXP_VERSION " for Win32\0"
+		VALUE "ProductVersion",	    EXP_PATCH_LEVEL
+		VALUE "Comments",	    "Expect was written for Unix by Don Libes at NIST.\r\n" "Gordon Chaffee ported it to WinNT for Mitel Corporation in 1997.\r\n" "David Gravereaux merged Gordon's port back into the official sources for Telindustrie LLC in Oct. 2001.\0"
 	    END
 	END
 	BLOCK "VarFileInfo"

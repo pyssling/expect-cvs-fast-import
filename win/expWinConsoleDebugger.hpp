@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinConsoleDebugger.hpp,v 1.1.2.16 2002/03/15 07:51:56 davygrvy Exp $
+ * RCS: @(#) $Id: expWinConsoleDebugger.hpp,v 1.1.2.17 2002/03/16 00:37:01 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -35,14 +35,11 @@
 
 
 #ifdef _M_IX86
-    // 4096 is for ix86 only
-#   define PAGESIZE 0x1000
     // This only works on ix86
 #   define SINGLE_STEP_BIT 0x100;
 #else
-#   error "need platform page size"
+#   error "need platform step bit"
 #endif
-#define PAGEMASK (PAGESIZE-1)
 
 
 
@@ -51,37 +48,11 @@
 class ConsoleDebugger : public CMclThreadHandler, ArgMaker
 {
 public:
-    ConsoleDebugger(int argc, char * const *argv, CMclQueue<Message *> &_mQ);
+    ConsoleDebugger(int _argc, char * const *_argv, CMclQueue<Message *> &_mQ);
     ~ConsoleDebugger();
 
 private:
     virtual unsigned ThreadHandlerProc(void);
-
-    // forward reference.
-    class Process;
-    class Breakpoint;
-
-    class CreateProcessInfo {
-	friend class ConsoleDebugger;
-	TCHAR	    appName[8192];
-	TCHAR	    cmdLine[8192];
-	SECURITY_ATTRIBUTES procAttrs;
-	SECURITY_ATTRIBUTES threadAttrs;
-	BOOL	    bInheritHandles;
-	DWORD	    dwCreationFlags;
-	LPVOID	    lpEnvironment;
-	TCHAR	    currDir[8192];
-	STARTUPINFO si;
-	PROCESS_INFORMATION pi;
-	PVOID	    piPtr;  // Pointer to PROCESS_INFORMATION in slave.
-	DWORD	    flags;
-    };
-
-    class CreateProcessThreadArgs {
-	friend class ConsoleDebugger;
-	CreateProcessInfo *cp;
-	Process	    *proc;
-    };
 
     class ThreadInfo {
 	friend class ConsoleDebugger;
@@ -92,9 +63,12 @@ private:
 				// space while we are waiting for the return
 				// value for the function.
 	LPCONTEXT   context;	// Current context.
-	CreateProcessInfo *createProcess; // Create process pointer.
 	ThreadInfo  *nextPtr;	// Linked list.
     };
+
+    // forward reference.
+    class Process;
+    class Breakpoint;
 
     class BreakInfo {
 	friend class ConsoleDebugger;
@@ -116,13 +90,15 @@ private:
 
     class Breakpoint {
 	friend class ConsoleDebugger;
+	Breakpoint() : returning(FALSE), origRetAddr(0), threadInfo(0L) {}
 	BOOL	    returning;	    // Is this a returning breakpoint?
 	BYTE	    code;	    // Original code.
 	PVOID	    codePtr;	    // Address of original code.
 	PVOID	    codeReturnPtr;  // Address of return breakpoint.
 	DWORD	    origRetAddr;    // Original return address.
 	BreakInfo   *breakInfo;	    // Information about the breakpoint.
-	ThreadInfo  *threadInfo;    // If this breakpoint is for a specific thread.
+	ThreadInfo  *threadInfo;    // If this breakpoint is for a specific
+				    //  thread.
 	Breakpoint  *nextPtr;	    // Linked list.
     };
 
@@ -135,14 +111,17 @@ private:
 	PIMAGE_DEBUG_INFORMATION dbgInfo;
     };
 
-    typedef Tcl::Hash<PVOID,TCL_STRING_KEYS> STRING2PTR;
-    typedef Tcl::Hash<Module *,TCL_ONE_WORD_KEYS> PTR2MODULE;
+    typedef Tcl::Hash<PVOID, TCL_STRING_KEYS> STRING2PTR;
+    typedef Tcl::Hash<Module*, TCL_ONE_WORD_KEYS> PTR2MODULE;
 
-    //  There is one of these instances for each subprocess that we are
+    //  There is one of these instances for each process that we are
     //  controlling.
     //
     class Process {
 	friend class ConsoleDebugger;
+	Process() : threadList(0L), threadCount(0), brkptList(0L),
+	    lastBrkpt(0L), offset(0), nBreakCount(0), consoleHandlesMax(0),
+	    hProcess(0L), pSubprocessMemory(0), exeModule(0L) {}
 	ThreadInfo  *threadList;	// List of threads in the subprocess.
 	Breakpoint  *brkptList;		// List of breakpoints in the subprocess.
 	Breakpoint  *lastBrkpt;		// Last breakpoint hit.
@@ -150,20 +129,36 @@ private:
 	DWORD	    nBreakCount;	// Number of breakpoints hit.
 	DWORD	    consoleHandles[100];// A list of input console handles.
 	DWORD	    consoleHandlesMax;
-	BOOL	    isConsoleApp;	// Is this a console app?
-	BOOL	    isShell;		// Is this some sort of console shell?
-	HANDLE	    hProcess;		// handle to subprocess.
+	HANDLE	    hProcess;		// Handle of process.
 	DWORD	    pid;		// Global process id.
 	DWORD	    threadCount;	// Number of threads in process.
-	DWORD	    pSubprocessMemory;	// Pointer to allocated memory in subprocess.
-	DWORD	    pSubprocessBuffer;	// Pointer to buffer memory in subprocess.
-	DWORD	    pMemoryCacheBase;	// Base address of memory cache.
-	BYTE	    pMemoryCache[PAGESIZE];// Subprocess memory cache.
+	PVOID	    pSubprocessMemory;	// Pointer to allocated memory in subprocess.
 	STRING2PTR  funcTable;		// Function table name to address mapping.
 	PTR2MODULE  moduleTable;	// Win32 modules that have been loaded.
 	Module	    *exeModule;		// Executable module info.
 	Process	    *nextPtr;		// Linked list.
     };
+
+#   include <pshpack1.h>
+#   ifdef _M_IX86
+    struct LOADLIBRARY_STUB
+    {
+        BYTE    instr_PUSH;
+        DWORD   operand_PUSH_value;
+        BYTE    instr_MOV_EAX;
+        DWORD   operand_MOV_EAX;
+        WORD    instr_CALL_EAX;
+        BYTE    instr_INT_3;
+        char    data_DllName[MAX_PATH];
+
+        LOADLIBRARY_STUB() :
+            instr_PUSH(0x68), instr_MOV_EAX(0xB8),
+            instr_CALL_EAX(0xD0FF), instr_INT_3(0xCC){}
+    };
+#   else
+#	error "need correct opcodes for this hardware"
+#   endif
+#   include <poppack.h>
 
     //  Direct debug event handlers.
     //
@@ -180,15 +175,19 @@ private:
 
     //  Our breakpoint handlers (indirect).  Called from OnXBreakpoint().
     //
+    void OnAllocConsole		(Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
     void OnBeep			(Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
     void OnFillConsoleOutputCharacter (Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnFreeConsole		(Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
     void OnGetStdHandle		(Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
     void OnIsWindowVisible	(Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
     void OnOpenConsoleW		(Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
-    void OnReadConsoleInput	(Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
     void OnSetConsoleActiveScreenBuffer	(Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnSetConsoleCP		(Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnSetConsoleCursorInfo (Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
     void OnSetConsoleCursorPosition (Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
     void OnSetConsoleMode	(Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnSetConsoleOutputCP	(Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
     void OnSetConsoleWindowInfo	(Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
     void OnScrollConsoleScreenBuffer (Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
     void OnWriteConsoleA	(Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
@@ -202,15 +201,18 @@ private:
     //
     Process *ProcessNew		();
     void ProcessFree		(Process *);
-    void CommonDebugger		();
+    DWORD CommonDebugger	();
     BOOL SetBreakpoint		(Process *, BreakInfo *);
     Breakpoint *SetBreakpointAtAddr (Process *, BreakInfo *, PVOID);
     int LoadedModule		(Process *, HANDLE, LPVOID, int, LPVOID, DWORD);
     BOOL ReadSubprocessMemory	(Process *, LPVOID, LPVOID, DWORD);
     BOOL WriteSubprocessMemory	(Process *, LPVOID, LPVOID, DWORD);
+    void MakeSubprocessMemory   (Process *, SIZE_T, LPVOID *, DWORD = PAGE_READWRITE);
+    void RemoveSubprocessMemory (Process *, LPVOID);
     int ReadSubprocessStringA	(Process *, PVOID, PCHAR, int);
     int ReadSubprocessStringW	(Process *, PVOID, PWCHAR, int);
     void CreateVtSequence	(Process *, COORD, DWORD);
+//    void RefreshScreen		(void);
 
     // send info back to the parent
     void WriteMaster		(CHAR *, DWORD);
@@ -220,7 +222,7 @@ private:
 
     // The arrays of functions where we set breakpoints
     //
-    BreakInfo	BreakArrayKernel32[20];
+    BreakInfo	BreakArrayKernel32[23];
     BreakInfo	BreakArrayUser32[2];
     DllBreakpoints BreakPoints[3];
 
@@ -228,17 +230,36 @@ private:
     //
     Process	*ProcessList;   // Top of linked list of Process instances.
     HANDLE	hMasterConsole;	// Master console handle (us).
+    DWORD	dwPlatformId;	// what OS are we under?
     DWORD	MasterConsoleInputMode;// Current flags for the master console.
     COORD	ConsoleSize;    // Size of the console in the slave.
     COORD	CursorPosition; // Coordinates of the cursor in the slave.
+    UINT	ConsoleCP;	// console input code page of the slave.
+    UINT	ConsoleOutputCP;// console output code page of the slave.
     BOOL	CursorKnown;    // Do we know where the slave's cursor is?
-    char	*SymbolPath;    // Storage for setting OS kernel symbols path.
-    BOOL	ShowExceptionBacktraces;// print exception info from debuggee?
+    CONSOLE_CURSOR_INFO CursorInfo;// Cursor info structure that is a copy of
+				   //  the slave's.
     int		argc;		// Debugee process commandline count
     char * const * argv;	// Debugee process commandline args
 
     // Thread-safe message queue used for communication back to the parent.
+    //
     CMclQueue<Message *> &mQ;
+
+    // This critical section is set when breakpoints are running.
+    //
+    CMclCritSec bpCritSec;
+
+    LOADLIBRARY_STUB injectStub;// opcodes we use to force load our injector
+				//  dll.
+    PVOID	pInjectorStub;	// Pointer to memory in sub process used
+				//  for the injector's loader.
+    CONTEXT	preStubContext; // Thread context info before switching to run
+				//  the stub.
+
+    typedef Tcl::Hash<HANDLE, TCL_ONE_WORD_KEYS> PTR2HANDLE;
+    PTR2HANDLE	spMemMapping;	// Used on Win9x to associate the file mapping
+				//  handle to the memory address it provides.
 };
 
 #endif // INC_expWinConsoleDebugger_hpp__
