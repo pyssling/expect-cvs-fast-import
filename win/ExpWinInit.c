@@ -1,4 +1,4 @@
-#include "tclPort.h"
+#include "expWinInt.h"
 #include "expWin.h"
 
 static ExpWinProcs asciiProcs = {

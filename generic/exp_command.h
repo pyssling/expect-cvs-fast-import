@@ -21,7 +21,7 @@
 #endif
 
 EXTERN struct exp_f *	exp_update_master _ANSI_ARGS_((Tcl_Interp *,int,int));
-EXTERN char *		exp_get_var _ANSI_ARGS_((Tcl_Interp *,char *));
+EXTERN CONST char *		exp_get_var _ANSI_ARGS_((Tcl_Interp *,char *));
 
 EXTERN int exp_default_match_max;
 EXTERN int exp_default_parity;
@@ -208,7 +208,7 @@ EXTERN Tcl_HashTable *exp_f_table;
 
 EXTERN struct exp_f *exp_f_any;
 
-EXTERN struct exp_f *	exp_chan2f _ANSI_ARGS_((Tcl_Interp *,char *,int,int,char *));
+EXTERN struct exp_f *	exp_chan2f _ANSI_ARGS_((Tcl_Interp *,CONST char *,int,int,CONST char *));
 EXTERN int		exp_fcheck _ANSI_ARGS_((Tcl_Interp *, struct exp_f *,
 			    int,int,char *));
 EXTERN void		exp_adjust _ANSI_ARGS_((struct exp_f *));
@@ -309,7 +309,7 @@ struct exp_cmd_data {
 };
 
 EXTERN int		ExpPlatformSpawnOutput _ANSI_ARGS_((
-			    ClientData instanceData, char *bufPtr,
+			    ClientData instanceData, CONST char *bufPtr,
 			    int toWrite, int *errorPtr));
 EXTERN void		exp_create_commands _ANSI_ARGS_((Tcl_Interp *,
 			    struct exp_cmd_data *));
@@ -332,7 +332,7 @@ EXTERN void		exp_f_free _ANSI_ARGS_((struct exp_f *));
 EXTERN void		exp_f_free_platform _ANSI_ARGS_((struct exp_f *));
 
 EXTERN Tcl_Channel	ExpCreatePairChannel _ANSI_ARGS_((Tcl_Interp *,
-			    char *, char *, char *chanName));
+			    CONST char *, CONST char *, CONST char *chanName));
 EXTERN int		ExpSpawnOpen _ANSI_ARGS_((Tcl_Interp *, char *, int));
 
 EXTERN int		Exp_CloseCmd _ANSI_ARGS_((ClientData clientData,

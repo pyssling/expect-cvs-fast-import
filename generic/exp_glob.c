@@ -13,9 +13,7 @@ would appreciate credit if this program or parts of it are used.
 
 #include <string.h>
 
-#include "exp_port.h"
-#include "tcl.h"
-#include "exp_int.h"
+#include "expInt.h"
 
 /*
  *----------------------------------------------------------------------
@@ -38,12 +36,12 @@ would appreciate credit if this program or parts of it are used.
 
 int
 Exp_StringMatch(string, pattern,offset)
-    char *string;
-    char *pattern;
+    CONST char *string;
+    CONST char *pattern;
     int *offset;		/* offset from beginning of string where
 				 * pattern matches */
 {
-    char *s;
+    CONST char *s;
     int sm;			/* count of chars matched or -1 */
     int caret = FALSE;
     int star = FALSE;
@@ -105,8 +103,8 @@ Exp_StringMatch(string, pattern,offset)
 
 int
 Exp_StringMatch2(string,pattern)
-    register char *string;	/* String. */
-    register char *pattern;	/* Pattern, which may contain
+    CONST register char *string;	/* String. */
+    CONST register char *pattern;	/* Pattern, which may contain
 				 * special characters. */
 {
     char c2;
@@ -135,7 +133,7 @@ Exp_StringMatch2(string,pattern)
 	if (*pattern == '*') {
 #if 1
 	    int head_len;
-	    char *tail;
+	    CONST char *tail;
 #endif
 	    pattern += 1;
 	    if (*pattern == 0) {

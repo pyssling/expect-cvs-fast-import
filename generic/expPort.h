@@ -1,28 +1,26 @@
 /*
- * exp_port.h --
+ * expPort.h --
  *
  *	This header file handles porting issues that occur because
  *	of differences between systems.  It reads in platform specific
  *	portability files.
  *
- * See the file "license.terms" for information on usage and redistribution
- * of this file, and for a DISCLAIMER OF ALL WARRANTIES.
- *
+ * RCS: @(#) $Id: expPort.h,v 1.1.2.1 2001/10/28 01:02:39 davygrvy Exp $
  */
 
-#ifndef _EXP_PORT_H
-#define _EXP_PORT_H
+#ifndef _EXPPORT_H__
+#define _EXPPORT_H__
 
 #define HAVE_MEMCPY
 
-#if defined(__WIN32__) || defined(_WIN32)
+#ifdef __WIN32__
 #   include "../win/expWinPort.h"
 #else
 #   if defined(MAC_TCL)
-#	include "expPort.h"
+#	include "../mac/expPort.h"
 #    else
 #	include "../unix/expUnixPort.h"
 #    endif
 #endif
 
-#endif /* _EXP_PORT_H */
+#endif /* _EXPPORT_H__ */

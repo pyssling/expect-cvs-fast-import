@@ -52,8 +52,8 @@
  *
  */
 
-#include "exp_port.h"
-#include "tcl.h"
+#include "expInt.h"
+#include "expPort.h"
 
 #include <stdio.h>
 #include <ctype.h>

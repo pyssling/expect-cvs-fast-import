@@ -22,14 +22,7 @@ expensive.
 
 */
 
-#define BUILD_expect
-
-#include "tcl.h"
-#include "tclPort.h"
-#include "exp_port.h"
-#include "exp_prog.h"
-#include "exp_command.h"	/* for struct exp_f defs */
-#include "exp_event.h"
+#include "expInt.h"
 
 /* Tcl_DoOneEvent will call our filehandler which will set the following */
 /* vars enabling us to know where and what kind of I/O we can do */
@@ -40,6 +33,8 @@ static struct exp_f *ready_fs = NULL;
 /* static int ready_fd = EXP_SPAWN_ID_BAD; */
 static int ready_mask;
 static int default_mask = TCL_READABLE | TCL_EXCEPTION;
+
+void (*exp_event_exit) _ANSI_ARGS_((Tcl_Interp *interp));
 
 
 /*

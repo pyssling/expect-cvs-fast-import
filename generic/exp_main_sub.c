@@ -14,6 +14,7 @@
  *
  */
 
+/*
 #include <stdio.h>
 #include <errno.h>
 #include <sys/types.h>
@@ -24,7 +25,6 @@
 #include "tclInt.h"
 #include "tclPort.h"
 
-#define BUILD_expect
 
 #include "exp_tty.h"
 #include "exp_rename.h"
@@ -33,6 +33,10 @@
 #include "exp_log.h"
 #include "exp_event.h"
 #include "exp_version.h"
+*/
+
+#include "expInt.h"
+
 #ifdef TCL_DEBUGGER
 #include "Dbg.h"
 #endif
@@ -56,13 +60,13 @@ char exp_version[] = EXP_VERSION;
 
 char *exp_argv0 = "this program";	/* default program name */
 void (*exp_app_exit)() = 0;
-void (*exp_event_exit)() = 0;
+
 FILE *exp_cmdfile = 0;
 char *exp_cmdfilename = 0;
 int exp_cmdlinecmds = FALSE;
 int exp_interactive =  FALSE;
 int exp_buffer_command_input = FALSE;/* read in entire cmdfile at once */
-int exp_fgets();
+//int exp_fgets();
 
 Tcl_Interp *exp_interp;	/* for use by signal handlers who can't figure out */
 			/* the interpreter directly */
@@ -82,15 +86,15 @@ static void
 usage(interp)
 Tcl_Interp *interp;
 {
-	errorlog("usage: expect [-div] [-c cmds] [[-f] cmdfile] [args]\r\n");
+	exp_errorlog("usage: expect [-div] [-c cmds] [[-f] cmdfile] [args]\r\n");
 	exp_exit(interp,1);
 }
 
 /*ARGSUSED*/
 void
 exp_exit(interp,status)
-Tcl_Interp *interp;     /* historic */
-int status;
+    Tcl_Interp *interp;     /* historic */
+    int status;
 {
 	Tcl_Exit(status);
 }
@@ -99,7 +103,7 @@ int status;
 static
 void
 exp_pty_exit_for_tcl(clientData)
-ClientData clientData;
+    ClientData clientData;
 {
 	exp_pty_exit();
 }
@@ -143,7 +147,7 @@ ClientData clientData;
 			if (result != TCL_OK) Tcl_BackgroundError(interp);
 		}
 	} else {
-		debuglog("onexit handler called recursively - forcing exit\r\n");
+		exp_debuglog("onexit handler called recursively - forcing exit\r\n");
 	}
 
 	if (exp_app_exit) {
@@ -151,7 +155,7 @@ ClientData clientData;
 			did_app_exit = TRUE;
 			(*exp_app_exit)(interp);
 		} else {
-			debuglog("application exit handler called recursively - forcing exit\r\n");
+			exp_debuglog("application exit handler called recursively - forcing exit\r\n");
 		}
 	}
 
@@ -212,8 +216,8 @@ char **argv;
 /*ARGSUSED*/
 static int
 ignore_procs(interp,s)
-Tcl_Interp *interp;
-char *s;		/* function name */
+    Tcl_Interp *interp;
+    char *s;		/* function name */
 {
 	return ((s[0] == 'p') &&
 		(s[1] == 'r') &&
@@ -230,10 +234,10 @@ char *s;		/* function name */
 /* handle an error from Tcl_Eval or Tcl_EvalFile */
 static void
 handle_eval_error(interp,check_for_nostack)
-Tcl_Interp *interp;
-int check_for_nostack;
+    Tcl_Interp *interp;
+    int check_for_nostack;
 {
-	char *msg;
+	CONST char *msg;
 
 	/* if errorInfo has something, print it */
 	/* else use what's in interp->result */
@@ -259,7 +263,7 @@ int check_for_nostack;
 	/* no \n at end, since ccmd will already have one. */
 	/* Actually, this is not true if command is last in */
 	/* file and has no newline after it, oh well */
-	errorlog("%s\r\n",exp_cook(msg,(int *)0));
+	exp_errorlog("%s\r\n", exp_cook(msg,(int *)0));
 }
 
 /* user has pressed escape char from interact or somehow requested expect.
@@ -273,7 +277,7 @@ anything else	return it
 */
 int
 exp_interpreter(interp)
-Tcl_Interp *interp;
+    Tcl_Interp *interp;
 {
 #ifdef __WIN32__
 	fprintf(stderr, "expect.exe does not run in interactive mode.  Use tclsh80.exe instead\n");
@@ -404,7 +408,7 @@ Tcl_Interp *interp;
 			finish(TCL_OK);
 		default:
 			/* note that ccmd has trailing newline */
-			errorlog("error %d: %s\r\n",rc,ccmd);
+			exp_errorlog("error %d: %s\r\n",rc,ccmd);
 			continue;
 		}
 	}
@@ -464,7 +468,7 @@ char **argv;
 			exp_argv0,user_version,exp_version);
 		return(TCL_ERROR);
 	}
-	errorlog("%s: requires Expect version %s (but using %s)\r\n",
+	exp_errorlog("%s: requires Expect version %s (but using %s)\r\n",
 		exp_argv0,user_version,exp_version);
 	exp_exit(interp,1);
 
@@ -594,9 +598,9 @@ static char debug_init_default[] = "trap {exp_debug 1} SIGINT";
 
 void
 exp_parse_argv(interp,argc,argv)
-Tcl_Interp *interp;
-int argc;
-char **argv;
+    Tcl_Interp *interp;
+    int argc;
+    char **argv;
 {
 	char argc_rep[10]; /* enough space for storing literal rep of argc */
 
@@ -638,18 +642,19 @@ char **argv;
 			exp_cmdlinecmds = TRUE;
 			rc = Tcl_Eval(interp,optarg);
 			if (rc != TCL_OK) {
-			    errorlog("%s\r\n",exp_cook(Tcl_GetVar(interp,"errorInfo",TCL_GLOBAL_ONLY),(int *)0));
+			    exp_errorlog("%s\r\n",exp_cook(Tcl_GetVar(interp,"errorInfo",TCL_GLOBAL_ONLY),(int *)0));
 			}
 			break;
-		case 'd': exp_is_debugging = TRUE;
-			debuglog("expect version %s\r\n",exp_version);
+		case 'd':
+			exp_is_debugging = TRUE;
+			exp_debuglog("expect version %s\r\n",exp_version);
 			break;
 #ifdef TCL_DEBUGGER
 		case 'D': {
 			char *debug_init;
 			exp_tcl_debugger_available = TRUE;
 			if (Tcl_GetInt(interp,optarg,&rc) != TCL_OK) {
-				errorlog("%s: -D argument must be 0 or 1\r\n",
+				exp_errorlog("%s: -D argument must be 0 or 1\r\n",
 					exp_argv0);
 				exp_exit(interp,1);
 			}
@@ -691,9 +696,9 @@ char **argv;
  abort_getopt:
 
 	for (c = 0;c<argc;c++) {
-		debuglog("argv[%d] = %s  ",c,argv[c]);
+		exp_debuglog("argv[%d] = %s  ",c,argv[c]);
 	}
-	debuglog("\r\n");
+	exp_debuglog("\r\n");
 
 	/* if user hasn't explicitly requested we be interactive */
 	/* look for a file or some other source of commands */
@@ -715,14 +720,14 @@ char **argv;
 					exp_cmdfilename = 0;
 					exp_close_on_exec(fileno(exp_cmdfile));
 				} else {
-					char *msg;
+					CONST char *msg;
 
 					if (errno == 0) {
 						msg = "could not read - odd file name?";
 					} else {
 						msg = Tcl_ErrnoMsg(errno);
 					}
-					errorlog("%s: %s\r\n",exp_cmdfilename,msg);
+					exp_errorlog("%s: %s\r\n",exp_cmdfilename,msg);
 					exp_exit(interp,1);
 				}
 			}
@@ -744,18 +749,18 @@ char **argv;
 	/* collect remaining args and make into argc, argv0, and argv */
 	sprintf(argc_rep,"%d",argc-optind);
 	Tcl_SetVar(interp,"argc",argc_rep,0);
-	debuglog("set argc %s\r\n",argc_rep);
+	exp_debuglog("set argc %s\r\n",argc_rep);
 
 	if (exp_cmdfilename) {
 		Tcl_SetVar(interp,"argv0",exp_cmdfilename,0);
-		debuglog("set argv0 \"%s\"\r\n",exp_cmdfilename);
+		exp_debuglog("set argv0 \"%s\"\r\n",exp_cmdfilename);
 	} else {
 		Tcl_SetVar(interp,"argv0",exp_argv0,0);
-		debuglog("set argv0 \"%s\"\r\n",exp_argv0);
+		exp_debuglog("set argv0 \"%s\"\r\n",exp_argv0);
 	}
 
 	args = Tcl_Merge(argc-optind,argv+optind);
-	debuglog("set argv \"%s\"\r\n",args);
+	exp_debuglog("set argv \"%s\"\r\n",args);
 	Tcl_SetVar(interp,"argv",args,0);
 	ckfree(args);
 
@@ -778,11 +783,11 @@ int sys_rc;
 	    sprintf(file,"%s/expect.rc",Tcl_GetVar(interp, "exp_library", TCL_GLOBAL_ONLY));
 	    if (-1 != (fd = open(file,0))) {
 		if (TCL_ERROR == (rc = Tcl_EvalFile(interp,file))) {
-		    errorlog("error executing system initialization file: %s\r\n",file);
+		    exp_errorlog("error executing system initialization file: %s\r\n",file);
 		    if (rc != TCL_ERROR)
-				errorlog("Tcl_Eval = %d\r\n",rc);
+				exp_errorlog("Tcl_Eval = %d\r\n",rc);
 		    if (*interp->result != 0)
-				errorlog("%s\r\n",interp->result);
+				exp_errorlog("%s\r\n",interp->result);
 		    exp_exit(interp,1);
 		}
 		close(fd);
@@ -799,11 +804,11 @@ int sys_rc;
 		sprintf(file,"%s/.expect.rc",home);
 		if (-1 != (fd = open(file,0))) {
 		    if (TCL_ERROR == (rc = Tcl_EvalFile(interp,file))) {
-			errorlog("error executing file: %s\r\n",file);
+			exp_errorlog("error executing file: %s\r\n",file);
 			if (rc != TCL_ERROR)
-				errorlog("Tcl_Eval = %d\r\n",rc);
+				exp_errorlog("Tcl_Eval = %d\r\n",rc);
 			if (*interp->result != 0)
-				errorlog("%s\r\n",interp->result);
+				exp_errorlog("%s\r\n",interp->result);
 			exp_exit(interp,1);
 		    }
 		    close(fd);
@@ -819,7 +824,7 @@ char *filename;
 {
 	int rc;
 
-	debuglog("executing commands from command file %s\r\n",filename);
+	exp_debuglog("executing commands from command file %s\r\n",filename);
 
 	Tcl_ResetResult(interp);
 	if (TCL_OK != (rc = Tcl_EvalFile(interp,filename))) {
@@ -832,9 +837,9 @@ char *filename;
 }
 
 int
-exp_interpret_cmdfile(interp,fp)
-Tcl_Interp *interp;
-FILE *fp;
+exp_interpret_cmdfile(interp,cmdfile)
+    Tcl_Interp *interp;
+    Tcl_Channel cmdfile;
 {
 	int rc = 0;
 	int newcmd;
@@ -843,34 +848,36 @@ FILE *fp;
 	Tcl_DString dstring;
 	Tcl_DStringInit(&dstring);
 
-	debuglog("executing commands from command file\r\n");
+	exp_debuglog("executing commands from command file\r\n");
 
 	newcmd = TRUE;
 	eof = FALSE;
 	while (1) {
-		char line[BUFSIZ];/* buffer for partial Tcl command */
-		char *ccmd;	/* pointer to complete Tcl command */
+		Tcl_Obj *line = Tcl_NewObj();  /* buffer for partial Tcl command */
+		//Tcl_Obj *ccmd = Tcl_NewObj();	/* pointer to complete Tcl command */
 
-		if (fgets(line,BUFSIZ,fp) == NULL) {
+		Tcl_GetsObj(cmdfile, line);
+
+		if (Tcl_GetsObj(cmdfile, line) == -1) {
 			if (newcmd) break;
 			eof = TRUE;
 		}
-		ccmd = (char *) Tcl_DStringAppend(&dstring,line,-1);
-		if (!Tcl_CommandComplete(ccmd) && !eof) {
+		//Tcl_AppendObjToObj(ccmd, line);
+		//Tcl_DecrRefCount(line);
+		if (!Tcl_CommandComplete(Tcl_GetString(line)) && !eof) {
 			newcmd = FALSE;
 			continue;	/* continue collecting command */
 		}
 		newcmd = TRUE;
 
-		rc = Tcl_Eval(interp,ccmd);
-		Tcl_DStringFree(&dstring);
+		rc = Tcl_EvalObj(interp,line);
+		Tcl_DecrRefCount(line);
 		if (rc != TCL_OK) {
 			handle_eval_error(interp,0);
 			break;
 		}
 		if (eof) break;
 	}
-	Tcl_DStringFree(&dstring);
 	return rc;
 }
 

@@ -12,13 +12,7 @@
  *
  */
 
-#include "exp_port.h"
-#include "tclInt.h"
-#include "tclPort.h"
-
-#define BUILD_expect
-
-#include "exp_command.h"
+#include "expInt.h"
 
 static void	ExpPairInputCloseHandler _ANSI_ARGS_((ClientData clientData));
 static void	ExpPairOutputCloseHandler _ANSI_ARGS_((ClientData clientData));
@@ -108,9 +102,9 @@ ExpPairInit()
 Tcl_Channel
 ExpCreatePairChannel(interp, chanInId, chanOutId, chanName)
     Tcl_Interp *interp;
-    char *chanInId;
-    char *chanOutId;
-    char *chanName;		/* Name of resulting channel to create.
+    CONST char *chanInId;
+    CONST char *chanOutId;
+    CONST char *chanName;		/* Name of resulting channel to create.
 				 * If NULL, it gets created here */
 {
     Tcl_Channel chanIn, chanOut, chan;
@@ -322,7 +316,7 @@ ExpPairInput(instanceData, bufPtr, bufSize, errorPtr)
 static int
 ExpPairOutput(instanceData, bufPtr, toWrite, errorPtr)
     ClientData instanceData;
-    char *bufPtr;		/* (in) Ptr to buffer */
+    CONST char *bufPtr;		/* (in) Ptr to buffer */
     int toWrite;		/* (in) amount to write */
     int *errorPtr;		/* (out) error code */
 {
@@ -399,8 +393,8 @@ static int
 ExpPairSetOption(instanceData, interp, nameStr, valStr)
     ClientData instanceData;
     Tcl_Interp *interp;
-    char *nameStr;		/* (in) Name of option */
-    char *valStr;		/* (in) New value of option */
+    CONST char *nameStr;		/* (in) Name of option */
+    CONST char *valStr;		/* (in) New value of option */
 {
     ExpPairState *ssPtr = (ExpPairState *) instanceData;
     Tcl_Channel inChannelPtr = ssPtr->inChannelPtr;
@@ -466,7 +460,7 @@ static int
 ExpPairGetOption(instanceData, interp, nameStr, dsPtr)
     ClientData instanceData;
     Tcl_Interp *interp;
-    char *nameStr;		/* (in) Name of option to retrieve */
+    CONST char *nameStr;		/* (in) Name of option to retrieve */
     Tcl_DString *dsPtr;		/* (in) String to place value */
 {
     ExpPairState *ssPtr = (ExpPairState *) instanceData;

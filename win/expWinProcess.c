@@ -13,9 +13,7 @@
  *
  */
 
-#include "tcl.h"
-#include "tclPort.h"
-#include "expWin.h"
+#include "expWinInt.h"
 
 /*
  * This list is used to map from pids to process handles.
@@ -28,12 +26,6 @@ typedef struct ProcInfo {
 } ProcInfo;
 
 static ProcInfo *procList = NULL;
-
-#define IMAGE_NE_FLAG_DRIVER	0x8000
-#define IMAGE_NE_EXETYP_OS2	0x1
-#define IMAGE_NE_EXETYP_WIN	0x2
-#define IMAGE_NE_EXETYP_DOS4X	0x3
-#define IMAGE_NE_EXETYP_WIN386	0x4
 
 #define IsGUI(a)    (a == EXP_APPL_WIN16 || a == EXP_APPL_WIN32GUI || \
 		    a == EXP_APPL_WIN64GUI)
@@ -114,7 +106,7 @@ ExpWinApplicationType(
     Tcl_DString *fullName)	/* Buffer space filled with complete path to 
 				 * application. (in UTF-8) */
 {
-    int applType, i, nameLen, found;
+    int applType, i, nameLen, nativeNameLen;
     HANDLE hFile;
     TCHAR *rest;
     char *ext;
@@ -126,9 +118,9 @@ ExpWinApplicationType(
 	IMAGE_OS2_HEADER ne;
 	IMAGE_VXD_HEADER le;
     } header;
-    Tcl_DString nameBuf, ds;
-    TCHAR *nativeName;
-    WCHAR nativeFullPath[MAX_PATH];   /* needed for unicode space */
+    Tcl_DString nameBuf, nativeNameBuff, ds;
+    CONST TCHAR *nativeName;
+    WCHAR nativeShortPath[MAX_PATH];   /* needed for unicode space */
     static char extensions[][5] = {"", ".com", ".exe", ".bat", ".cmd"};
     int offset64;
 
@@ -147,7 +139,9 @@ ExpWinApplicationType(
 
     applType = EXP_APPL_NONE;
     Tcl_DStringInit(&nameBuf);
+    Tcl_DStringInit(&nativeNameBuff);
     Tcl_DStringAppend(&nameBuf, originalName, -1);
+    Tcl_DStringAppend(fullName, originalName, -1);
     nameLen = Tcl_DStringLength(&nameBuf);
 
     for (i = 0; i < (sizeof(extensions) / sizeof(extensions[0])); i++) {
@@ -155,23 +149,38 @@ ExpWinApplicationType(
 	Tcl_DStringAppend(&nameBuf, extensions[i], -1);
         nativeName = Tcl_WinUtfToTChar(Tcl_DStringValue(&nameBuf), 
 		Tcl_DStringLength(&nameBuf), &ds);
-	found = (*expWinProcs->searchPathProc)(NULL, nativeName, NULL, 
-		MAX_PATH, (TCHAR *) nativeFullPath, &rest);
-	Tcl_DStringFree(&ds);
-	if (found == 0) {
+
+	/* Just get the size of the buffer needed, when found. */
+	nativeNameLen = (*expWinProcs->searchPathProc)(NULL, nativeName,
+		NULL, 0, NULL, &rest);
+
+	if (nativeNameLen == 0) {
+	    /* not found. */
+	    Tcl_DStringFree(&ds);
 	    continue;
 	}
+
+	/* Set the buffer needed. */
+	Tcl_DStringSetLength(&nativeNameBuff, 
+		(expWinProcs->useWide ? nativeNameLen*2 : nativeNameLen));
+
+	(*expWinProcs->searchPathProc)(NULL, nativeName, NULL,
+		Tcl_DStringLength(&nativeNameBuff),
+		(TCHAR *) Tcl_DStringValue(&nativeNameBuff), &rest);
+	Tcl_DStringFree(&ds);
 
 	/*
 	 * Ignore matches on directories, keep falling through
 	 * when identified as something else.
 	 */
 
-	attr = (*expWinProcs->getFileAttributesProc)((TCHAR *) nativeFullPath);
+	attr = (*expWinProcs->getFileAttributesProc)(
+		(TCHAR *) Tcl_DStringValue(&nativeNameBuff));
 	if ((attr == -1) || (attr & FILE_ATTRIBUTE_DIRECTORY)) {
 	    continue;
 	}
-	Tcl_WinTCharToUtf((TCHAR *) nativeFullPath, -1, fullName);
+	Tcl_WinTCharToUtf((TCHAR *) Tcl_DStringValue(&nativeNameBuff),
+		-1, fullName);
 
 	ext = strrchr(Tcl_DStringValue(fullName), '.');
 	if ((ext != NULL) && (stricmp(ext, ".bat") == 0 ||
@@ -180,11 +189,13 @@ ExpWinApplicationType(
 	    break;
 	}
 	
-	hFile = (*expWinProcs->createFileProc)((TCHAR *) nativeFullPath, 
+	hFile = (*expWinProcs->createFileProc)(
+		(TCHAR *) Tcl_DStringValue(&nativeNameBuff),
 		GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 
 		FILE_ATTRIBUTE_NORMAL, NULL);
 	if (hFile == INVALID_HANDLE_VALUE) {
-	    continue;
+	    applType = EXP_APPL_NONE;
+	    break;
 	}
 
 	p236.e_magic = 0;
@@ -222,7 +233,9 @@ ExpWinApplicationType(
 		applType = EXP_APPL_DOS16;
 		break;
 	    }
-	    continue;
+	    SetLastError(ERROR_INVALID_EXE_SIGNATURE);
+	    applType = EXP_APPL_NONE;
+	    break;
 	}
 	if (p236.e_lfarlc < 0x40 || p236.e_lfanew == 0 /* reserved */) {
 	    /* 
@@ -243,6 +256,7 @@ ExpWinApplicationType(
 		== INVALID_SET_FILE_POINTER) {
 	    /* Bogus PE header pointer. */
 	    CloseHandle(hFile);
+	    SetLastError(ERROR_BAD_EXE_FORMAT);
 	    applType = EXP_APPL_NONE;
 	    break;
 	}
@@ -265,6 +279,7 @@ ExpWinApplicationType(
 	    if (!(header.pe.FileHeader.Characteristics &
 		    IMAGE_FILE_EXECUTABLE_IMAGE)) {
 		/* Not an executable. */
+		SetLastError(ERROR_BAD_EXE_FORMAT);
 		applType = EXP_APPL_NONE;
 		break;
 	    }
@@ -279,15 +294,15 @@ ExpWinApplicationType(
 		offset64 = 4;
 	    } else {
 		/* Unknown magic number */
+		SetLastError(ERROR_INVALID_MODULETYPE);
 		applType = EXP_APPL_NONE;
 		break;
 	    }
 
-
 	    if (header.pe.FileHeader.Characteristics & IMAGE_FILE_DLL) {
 		/*
 		 * DLLs are executable, but indirectly.  We shouldn't return
-		 * EXP_APPL_NONE or the subsystem that its said to run under
+		 * APPL_NONE or the subsystem that its said to run under
 		 * as it's not the complete truth, so return a new type and
 		 * let the user decide what to do.
 		 */
@@ -300,13 +315,13 @@ ExpWinApplicationType(
 		case IMAGE_SUBSYSTEM_WINDOWS_CUI:
 		case IMAGE_SUBSYSTEM_OS2_CUI:
 		case IMAGE_SUBSYSTEM_POSIX_CUI:
-		    /* A CUI subsystem */
+		    /* Runs in the CUI subsystem */
 		    applType = EXP_APPL_WIN32CUI + offset64;
 		    break;
 
 		case IMAGE_SUBSYSTEM_WINDOWS_GUI:
 		case IMAGE_SUBSYSTEM_WINDOWS_CE_GUI:
-		    /* A GUI subsystem */
+		    /* Runs in the GUI subsystem */
 		    applType = EXP_APPL_WIN32GUI + offset64;
 		    break;
 
@@ -317,6 +332,13 @@ ExpWinApplicationType(
 		    applType = EXP_APPL_WIN32DRV + offset64;
 		    break;
 	    }
+
+#define IMAGE_NE_FLAG_DRIVER	0x8000
+#define IMAGE_NE_EXETYP_OS2	0x1
+#define IMAGE_NE_EXETYP_WIN	0x2
+#define IMAGE_NE_EXETYP_DOS4X	0x3
+#define IMAGE_NE_EXETYP_WIN386	0x4
+
 	} else if (header.ne.ne_magic == IMAGE_OS2_SIGNATURE) {
 	    switch (header.ne.ne_exetyp) {
 		case IMAGE_NE_EXETYP_OS2:    /* Microsoft/IBM OS/2 1.x */
@@ -342,6 +364,7 @@ ExpWinApplicationType(
 
 		default:
 		    /* Unidentified */
+		    SetLastError(ERROR_INVALID_MODULETYPE);
 		    applType = EXP_APPL_NONE;
 	    }
 	} else if (
@@ -354,14 +377,15 @@ ExpWinApplicationType(
 	    applType = EXP_APPL_WIN16DRV;
 	} else {
 	    /* The loader will barf anyway, so barf now. */
+	    SetLastError(ERROR_INVALID_EXE_SIGNATURE);
 	    applType = EXP_APPL_NONE;
 	}
 	break;
     }
-    Tcl_DStringFree(&nameBuf);
 
     if (applType == EXP_APPL_DOS16 || applType == EXP_APPL_WIN16 ||
-	    applType == EXP_APPL_WIN16DRV || applType == EXP_APPL_OS2) {
+	    applType == EXP_APPL_WIN16DRV || applType == EXP_APPL_OS2 ||
+	    applType == EXP_APPL_OS2DRV) {
 	/* 
 	 * Replace long path name of executable with short path name for
 	 * 16-bit applications.  Otherwise the application may not be able
@@ -369,10 +393,13 @@ ExpWinApplicationType(
 	 * application name from the arguments.
 	 */
 
-	(*expWinProcs->getShortPathNameProc)((TCHAR *) nativeFullPath,
-		(TCHAR *) nativeFullPath, MAX_PATH);
-	Tcl_WinTCharToUtf((TCHAR *) nativeFullPath, -1, fullName);
+	(*expWinProcs->getShortPathNameProc)(
+		(TCHAR *) Tcl_DStringValue(&nativeNameBuff),
+		(TCHAR *) nativeShortPath, MAX_PATH);
+	Tcl_WinTCharToUtf((TCHAR *) nativeShortPath, -1, fullName);
     }
+    Tcl_DStringFree(&nativeNameBuff);
+    Tcl_DStringFree(&nameBuf);
     return applType;
 }
 
@@ -646,7 +673,7 @@ ExpWinCreateProcess(argc, argv, inputHandle, outputHandle, errorHandle,
     PDWORD globalPidPtr;	/* Globally unique pid */
 {
     DWORD applType;
-    int createFlags;
+    int createFlags, i;
     Tcl_DString cmdLine;
     STARTUPINFO startInfo;
     PROCESS_INFORMATION procInfo;
@@ -654,6 +681,7 @@ ExpWinCreateProcess(argc, argv, inputHandle, outputHandle, errorHandle,
     HANDLE hProcess, h;
     Tcl_DString execPath;
     LONG result;
+    char tclpipBuf[MAX_PATH];	/* buffer used for finding tclpipXX.dll */
 
     result = 0;
     Tcl_DStringInit(&execPath);
@@ -670,12 +698,11 @@ ExpWinCreateProcess(argc, argv, inputHandle, outputHandle, errorHandle,
 	/* Can't execute what doesn't exist */
 	result = GetLastError();
 	goto end;
-    } else if (IsGUI(applType)) {
-	/* GUI applications can't use pipes. */
-	result = ERROR_BAD_PIPE;
-	goto end;
     } else if (!IsCUI(applType)) {
-	/* not a valid application to use if it isn't character mode */
+	/*
+	 * Not a valid application to use if it isn't character mode.
+	 * We need it to run inside a console.
+	 */
 	result = ERROR_BAD_EXE_FORMAT;
 	goto end;
     }
@@ -788,9 +815,7 @@ ExpWinCreateProcess(argc, argv, inputHandle, outputHandle, errorHandle,
      * in the background.
      *
      * If we are starting a GUI process, they don't automatically get a 
-     * console, so it doesn't matter if they are started as foreground or
-     * detached processes.  The GUI window will still pop up to the
-     * foreground.
+     * console, so it doesn't matter if they are started detached.
      */
 
     if (TclWinGetPlatformId() == VER_PLATFORM_WIN32_NT) {
@@ -866,10 +891,25 @@ ExpWinCreateProcess(argc, argv, inputHandle, outputHandle, errorHandle,
 		startInfo.dwFlags |= STARTF_USESHOWWINDOW;
 		createFlags = CREATE_NEW_CONSOLE;
 	    }
-	    // BUG:
-	    // FIXME:  Where is tclpipXX.dll ?????  Set it!
-	    Tcl_DStringAppend(&cmdLine, "tclpip" STRINGIFY(TCL_MAJOR_VERSION) 
-		    STRINGIFY(TCL_MINOR_VERSION) ".dll ", -1);
+
+	    /*
+	     * Retrieve the location of the tcl DLL and replace the last
+	     * file part with the name of the pipe helper.  This allows
+	     * it to be called by fullpath and doesn't require that it be
+	     * found in the system search path.
+	     */
+
+	    GetModuleFileName(TclWinGetTclInstance(), tclpipBuf, MAX_PATH);
+	    Tcl_DStringAppend(&cmdLine, tclpipBuf, -1);
+	    for (i = Tcl_DStringLength(&cmdLine) - 1; i > 0; i--) {
+		if (*(tclpipBuf+i) == '\\') {
+		    Tcl_DStringSetLength(&cmdLine, i+1);
+		    Tcl_DStringAppend(&cmdLine, "tclpip"
+			    STRINGIFY(TCL_MAJOR_VERSION)
+			    STRINGIFY(TCL_MINOR_VERSION) ".dll ", -1);
+		    break;
+		}
+	    }
 	}
     }
     if (debug) {

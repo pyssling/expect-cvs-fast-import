@@ -13,17 +13,7 @@
  *
  */
 
-#include "exp_port.h"
-#include "tclInt.h"
-#include "tclPort.h"
-
-#define BUILD_expect
-
-#include "exp_command.h"
-
-#ifdef __WIN32__
-#include "expWin.h"
-#endif
+#include "expInt.h"
 
 static Tcl_DriverCloseProc ExpSpawnClose;
 static Tcl_DriverInputProc ExpSpawnInput;
@@ -170,7 +160,7 @@ ExpSpawnInput(instanceData, bufPtr, bufSize, errorPtr)
 static int
 ExpSpawnOutput(instanceData, bufPtr, toWrite, errorPtr)
     ClientData instanceData;
-    char *bufPtr;		/* (in) Ptr to buffer */
+    CONST char *bufPtr;		/* (in) Ptr to buffer */
     int toWrite;		/* (in) amount to write */
     int *errorPtr;		/* (out) error code */
 {
@@ -197,8 +187,8 @@ static int
 ExpSpawnSetOption(instanceData, interp, nameStr, valStr)
     ClientData instanceData;
     Tcl_Interp *interp;
-    char *nameStr;		/* (in) Name of option */
-    char *valStr;		/* (in) New value of option */
+    CONST char *nameStr;		/* (in) Name of option */
+    CONST char *valStr;		/* (in) New value of option */
 {
     Tcl_Channel channelPtr = ((ExpSpawnState *)instanceData)->channelPtr;
     Tcl_DriverSetOptionProc *setOpt;
@@ -234,7 +224,7 @@ static int
 ExpSpawnGetOption(instanceData, interp, nameStr, dsPtr)
     ClientData instanceData;
     Tcl_Interp *interp;
-    char *nameStr;		/* (in) Name of option to retrieve */		
+    CONST char *nameStr;		/* (in) Name of option to retrieve */		
     Tcl_DString *dsPtr;		/* (in) String to place value */
 {
     Tcl_Channel channelPtr = ((ExpSpawnState *)instanceData)->channelPtr;

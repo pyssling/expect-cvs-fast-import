@@ -8,8 +8,8 @@ would appreciate credit if this program or parts of it are used.
 
 */
 
-#include "exp_port.h"
-#include "tcl.h"
+#include "expInt.h"
+
 #ifdef NO_STRING_H
 #include "../compat/string.h"
 #else
@@ -26,7 +26,7 @@ would appreciate credit if this program or parts of it are used.
 /* by cmdExpect when -d forces it to print strings it is examining. */
 char *
 exp_printify(s)
-char *s;
+    char *s;
 {
 	static unsigned int destlen = 0;
 	static char *dest = 0;

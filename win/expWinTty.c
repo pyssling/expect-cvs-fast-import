@@ -11,6 +11,7 @@
  *
  */
 
+/*
 #include "tcl.h"
 #include "tclPort.h"
 
@@ -21,6 +22,9 @@
 #include "exp_tty.h"
 #include "exp_log.h"
 #include "exp_prog.h"
+*/
+
+#include "expWinInt.h"
 
 struct exp_f *exp_dev_tty = NULL;
 char *exp_dev_tty_id = "exp_tty";
@@ -136,7 +140,7 @@ exp_tty_echo(set)
 
 char *
 exp_cook(s,len)
-    char *s;
+    CONST char *s;
     int *len;	/* current and new length of s */
 {
     static unsigned int destlen = 0;
@@ -323,9 +327,10 @@ Exp_SystemCmd(clientData, interp, argc, argv)
 
 static struct exp_cmd_data
 cmd_data[]  = {
-{"stty",	0, Exp_SttyCmd,	0,	0},
-{"system",	0, Exp_SystemCmd,	0,	0},
-{0}};
+    {"stty",	0, Exp_SttyCmd,	0,	0},
+    {"system",	0, Exp_SystemCmd,	0,	0},
+    {0}
+};
 
 /*
  *----------------------------------------------------------------------
@@ -380,7 +385,7 @@ exp_init_pty(interp)
     HANDLE hOut, hIn;
     Tcl_Channel channel, inChannel, outChannel;
     struct exp_f *f;
-    char *inId, *outId;
+    CONST char *inId, *outId;
     int mode;
     DWORD dw;
 

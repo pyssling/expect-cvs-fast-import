@@ -1,8 +1,7 @@
 /* ----------------------------------------------------------------------------
- * expWinPort.h --
+ * expWinInt.h --
  *
- *	This header file handles porting issues that occur because of
- *	differences between Windows and Unix. 
+ *	Declarations of Windows-specific shared variables and procedures.
  *
  * ----------------------------------------------------------------------------
  *
@@ -15,7 +14,7 @@
  * Copyright (c) 1997 Mitel Corporation
  *	work by Gordon Chaffee <chaffee@bmrc.berkeley.edu> for the WinNT port.
  *
- * Copyright (c) 2001 Telindustrie, LLC
+ * Copyright (c) 2002 Telindustrie, LLC
  *	work by David Gravereaux <davygrvy@pobox.com> for any Win32 OS.
  *
  * ----------------------------------------------------------------------------
@@ -23,19 +22,47 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinPort.h,v 1.1.2.4 2001/11/07 10:04:57 davygrvy Exp $
+ * RCS: @(#) $Id: expWinInt.h,v 1.1.2.2 2001/11/09 01:17:40 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
-
-#ifndef _EXPWINPORT
-#define _EXPWINPORT
+#ifndef _EXPWININT
+#define _EXPWININT
 
 #ifndef _EXPINT
+#   ifndef _EXP
+	/* Ask windows.h to be agressive about the HANDLE type. */
+#	define STRICT
+	/* make sure we get the Win95 API */
+#	define WINVER 0x0400
+#	ifdef _DEBUG
+	    /* Make sure we add the WinNT API for IsDebuggerPresent(). */
+#	    define _WIN32_WINNT 0x0400
+#	endif
+#   endif
 #   include "expInt.h"
 #endif
 
+#ifndef _EXPPORT
+#   include "expPort.h"
+#endif
 
-#define HAVE_SV_TIMEZONE 1
+#undef TCL_STORAGE_CLASS
+#if defined(BUILD_spawndriver)
+#   define TCL_STORAGE_CLASS
+extern TCL_CPP void ExpInitWinProcessAPI (void);
+extern TCL_CPP void ExpDynloadTclStubs (void);
+#   include "expWinSlave.hpp"
+#   include "spawndrvmc.h"
+#elif defined(BUILD_exp)
+#   define TCL_STORAGE_CLASS DLLEXPORT
+#else
+#   ifdef USE_EXP_STUBS
+#	define TCL_STORAGE_CLASS
+#   else
+#	define TCL_STORAGE_CLASS DLLIMPORT
+#   endif
+#endif
+
 
 #define EXP_SLAVE_CREATE 'c'
 #define EXP_SLAVE_KEY    'k'
@@ -50,9 +77,6 @@
 #define EXP_KILL_CTRL_C     0x2
 #define EXP_KILL_CTRL_BREAK 0x4
 
-/*
- * Errors and logging
- */
 #define EXP_LOG(format, args) \
     ExpSyslog("Expect SlaveDriver (%s: %d): " format, __FILE__, __LINE__, args)
 
@@ -78,24 +102,33 @@
 #define EXP_APPL_WIN64DRV   14
 
 
-#undef TCL_STORAGE_CLASS
-#if defined(BUILD_spawndriver)
-#   define TCL_STORAGE_CLASS
-#elif defined(BUILD_exp)
-#   define TCL_STORAGE_CLASS DLLEXPORT
-#else
-#   ifdef USE_EXP_STUBS
-#	define TCL_STORAGE_CLASS
-#   else
-#	define TCL_STORAGE_CLASS DLLIMPORT
-#   endif
-#endif
+extern HMODULE expDllInstance;
+
+typedef struct {
+    int useWide;
+    HANDLE (WINAPI *createFileProc)(LPCTSTR, DWORD, DWORD,
+	    LPSECURITY_ATTRIBUTES, DWORD, DWORD, HANDLE);
+    BOOL (WINAPI *createProcessProc)(LPCTSTR, LPTSTR, LPSECURITY_ATTRIBUTES,
+	    LPSECURITY_ATTRIBUTES, BOOL, DWORD, LPVOID, LPCTSTR, LPSTARTUPINFO,
+	    LPPROCESS_INFORMATION);
+    DWORD (WINAPI *getFileAttributesProc)(LPCTSTR);
+    DWORD (WINAPI *getShortPathNameProc)(LPCTSTR, LPTSTR, DWORD); 
+    DWORD (WINAPI *searchPathProc)(LPCTSTR, LPCTSTR, LPCTSTR, DWORD, LPTSTR,
+	    LPTSTR *);
+    VOID (WINAPI *outputDebugStringProc)(LPCTSTR);
+    DWORD (WINAPI *getModuleFileNameProc)(HMODULE, LPTSTR, DWORD);
+    BOOL (WINAPI *setEnvironmentVariableProc)(LPCTSTR, LPCTSTR);
+    BOOL (WINAPI *getEnvironmentVariableProc)(LPCTSTR, LPTSTR, DWORD);
+    LONG (WINAPI *regSetValueExProc)(HKEY, LPCTSTR, DWORD, DWORD, CONST BYTE *,
+	    DWORD);
+} ExpWinProcs;
+
+extern ExpWinProcs *expWinProcs;
 
 
-#include "expPlatDecls.h"
 #include "expIntPlatDecls.h"
 
 #undef TCL_STORAGE_CLASS
 #define TCL_STORAGE_CLASS DLLIMPORT
 
-#endif /* _EXPWINPORT */
+#endif /* _EXPWININT */

@@ -194,7 +194,7 @@ exp_spawnv(file,argv)
     }
 
     if (!argv[0] || strcmp(file,argv[0])) {
-	debuglog("expectlib(%d): warning: file (%s) != argv[0] (%s)\n",
+	exp_debuglog("expectlib(%d): warning: file (%s) != argv[0] (%s)\n",
 		 pid, file, argv[0]?argv[0]:"");
     }
     

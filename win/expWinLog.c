@@ -12,9 +12,7 @@
  *
  */
 
-#include "tcl.h"
-#include "tclPort.h"
-#include "expWin.h"
+#include "expWinInt.h"
 
 static HANDLE hSyslog = NULL;
 

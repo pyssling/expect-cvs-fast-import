@@ -18,29 +18,30 @@
  *
  */
 
+/*
 #include <sys/types.h>
 #include <stdio.h>
 #include <signal.h>
 #include <string.h>
 #include <errno.h>
-#include <ctype.h>	/* for isspace */
-#include <time.h>	/* for time(3) */
-
+#include <ctype.h>	*//* for isspace */
+/*#include <time.h>	*//* for time(3) */
+/*
 #include "exp_port.h"
 
 #include "tclInt.h"
 #include "tclPort.h"
 #include "tclRegexp.h"
 
-#define BUILD_expect
-
 #include "exp_rename.h"
 #include "exp_prog.h"
 #include "exp_command.h"
 #include "exp_log.h"
 #include "exp_event.h"
-#include "exp_tstamp.h"	/* this should disappear when interact */
+#include "exp_tstamp.h"	*//* this should disappear when interact */
 			/* loses ref's to it */
+#include "expInt.h"
+
 #ifdef TCL_DEBUGGER
 #include "Dbg.h"
 #endif
@@ -809,14 +810,14 @@ eval_case_string(interp,e,f,o,last_f,last_case,suffix)
     
     /* if master or case changed, redisplay debug-buffer */
     if ((f != *last_f) || e->Case != *last_case) {
-	debuglog("\r\nexpect%s: does \"%s\" (spawn_id %s) match %s ",
+	exp_debuglog("\r\nexpect%s: does \"%s\" (spawn_id %s) match %s ",
 		 suffix, dprintify(buffer),f->spawnId, pattern_style[e->use]);
 	*last_f = f;
 	*last_case = e->Case;
     }
     
     if (e->use == PAT_RE) {
-	debuglog("\"%s\"? ",dprintify(e->pat));
+	exp_debuglog("\"%s\"? ",dprintify(e->pat));
 	//TclRegError((char *)0);
 	if (buffer && Tcl_RegExpExec(interp,*e->re,buffer,buffer)) {
 	    o->e = e;
@@ -824,10 +825,10 @@ eval_case_string(interp,e,f,o,last_f,last_case,suffix)
 	    o->match = Tcl_UtfAtIndex(buffer, info.matches[0].end)-buffer;
 	    o->buffer = buffer;
 	    o->f = f;
-	    debuglog(yes);
+	    exp_debuglog(yes);
 	    return(EXP_MATCH);
 	} else {
-	    debuglog(no);
+	    exp_debuglog(no);
 	    //if (TclGetRegError()) {
 	//	exp_error(interp,"-re failed: %s",TclGetRegError());
 		return(EXP_TCLERROR);
@@ -836,31 +837,31 @@ eval_case_string(interp,e,f,o,last_f,last_case,suffix)
     } else if (e->use == PAT_GLOB) {
 	int match;		/* # of chars that matched */
 	
-	debuglog("\"%s\"? ",dprintify(e->pat));
+	exp_debuglog("\"%s\"? ",dprintify(e->pat));
 	if (buffer && (-1 != (match = Exp_StringMatch(
 						      buffer,e->pat,&e->simple_start)))) {
 	    o->e = e;
 	    o->match = match;
 	    o->buffer = buffer;
 	    o->f = f;
-	    debuglog(yes);
+	    exp_debuglog(yes);
 	    return(EXP_MATCH);
-	} else debuglog(no);
+	} else exp_debuglog(no);
     } else if (e->use == PAT_EXACT) {
 	char *p = strstr(buffer,e->pat);
-	debuglog("\"%s\"? ",dprintify(e->pat));
+	exp_debuglog("\"%s\"? ",dprintify(e->pat));
 	if (p) {
 	    e->simple_start = p - buffer;
 	    o->e = e;
 	    o->match = strlen(e->pat);
 	    o->buffer = buffer;
 	    o->f = f;
-	    debuglog(yes);
+	    exp_debuglog(yes);
 	    return(EXP_MATCH);
-	} else debuglog(no);
+	} else exp_debuglog(no);
     } else if (e->use == PAT_NULL) {
 	int i = 0;
-	debuglog("null? ");
+	exp_debuglog("null? ");
 	for (;i<f->size;i++) {
 	    if (buffer[i] == 0) {
 		o->e = e;
@@ -869,18 +870,18 @@ eval_case_string(interp,e,f,o,last_f,last_case,suffix)
 		/* before the null */
 		o->buffer = buffer;
 		o->f = f;
-		debuglog(yes);
+		exp_debuglog(yes);
 		return EXP_MATCH;
 	    }
 	}
-	debuglog(no);
+	exp_debuglog(no);
     } else if ((f->size == f->msize) && (f->size > 0)) {
-	debuglog("%s? ",e->pat);
+	exp_debuglog("%s? ",e->pat);
 	o->e = e;
 	o->match = f->umsize;
 	o->buffer = f->buffer;
 	o->f = f;
-	debuglog(yes);
+	exp_debuglog(yes);
 	return(EXP_FULLBUFFER);
     }
     return(EXP_NOMATCH);
@@ -1662,21 +1663,21 @@ expect_read(interp,masters,masters_max,m,timeout,key)
     else write_count = 0;
     
     if (write_count) {
-	if (logfile_all || (loguser && logfile)) {
-	    Tcl_Write(logfile, f->buffer + f->printed, write_count);
+	if (exp_logfile_all || (exp_loguser && exp_logfile)) {
+	    Tcl_Write(exp_logfile, f->buffer + f->printed, write_count);
 	}
 	/*
 	 * don't write to user if they're seeing it already,
 	 * that is, typing it!
 	 */
-	if (loguser) {
+	if (exp_loguser) {
 	    if (strcmp("stdin", (*m)->spawnId) != 0) {
 		Tcl_Write(Tcl_GetStdChannel(TCL_STDOUT),
 			  f->buffer + f->printed, write_count);
 	    }
 	}
-	if (debugfile) {
-	    Tcl_Write(debugfile, f->buffer + f->printed, write_count);
+	if (exp_debugfile) {
+	    Tcl_Write(exp_debugfile, f->buffer + f->printed, write_count);
 	}
 
 	/* remove nulls from input, since there is no way */
@@ -1719,7 +1720,7 @@ exp_buffer_shuffle(interp,f,save_flags,array_name,caller_name)
      */
 
     sprintf(spawn_id,"%s",f->spawnId);
-    debuglog("%s: set %s(spawn_id) \"%s\"\r\n",
+    exp_debuglog("%s: set %s(spawn_id) \"%s\"\r\n",
 	     caller_name,array_name,dprintify(spawn_id));
     Tcl_SetVar2(interp,array_name,"spawn_id",spawn_id,save_flags);
 
@@ -1727,7 +1728,7 @@ exp_buffer_shuffle(interp,f,save_flags,array_name,caller_name)
     match_char = f->buffer[first_half];
     f->buffer[first_half] = 0;
 
-    debuglog("%s: set %s(buffer) \"%s\"\r\n",
+    exp_debuglog("%s: set %s(buffer) \"%s\"\r\n",
 	     caller_name,array_name,dprintify(f->buffer));
     Tcl_SetVar2(interp,array_name,"buffer",f->buffer,save_flags);
 
@@ -1834,12 +1835,12 @@ exp_i_read(interp,f,timeout,save_flags)
  *----------------------------------------------------------------------
  */
 
-char *
+CONST char *
 exp_get_var(interp,var)
     Tcl_Interp *interp;
     char *var;
 {
-    char *val;
+    CONST char *val;
 
     if (NULL != (val = Tcl_GetVar(interp,var,0 /* local */)))
 	return(val);
@@ -1864,7 +1865,7 @@ get_timeout(interp)
     Tcl_Interp *interp;
 {
     static int timeout = INIT_EXPECT_TIMEOUT;
-    char *t;
+    CONST char *t;
 
     if (NULL != (t = exp_get_var(interp,EXPECT_TIMEOUT))) {
 	timeout = atoi(t);
@@ -2166,7 +2167,7 @@ exp_background_filehandler(clientData,mask)
 	eo.f = f;
 	eo.match = eo.f->size;
 	eo.buffer = eo.f->buffer;
-	debuglog("expect_background: read eof\r\n");
+	exp_debuglog("expect_background: read eof\r\n");
 	goto matched;
     }
     if (!eo.e) {
@@ -2175,7 +2176,7 @@ exp_background_filehandler(clientData,mask)
     }
     
  matched:
-#define out(i,val)  debuglog("expect_background: set %s(%s) \"%s\"\r\n",EXPECT_OUT,i, \
+#define out(i,val)  exp_debuglog("expect_background: set %s(%s) \"%s\"\r\n",EXPECT_OUT,i, \
 			     dprintify(val)); \
      Tcl_SetVar2(interp,EXPECT_OUT,i,val,TCL_GLOBAL_ONLY);
  {
@@ -2268,7 +2269,7 @@ exp_background_filehandler(clientData,mask)
 	     sprintf(value,"%d",match-1);
 	     out("0,end",value);
 	 } else if (e && e->use == PAT_FULLBUFFER) {
-	     debuglog("expect_background: full buffer\r\n");
+	     exp_debuglog("expect_background: full buffer\r\n");
 	 }
      }
 
@@ -2512,7 +2513,7 @@ Exp_ExpectCmd(clientData, interp, objc, objv)
 	if (cc == EXP_EOF) {
 	    /* do nothing */
 	} else if (cc == EXP_TIMEOUT) {
-	    debuglog("expect: timed out\r\n");
+	    exp_debuglog("expect: timed out\r\n");
 	} else if (cc == EXP_RECONFIGURE) {
 	    reset_timer = FALSE;
 	    goto restart_with_update;
@@ -2540,7 +2541,7 @@ Exp_ExpectCmd(clientData, interp, objc, objv)
 	    eo.f = f;
 	    eo.match = eo.f->size;
 	    eo.buffer = eo.f->buffer;
-	    debuglog("expect: read eof\r\n");
+	    exp_debuglog("expect: read eof\r\n");
 	    break;
 	} else if (cc == EXP_TIMEOUT) break;
 	/* break if timeout or eof and failed to find a case for it */
@@ -2561,7 +2562,7 @@ Exp_ExpectCmd(clientData, interp, objc, objv)
  error:
     result = exp_2tcl_returnvalue(cc);
  done:
-#define out(i,val)  debuglog("expect: set %s(%s) \"%s\"\r\n",EXPECT_OUT,i, \
+#define out(i,val)  exp_debuglog("expect: set %s(%s) \"%s\"\r\n",EXPECT_OUT,i, \
 			     dprintify(val)); \
 				 Tcl_SetVar2(interp,EXPECT_OUT,i,val,0);
 
@@ -2669,7 +2670,7 @@ Exp_ExpectCmd(clientData, interp, objc, objv)
 		sprintf(value,"%d",match-1);
 		out("0,end",value);
 	    } else if (e && e->use == PAT_FULLBUFFER) {
-		debuglog("expect: full buffer\r\n");
+		exp_debuglog("expect: full buffer\r\n");
 	    }
 	}
 
@@ -2733,7 +2734,7 @@ Exp_ExpectCmd(clientData, interp, objc, objv)
 
     if ((result == EXP_CONTINUE)
 	&& (configure_count == exp_configure_count)) {
-	debuglog("expect: continuing expect\r\n");
+	exp_debuglog("expect: continuing expect\r\n");
 	goto restart;
     }
 
@@ -2747,7 +2748,7 @@ Exp_ExpectCmd(clientData, interp, objc, objv)
     }
 
     if (result == EXP_CONTINUE) {
-	debuglog("expect: continuing expect after update\r\n");
+	exp_debuglog("expect: continuing expect after update\r\n");
 	goto restart_with_update;
     }
 
@@ -2865,7 +2866,7 @@ char **argv;
 void
 exp_lowmemcpy(dest,src,n)
     char *dest;
-    char *src;
+    CONST char *src;
     int n;
 {
     for (;n>0;n--) {
@@ -3159,17 +3160,18 @@ cmdX(clientData, interp, argc, argv)
 
 static struct exp_cmd_data
 cmd_data[]  = {
-{"expect",	Exp_ExpectCmd,	0, (ClientData) NULL,	0},
-{"expect_after",Exp_ExpectGlobalCmd, 0, (ClientData)&exp_cmds[EXP_CMD_AFTER],0},
-{"expect_before",Exp_ExpectGlobalCmd, 0, (ClientData)&exp_cmds[EXP_CMD_BEFORE],0},
-{"expect_user",	Exp_ExpectCmd,	0, (ClientData)"exp_user",	0},
-{"expect_tty",	Exp_ExpectCmd,	0, (ClientData)"exp_tty",	0},
-{"expect_background",Exp_ExpectGlobalCmd, 0, (ClientData)&exp_cmds[EXP_CMD_BG],0},
-{"match_max",	0, Exp_MatchMaxCmd,	0,	0},
-{"remove_nulls",0, Exp_RemoveNullsCmd,	0,	0},
-{"parity",	0, Exp_ParityCmd,		0,	0},
-{"timestamp",	0, Exp_TimestampCmd,	0,	0},
-{0}};
+    {"expect",	Exp_ExpectCmd,	0, (ClientData) NULL,	0},
+    {"expect_after",Exp_ExpectGlobalCmd, 0, (ClientData)&exp_cmds[EXP_CMD_AFTER],0},
+    {"expect_before",Exp_ExpectGlobalCmd, 0, (ClientData)&exp_cmds[EXP_CMD_BEFORE],0},
+    {"expect_user",	Exp_ExpectCmd,	0, (ClientData)"exp_user",	0},
+    {"expect_tty",	Exp_ExpectCmd,	0, (ClientData)"exp_tty",	0},
+    {"expect_background",Exp_ExpectGlobalCmd, 0, (ClientData)&exp_cmds[EXP_CMD_BG],0},
+    {"match_max",	0, Exp_MatchMaxCmd,	0,	0},
+    {"remove_nulls",0, Exp_RemoveNullsCmd,	0,	0},
+    {"parity",	0, Exp_ParityCmd,		0,	0},
+    {"timestamp",	0, Exp_TimestampCmd,	0,	0},
+    {0}
+};
 
 /*
  *----------------------------------------------------------------------

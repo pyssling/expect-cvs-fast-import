@@ -11,14 +11,7 @@
  *
  */
 
-#include "exp_port.h"
-#include "tclInt.h"
-#include "tclPort.h"
-
-#define BUILD_expect
-
-#include "exp_command.h"
-#include "expWin.h"
+#include "expWinInt.h"
 
 /*
  *----------------------------------------------------------------------
@@ -39,7 +32,7 @@
 int
 ExpPlatformSpawnOutput(instanceData, bufPtr, toWrite, errorPtr)
     ClientData instanceData;
-    char *bufPtr;		/* (in) Ptr to buffer */
+    CONST char *bufPtr;		/* (in) Ptr to buffer */
     int toWrite;		/* (in) amount to write */
     int *errorPtr;		/* (out) error code */
 {

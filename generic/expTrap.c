@@ -12,7 +12,7 @@ would appreciate credit if this program or parts of it are used.
 #if defined(SIGCLD) && !defined(SIGCHLD)
 #define SIGCHLD SIGCLD
 #endif
-
+/*
 #include "exp_port.h"
 #include "tclInt.h"
 #include "tclPort.h"
@@ -23,6 +23,10 @@ would appreciate credit if this program or parts of it are used.
 #include "exp_prog.h"
 #include "exp_command.h"
 #include "exp_log.h"
+*/
+
+#include "expInt.h"
+
 #ifdef TCL_DEBUGGER
 #include "Dbg.h"
 #endif
@@ -42,7 +46,7 @@ static struct trap {
 				/* is processed */
     int code;			/* return our new code instead of code */
 				/* available when signal is processed */
-    char *name;			/* name of signal */
+    CONST char *name;			/* name of signal */
     int reserved;		/* if unavailable for trapping */
     int enabled;		/* set on Win32 if we are trapping signal */
 } traps[NSIG];
@@ -59,9 +63,9 @@ static int got_sig;		/* this records the last signal received */
 
 static Tcl_AsyncHandler async_handler;
 
-static char *
+static CONST char *
 signal_to_string(sig)
-int sig;
+    int sig;
 {
 	if (sig <= 0 || sig > NSIG) return("SIGNAL OUT OF RANGE");
 	return(traps[sig].name);
@@ -88,7 +92,7 @@ tophalf(ClientData clientData, Tcl_Interp *interp, int code)
     exp_debuglog("sighandler: handling signal(%d)\r\n",got_sig);
 
     if (got_sig <= 0 || got_sig >= NSIG) {
-	errorlog("caught impossible signal %d\r\n",got_sig);
+	exp_errorlog("caught impossible signal %d\r\n",got_sig);
 	abort();
     }
 
@@ -113,7 +117,7 @@ tophalf(ClientData clientData, Tcl_Interp *interp, int code)
 	/* signaler predefined, since we are calling explicitly */
 	/* from another part of the program, and it is just simpler */
 	if (current_sig == 0) return code;
-	errorlog("caught unexpected signal: %s (%d)\r\n",
+	exp_errorlog("caught unexpected signal: %s (%d)\r\n",
 		 signal_to_string(current_sig),current_sig);
 	abort();
     }
@@ -302,7 +306,7 @@ exp_string_to_signal(interp,s)
     char *s;
 {
     int sig;
-    char *name;
+    CONST char *name;
 
     /* try interpreting as an integer */
     if (1 == sscanf(s,"%d",&sig)) {
@@ -365,7 +369,7 @@ Exp_TrapCmd(clientData, interp, argc, argv)
     if (show_name || show_number || show_max) {
 	if (argc > 0) goto usage_error;
 	if (show_max) {
-	    sprintf(interp->result,"%d",NSIG-1);
+	    Tcl_SetObjResult(interp, Tcl_NewIntObj(NSIG-1));
 	    return TCL_OK;
 	}
 
@@ -375,9 +379,10 @@ Exp_TrapCmd(clientData, interp, argc, argv)
 	}
 	if (show_name) {
 	    /* skip over "SIG" */
-	    interp->result = signal_to_string(current_sig) + 3;
+	    Tcl_SetObjResult(interp,
+		    Tcl_NewStringObj(signal_to_string(current_sig) + 3, -1));
 	} else {
-	    sprintf(interp->result,"%d",current_sig);
+	    Tcl_SetObjResult(interp, Tcl_NewIntObj(current_sig));
 	}
 	return TCL_OK;
     }
@@ -400,7 +405,7 @@ Exp_TrapCmd(clientData, interp, argc, argv)
 
     /* argv[1] is the list of signals - crack it open */
     if (TCL_OK != Tcl_SplitList(interp,argv[1],&n,&list)) {
-	errorlog("%s\r\n",interp->result);
+	exp_errorlog("%s\r\n",interp->result);
 	goto usage_error;
     }
 
@@ -485,9 +490,9 @@ eval_trap_action(interp,sig,trap,oldcode)
     int code_flag;
     int newcode;
     Tcl_DString ei;	/* errorInfo */
-    char *eip;
+    CONST char *eip;
     Tcl_DString ec;	/* errorCode */
-    char *ecp;
+    CONST char *ecp;
     Tcl_DString ir;	/* interp->result */
 
     exp_debuglog("async event handler: Tcl_Eval(%s)\r\n",trap->action);
@@ -526,7 +531,7 @@ eval_trap_action(interp,sig,trap,oldcode)
 	exp_debuglog("return value = %d for trap %s, action %s\r\n",
 		     newcode,signal_to_string(sig),trap->action);
 	if (*interp->result != 0) {
-	    errorlog("%s\r\n",interp->result);
+	    exp_errorlog("%s\r\n",interp->result);
 
 	    /*
 	     * Check errorinfo and see if it contains -nostack.

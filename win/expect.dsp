@@ -69,7 +69,7 @@ LINK32=link.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "EXPECT_EXPORTS" /YX /FD /GZ /c
-# ADD CPP /nologo /G5 /MDd /W3 /Gm /GX /ZI /Od /I "." /I "..\generic" /I "d:\tcl_workspace\tcl_head\generic" /I "d:\tcl_workspace\tcl_head\win" /D "_DEBUG" /D "WIN32" /D TCL_THREADS=1 /D _WIN32_WINNT=0x0400 /FR /YX /FD /GZ /c
+# ADD CPP /nologo /G5 /MDd /W3 /Gm /GX /ZI /Od /I "..\win" /I "..\generic" /I "d:\tcl_workspace\tcl_head\generic" /I "d:\tcl_workspace\tcl_head\win" /D "_DEBUG" /D "WIN32" /D "BUILD_exp" /D TCL_THREADS=1 /D "USE_TCL_STUBS" /FR /YX /FD /GZ /c
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
@@ -90,6 +90,60 @@ LINK32=link.exe
 # Begin Group "generic"
 
 # PROP Default_Filter ""
+# Begin Group "headers"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=..\generic\exp.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\generic\expDecls.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\generic\expInt.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\generic\expIntDecls.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\generic\expIntPlatDecls.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\generic\expPlatDecls.h
+# End Source File
+# End Group
+# Begin Source File
+
+SOURCE=..\generic\exp.decls
+
+!IF  "$(CFG)" == "expect - Win32 Release"
+
+!ELSEIF  "$(CFG)" == "expect - Win32 Debug"
+
+USERDEP__EXP_D="$(InputPath)"	
+# Begin Custom Build
+InputDir=\expect_wslive\expect_win32_take2\generic
+InputPath=..\generic\exp.decls
+
+BuildCmds= \
+	c:\progra~1\tcl\bin\tclsh84 d:/tcl_workspace/tcl_head/tools/genStubs.tcl $(InputDir) $(InputPath)
+
+"expDecls.h" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+   $(BuildCmds)
+
+"expIntDecls.h" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+   $(BuildCmds)
+# End Custom Build
+
+!ENDIF 
+
+# End Source File
 # Begin Source File
 
 SOURCE=..\generic\exp_closetcl.c
@@ -140,6 +194,10 @@ SOURCE=..\generic\expSpawnChan.c
 # End Source File
 # Begin Source File
 
+SOURCE=..\generic\expStubInit.c
+# End Source File
+# Begin Source File
+
 SOURCE=..\generic\expTrap.c
 # End Source File
 # Begin Source File
@@ -169,7 +227,15 @@ SOURCE=.\ExpWinInit.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\expWinInt.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\expWinLog.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\expWinPort.h
 # End Source File
 # Begin Source File
 

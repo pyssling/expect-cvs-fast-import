@@ -30,13 +30,12 @@
  *	    http://expect.nist.gov/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinCommand.c,v 1.1.2.3 2001/11/07 10:04:57 davygrvy Exp $
+ * RCS: @(#) $Id: MsvcDbgControl.cpp,v 1.1.2.2 2001/12/22 05:29:22 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
-#include "tclPort.h"
 extern "C" {
-    #include "expWin.h"
+    #include "expWinInt.h"
 }
 
 #include <atlbase.h>
@@ -262,7 +261,7 @@ MsvcDbg_GetCommandLine(void)
 
     // >>>> END IMPORTANT! <<<<
 
-    _itoa(pid, pidChar, 10);
+    itoa(pid, pidChar, 10);
     RegOpenKeyEx(HKEY_LOCAL_MACHINE, "Software\\Tomasoft\\MsDevDbgCtrl",
 	    0, KEY_ALL_ACCESS, &root);
     RegQueryValueEx(root, pidChar, 0, &type, 0L, &size);

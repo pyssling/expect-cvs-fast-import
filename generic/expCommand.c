@@ -18,9 +18,9 @@
  *
  */
 
-#define BUILD_expect
 
 #include <math.h>
+/*
 #include "exp_port.h"
 #include "tclInt.h"
 #include "tclPort.h"
@@ -31,6 +31,9 @@
 #include "exp_event.h"
 #include "exp_prog.h"
 #include "exp_tty.h"
+*/
+
+#include "expInt.h"
 
 /* Tcl needs commands in writable space (or at least used to) */
 static char close_cmd[] = "close";
@@ -185,10 +188,10 @@ exp_fcheck(interp,f,opened,adjust,msg)
 struct exp_f *
 exp_chan2f(interp,chan,opened,adjust,msg)
     Tcl_Interp *interp;
-    char *chan;			/* Channel name */
+    CONST char *chan;			/* Channel name */
     int opened;			/* check not closed */
     int adjust;			/* adjust buffer sizes */
-    char *msg;
+    CONST char *msg;
 {
     Tcl_HashEntry *hPtr;
     struct exp_f *f;
@@ -526,7 +529,7 @@ Exp_GetpidDeprecatedCmd(clientData, interp, argc, argv)
     int argc;
     char **argv;
 {
-    debuglog("getpid is deprecated, use pid\r\n");
+    exp_debuglog("getpid is deprecated, use pid\r\n");
     sprintf(interp->result,"%d",exp_getpidproc());
     return(TCL_OK);
 }
@@ -556,7 +559,7 @@ exp_update_master(interp,opened,adjust)
     int opened;
     int adjust;
 {
-    char *s = exp_get_var(interp,EXP_SPAWN_ID_VARNAME);
+    CONST char *s = exp_get_var(interp,EXP_SPAWN_ID_VARNAME);
     if (s == NULL) {
 	s = EXP_SPAWN_ID_USER;
     }
@@ -630,7 +633,7 @@ get_slow_args(interp,x)
     struct slow_arg *x;
 {
     int sc;			/* return from scanf */
-    char *s = exp_get_var(interp,"send_slow");
+    CONST char *s = exp_get_var(interp,"send_slow");
     if (!s) {
 	exp_error(interp,"send -s: send_slow has no value");
 	return(-1);
@@ -729,7 +732,7 @@ get_human_args(interp,x)
     struct human_arg *x;
 {
     int sc;			/* return from scanf */
-    char *s = exp_get_var(interp,"send_human");
+    CONST char *s = exp_get_var(interp,"send_human");
 
     if (!s) {
 	exp_error(interp,"send -h: send_human has no value");
@@ -851,7 +854,7 @@ human_write(interp,f,buffer,arg)
     int in_word = TRUE;
     int wc;
 
-    debuglog("human_write: avg_arr=%f/%f  1/shape=%f  min=%f  max=%f\r\n",
+    exp_debuglog("human_write: avg_arr=%f/%f  1/shape=%f  min=%f  max=%f\r\n",
 	     arg->alpha,arg->alpha_eow,arg->c,arg->min,arg->max);
 
     for (sp = buffer;*sp;sp++) {
@@ -1224,7 +1227,7 @@ exp_i_update(interp,i)
     Tcl_Interp *interp;
     struct exp_i *i;
 {
-    char *p;			/* string representation of list of spawn ids*/
+    CONST char *p;			/* string representation of list of spawn ids*/
 
     if (i->direct == EXP_INDIRECT) {
 	p = Tcl_GetVar(interp,i->variable,TCL_GLOBAL_ONLY);
@@ -1371,7 +1374,7 @@ ExpSpawnOpen(interp, chanId, leaveopen)
     Tcl_SetVar(interp,EXP_SPAWN_ID_VARNAME,chanId,0);
 
     sprintf(interp->result,"%d",EXP_NOPID);
-    debuglog("spawn: returns {%s}\r\n",interp->result);
+    exp_debuglog("spawn: returns {%s}\r\n",interp->result);
 
     return TCL_OK;
 }
@@ -1421,8 +1424,8 @@ Exp_SendLogCmd(clientData, interp, argc, argv)
 
     len = strlen(string);
 
-    if (debugfile) Tcl_Write(debugfile, string, len);
-    if (logfile) Tcl_Write(logfile, string, len);
+    if (exp_debugfile) Tcl_Write(exp_debugfile, string, len);
+    if (exp_logfile) Tcl_Write(exp_logfile, string, len);
 
     return(TCL_OK);
 }
@@ -1577,20 +1580,20 @@ Exp_SendCmd(clientData, interp, argc, argv)
     if (clientData == NULL) {
 	/* This seems to be the standard send call (send_to_proc) */
 	want_cooked = FALSE;
-	debuglog("send: sending \"%s\" to {",dprintify(string));
+	exp_debuglog("send: sending \"%s\" to {",dprintify(string));
 	/* if closing brace doesn't appear, that's because an error */
 	/* was encountered before we could send it */
     } else {
-	if (debugfile) {
-	    Tcl_Write(debugfile, string, len);
+	if (exp_debugfile) {
+	    Tcl_Write(exp_debugfile, string, len);
 	}
 	/* send_to_user ? */
 	if (((strcmp((char *) clientData, "exp_user") == 0 ||
 	      strcmp((char *) clientData, exp_dev_tty_id) == 0 ||
-	      strcmp((char *) clientData, "exp_tty") == 0) && logfile_all) ||
-	    logfile) {
-	    if (logfile) {
-		Tcl_Write(logfile, string, len);
+	      strcmp((char *) clientData, "exp_tty") == 0) && exp_logfile_all) ||
+	    exp_logfile) {
+	    if (exp_logfile) {
+		Tcl_Write(exp_logfile, string, len);
 	    }
 	}
     }
@@ -1600,7 +1603,7 @@ Exp_SendCmd(clientData, interp, argc, argv)
 
 	if (clientData == NULL) {
 	    /* send_to_proc */
-	    debuglog(" %s ", f->spawnId);
+	    exp_debuglog(" %s ", f->spawnId);
 	}
 
 	/* check validity of each - i.e., are they open */
@@ -1643,7 +1646,7 @@ Exp_SendCmd(clientData, interp, argc, argv)
     }
     if (clientData == NULL) {
 	/* send_to_proc */
-	debuglog("}\r\n");
+	exp_debuglog("}\r\n");
     }
     
     rc = TCL_OK;
@@ -1684,8 +1687,8 @@ Exp_LogFileCmd(clientData, interp, argc, argv)
     static char *openarg = 0;	/* Tcl file identifier from -open */
     static int leaveopen = FALSE;	/* true if -leaveopen was used */
     
-    int old_logfile_all = logfile_all;
-    Tcl_Channel old_logfile = logfile;
+    int old_logfile_all = exp_logfile_all;
+    Tcl_Channel old_logfile = exp_logfile;
     char *old_openarg = openarg;
     int old_leaveopen = leaveopen;
     
@@ -1725,8 +1728,8 @@ Exp_LogFileCmd(clientData, interp, argc, argv)
 	} else if (streq(*argv,"-a")) {
 	    aflag = TRUE;
 	} else if (streq(*argv,"-info")) {
-	    if (logfile) {
-		if (logfile_all) strcat(interp->result,"-a ");
+	    if (exp_logfile) {
+		if (exp_logfile_all) strcat(interp->result,"-a ");
 		if (!current_append) strcat(interp->result,"-noappend ");
 		strcat(interp->result,Tcl_DStringValue(&dstring));
 	    }
@@ -1750,16 +1753,16 @@ Exp_LogFileCmd(clientData, interp, argc, argv)
 	usage_error
     }
     
-    logfile = 0;
-    logfile_all = aflag;
+    exp_logfile = 0;
+    exp_logfile_all = aflag;
     
     current_append = append;
     
     type = (append?"a":"w");
     
     if (filename) {
-	logfile = Tcl_OpenFileChannel(interp, filename, type, O_CREAT|S_IWRITE);
-	if (logfile == (Tcl_Channel) NULL) {
+	exp_logfile = Tcl_OpenFileChannel(interp, filename, type, O_CREAT|S_IWRITE);
+	if (exp_logfile == (Tcl_Channel) NULL) {
 	    exp_error(interp,"%s: %s",filename,Tcl_PosixError(interp));
 	    goto error;
 	}
@@ -1768,7 +1771,7 @@ Exp_LogFileCmd(clientData, interp, argc, argv)
 	
 	Tcl_DStringTrunc(&dstring,0);
 	
-	if (!(logfile = Tcl_GetChannel(interp,openarg,&mode))) {
+	if (!(exp_logfile = Tcl_GetChannel(interp,openarg,&mode))) {
 	    return TCL_ERROR;
 	}
 	if (!(mode & TCL_WRITABLE)) {
@@ -1790,8 +1793,8 @@ Exp_LogFileCmd(clientData, interp, argc, argv)
 	 * do so later in our own close routine.
 	 */
     }
-    if (logfile) {
-	Tcl_SetChannelOption(interp, logfile, "-buffering", "none");
+    if (exp_logfile) {
+	Tcl_SetChannelOption(interp, exp_logfile, "-buffering", "none");
     }
     
     if (old_logfile) {
@@ -1807,8 +1810,8 @@ Exp_LogFileCmd(clientData, interp, argc, argv)
     
  error:
     if (old_logfile) {
-	logfile = old_logfile;
-	logfile_all = old_logfile_all;
+	exp_logfile = old_logfile;
+	exp_logfile_all = old_logfile_all;
     }
     
     if (openarg) ckfree(openarg);
@@ -1848,18 +1851,18 @@ Exp_LogUserCmd(clientData, interp, argc, argv)
     int argc;
     char **argv;
 {
-    int old_loguser = loguser;
+    int old_loguser = exp_loguser;
     
     if (argc == 0 || (argc == 2 && streq(argv[1],"-info"))) {
 	/* do nothing */
     } else if (argc == 2) {
-	if (0 == atoi(argv[1])) loguser = FALSE;
-	else loguser = TRUE;
+	if (0 == atoi(argv[1])) exp_loguser = FALSE;
+	else exp_loguser = TRUE;
     } else {
-	exp_error(interp,"usage: [-info|1|0]");
+	exp_error(interp, "usage: [-info|1|0]");
     }
     
-    sprintf(interp->result,"%d",old_loguser);
+    Tcl_SetObjResult(interp, Tcl_NewIntObj(old_loguser));
     
     return(TCL_OK);
 }
@@ -1946,7 +1949,7 @@ Exp_ExpInternalCmd(clientData, interp, argc, argv)
     }
 
     if (argc > 1 && streq(argv[1],"-info")) {
-	if (debugfile) {
+	if (exp_debugfile) {
 	    sprintf(interp->result,"-f %s ",
 		    Tcl_DStringValue(&dstring));
 	}
@@ -1960,18 +1963,18 @@ Exp_ExpInternalCmd(clientData, interp, argc, argv)
 	if (!streq(*argv,"-f")) break;
 	argc--;argv++;
 	if (argc < 1) goto usage;
-	if (debugfile) {
-	    Tcl_Close(interp, debugfile);
+	if (exp_debugfile) {
+	    Tcl_Close(interp, exp_debugfile);
 	}
 
-	debugfile = Tcl_OpenFileChannel(interp, argv[0], "a", O_APPEND|S_IWRITE);
-	if (debugfile == (Tcl_Channel) NULL) {
+	exp_debugfile = Tcl_OpenFileChannel(interp, argv[0], "a", O_APPEND|S_IWRITE);
+	if (exp_debugfile == (Tcl_Channel) NULL) {
 	    exp_error(interp,"%s: %s",argv[0],Tcl_PosixError(interp));
 	    goto error;
 	}
 	Tcl_DStringAppend(&dstring,argv[0],-1);
 
-	Tcl_SetChannelOption(interp, debugfile, "-buffering", "none");
+	Tcl_SetChannelOption(interp, exp_debugfile, "-buffering", "none");
 	fopened = TRUE;
 	argc--;argv++;
     }
@@ -1979,9 +1982,9 @@ Exp_ExpInternalCmd(clientData, interp, argc, argv)
     if (argc != 1) goto usage;
 
     /* if no -f given, close file */
-    if (fopened == FALSE && debugfile) {
-	Tcl_Close(interp, debugfile);
-	debugfile = NULL;
+    if (fopened == FALSE && exp_debugfile) {
+	Tcl_Close(interp, exp_debugfile);
+	exp_debugfile = NULL;
 	Tcl_DStringFree(&dstring);
     }
 
@@ -2114,7 +2117,8 @@ Exp_CloseCmd(clientData, interp, argc, argv)
 	/* Historical note: we used "close"  long before there was a */
 	/* Tcl builtin by the same name. */
 
-	Tcl_Obj **objv;
+	/* So what!  the global namespace belongs to the core. */
+	/*Tcl_Obj **objv;
 	int i, result;
 	Tcl_CmdInfo info;
 
@@ -2133,7 +2137,11 @@ Exp_CloseCmd(clientData, interp, argc, argv)
 	    Tcl_DecrRefCount(objv[i]);
 	}
 	ckfree((char *) objv);
-	return result;
+	return result;*/
+	Tcl_SetResult(interp,
+		"Cannot close the channel as it isn't an expect channel.",
+		TCL_STATIC);
+	return TCL_ERROR;
     }
 
     if (chanId == NULL) {
@@ -2188,9 +2196,9 @@ tcl_tracer(clientData,interp,level,command,cmdProc,cmdClientData,argc,argv)
     int i;
     
     /* come out on stderr, by using errorlog */
-    errorlog("%2d",level);
+    exp_errorlog("%2d",level);
     for (i = 0;i<level;i++) exp_nferrorlog("  ",0/*ignored - satisfy lint*/);
-    errorlog("%s\r\n",command);
+    exp_errorlog("%s\r\n",command);
 }
 
 /*ARGSUSED*/
@@ -2495,7 +2503,7 @@ Exp_ExpContinueDeprecatedCmd(clientData, interp, argc, argv)
     if (argc == 1) return(TCL_CONTINUE);
     else if (argc == 2) {
 	if (streq(argv[1],"-expect")) {
-	    debuglog("continue -expect is deprecated, use exp_continue\r\n");
+	    exp_debuglog("continue -expect is deprecated, use exp_continue\r\n");
 	    return(EXP_CONTINUE);
 	}
     }
@@ -2518,12 +2526,14 @@ Exp_ExpContinueCmd(clientData, interp, argc, argv)
 	return EXP_CONTINUE_TIMER;
     }
 
-    exp_error(interp,"usage: exp_continue [-continue_timer]\n");
+    exp_error(interp,"usage: exp::continue [-continue_timer]\n");
     return(TCL_ERROR);
 }
 
 /* most of this is directly from Tcl's definition for return */
 /*ARGSUSED*/
+
+/* Why is this here?
 int
 Exp_InterReturnCmd(clientData, interp, argc, argv)
     ClientData clientData;
@@ -2534,7 +2544,7 @@ Exp_InterReturnCmd(clientData, interp, argc, argv)
     /* let Tcl's return command worry about args */
     /* if successful (i.e., TCL_RETURN is returned) */
     /* modify the result, so that we will handle it specially */
-
+/*
     int result;
 #if TCL_MAJOR_VERSION >= 8
     Tcl_Obj **objv;
@@ -2557,7 +2567,7 @@ Exp_InterReturnCmd(clientData, interp, argc, argv)
 	result = EXP_TCL_RETURN;
     return result;
 
-}
+}*/
 
 /*
  *----------------------------------------------------------------------
@@ -2655,59 +2665,60 @@ exp_create_commands(interp,c)
     Tcl_Interp *interp;
     struct exp_cmd_data *c;
 {
-    //Namespace *expNsPtr = (Namespace *) Tcl_FindNamespace(interp, "::exp", NULL, 0);
+    Namespace *expNsPtr = (Namespace *) Tcl_FindNamespace(interp, "::exp", NULL, 0);
     //char cmdnamebuf[80];
 
     for (;c->name;c++) {
 	/* if already defined, don't redefine */
-	//if (!expNsPtr || !(Tcl_FindHashEntry(&expNsPtr->cmdTable,c->name))) {
+	if (!expNsPtr || !(Tcl_FindHashEntry(&expNsPtr->cmdTable,c->name))) {
 	    //sprintf(cmdnamebuf, "::exp::%s",c->name); 
 	    if (c->objproc) {
 		Tcl_CreateObjCommand(interp,c->name,c->objproc,c->data,NULL);
 	    } else {
 		Tcl_CreateCommand(interp,c->name,c->proc,c->data,NULL);
 	    }
-	//}
+	}
     }
 }
 
 static struct exp_cmd_data cmd_data[]  = {
-{"exp_close",	0, Exp_CloseCmd,	0,	0},
+    {"exp_close",	0, Exp_CloseCmd,	0,	0},
 #ifdef TCL_DEBUGGER
-{"debug",	0, Exp_DebugCmd,	0,	0},
+    {"debug",	0, Exp_DebugCmd,	0,	0},
 #endif
-{"internal", 0, Exp_ExpInternalCmd,	0,	0},
+    {"exp_internal", 0, Exp_ExpInternalCmd,	0,	0},
 #ifdef XXX
-{"disconnect",	0, Exp_DisconnectCmd,	0,	0},
+    {"::exp::disconnect",	0, Exp_DisconnectCmd,	0,	0},
 #endif
-{"exp_exit",	0, Exp_ExitCmd,	0,	0},
+    {"exp_exit",	0, Exp_ExitCmd,	0,	0},
 /*{"exp::_continue",	0, Exp_ExpContinueDeprecatedCmd,0,0},*/
-{"exp_continue",0,Exp_ExpContinueCmd,0,	0},
+    {"exp_continue",0,Exp_ExpContinueCmd,0,	0},
 #ifdef XXX
-{"fork",	0, Exp_ForkCmd,	0,	0},
+    {"::exp::fork",	0, Exp_ForkCmd,	0,	0},
 #endif
-{"exp_pid",	0, Exp_ExpPidCmd,	0,	0},
-{"getpid",	0, Exp_GetpidDeprecatedCmd,0,	0},
-{"interpreter",	0, Exp_InterpreterCmd,	0,	0},
-{"kill",	0, Exp_KillCmd,	0,	0},
-{"log_file",	0, Exp_LogFileCmd,	0,	0},
-{"log_user",	0, Exp_LogUserCmd,	0,	0},
-{"exp_open",	0, Exp_OpenCmd,	0,	0},
+    {"exp_pid",	0, Exp_ExpPidCmd,	0,	0},
+    {"exp_getpid",	0, Exp_GetpidDeprecatedCmd,0,	0},
+    {"exp_interpreter",	0, Exp_InterpreterCmd,	0,	0},
+    {"kill",	0, Exp_KillCmd,	0,	0},
+    {"log_file",	0, Exp_LogFileCmd,	0,	0},
+    {"log_user",	0, Exp_LogUserCmd,	0,	0},
+    {"exp_open",	0, Exp_OpenCmd,	0,	0},
 #ifdef XXX
-{"overlay",	0, Exp_OverlayCmd,	0,	0},
+    {"overlay",	0, Exp_OverlayCmd,	0,	0},
 #endif
-{"inter_return",0, Exp_InterReturnCmd,	0,	0},
-{"send",	0, Exp_SendCmd,	(ClientData)NULL,	0},
-/*{"exp::send_spawn",	0, Exp_SendCmd,	(ClientData)NULL,	0},deprecat*/
-{"send_error",	0, Exp_SendCmd,	(ClientData)"stderr",	0},
-{"send_log",	0, Exp_SendLogCmd,	0,	0},
-{"send_tty",	0, Exp_SendCmd,	(ClientData)"exp_tty",	0},
-{"send_user",	0, Exp_SendCmd,	(ClientData)"exp_user",	0},
-{"sleep",	0, Exp_SleepCmd,	0,	0},
-{"spawn",	0, Exp_SpawnCmd,	0,	0},
-{"strace",	0, Exp_StraceCmd,	0,	0},
-{"wait",	0, Exp_WaitCmd,	0,	0},
-{0}};
+    /*{"::exp::inter_return",0, Exp_InterReturnCmd,	0,	0}, why is this here?*/
+    {"send",	0, Exp_SendCmd,	(ClientData)NULL,	0},
+    /*{"exp::send_spawn",	0, Exp_SendCmd,	(ClientData)NULL,	0},deprecat*/
+    {"send_error",	0, Exp_SendCmd,	(ClientData)"stderr",	0},
+    {"send_log",	0, Exp_SendLogCmd,	0,	0},
+    {"send_tty",	0, Exp_SendCmd,	(ClientData)"exp_tty",	0},
+    {"send_user",	0, Exp_SendCmd,	(ClientData)"exp_user",	0},
+    {"sleep",	0, Exp_SleepCmd,	0,	0},
+    {"spawn",	0, Exp_SpawnCmd,	0,	0},
+    {"strace",	0, Exp_StraceCmd,	0,	0},
+    {"wait",	0, Exp_WaitCmd,	0,	0},
+    {0}
+};
 
 /*
  *----------------------------------------------------------------------
@@ -2736,9 +2747,9 @@ void
 exp_init_spawn_id_vars(interp)
     Tcl_Interp *interp;
 {
-    Tcl_SetVar(interp,"user_spawn_id",EXP_SPAWN_ID_USER,0);
-    Tcl_SetVar(interp,"error_spawn_id",EXP_SPAWN_ID_ERROR,0);
-    Tcl_SetVar(interp,"tty_spawn_id","exp_tty",0);
+    Tcl_SetVar(interp,"::exp::user_spawn_id",EXP_SPAWN_ID_USER,0);
+    Tcl_SetVar(interp,"::exp::error_spawn_id",EXP_SPAWN_ID_ERROR,0);
+    Tcl_SetVar(interp,"::exp::tty_spawn_id","exp_tty",0);
 }
 
 /*

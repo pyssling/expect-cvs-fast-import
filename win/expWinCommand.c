@@ -10,19 +10,7 @@
  *
  */
 
-#define BUILD_expect
-#include "exp_port.h"
-#include "tclInt.h"
-#include "tclPort.h"
-#include "tclWinInt.h"
-#include "expWin.h"
-#include "expect_tcl.h"
-#include "exp_command.h"
-#include "exp_rename.h"
-#include "exp_log.h"
-#include "exp_event.h"
-#include "exp_prog.h"
-#include "exp_tty.h"
+#include "expWinInt.h"
 
 #ifdef TCL_DEBUGGER
 #include "Dbg.h"
@@ -200,7 +188,7 @@ Exp_SpawnCmd(ClientData clientData,Tcl_Interp *interp,int argc,char **argv)
     TclFile masterWFile;
     char *openarg = NULL;
     int leaveopen = 0;
-    char *val;
+    CONST char *val;
     int hide;
     int debug;
     char **nargv = NULL;
@@ -365,8 +353,8 @@ Exp_SpawnCmd(ClientData clientData,Tcl_Interp *interp,int argc,char **argv)
     }
 
     if (channel2 == NULL && hSlaveDrv == INVALID_HANDLE_VALUE ) {
-	debuglog("CreateNamedPipe failed: error=0x%08x\r\n", GetLastError());
-	debuglog("socket failed: error=0x%08x\r\n", GetLastError());
+	exp_debuglog("CreateNamedPipe failed: error=0x%08x\r\n", GetLastError());
+	exp_debuglog("socket failed: error=0x%08x\r\n", GetLastError());
 	TclWinConvertError(GetLastError());
 	exp_error(interp, "unable to create either named pipe or socket: %s",
 		  Tcl_PosixError(interp));
@@ -375,7 +363,7 @@ Exp_SpawnCmd(ClientData clientData,Tcl_Interp *interp,int argc,char **argv)
 
     hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
     if (hEvent == NULL) {
-	debuglog("CreateEvent failed: error=0x%08x\r\n", GetLastError());
+	exp_debuglog("CreateEvent failed: error=0x%08x\r\n", GetLastError());
 	TclWinConvertError(GetLastError());
 	exp_error(interp, "unable to create event: %s",
 		  Tcl_PosixError(interp));
@@ -436,7 +424,7 @@ Exp_SpawnCmd(ClientData clientData,Tcl_Interp *interp,int argc,char **argv)
 		"D:\\expect_wslive\\expect_win32_take2\\win\\slavedrv.dsp",
 		&cmdLine, &dbgtoken);
 #   else
-#   error "Need Debugger control for this IDE"
+#	error "Need Debugger control for this IDE"
 #   endif
 
     } else {
@@ -508,7 +496,7 @@ Exp_SpawnCmd(ClientData clientData,Tcl_Interp *interp,int argc,char **argv)
     /*
      * wait for slave driver to initialize before allowing user to send to it
      */
-    debuglog("parent: waiting for sync bytes\r\n");
+    exp_debuglog("parent: waiting for sync bytes\r\n");
 
     if (!useSocket) {
 	ResetEvent(hEvent);
@@ -590,7 +578,7 @@ Exp_SpawnCmd(ClientData clientData,Tcl_Interp *interp,int argc,char **argv)
     f->channel = spawnChan;
     f->Master = channel;
 
-    debuglog("parent: now unsynchronized from child\r\n");
+    exp_debuglog("parent: now unsynchronized from child\r\n");
 
     /* tell user id of new process */
     Tcl_SetVar(interp, EXP_SPAWN_ID_VARNAME, Tcl_GetChannelName(spawnChan), 0);
@@ -598,7 +586,7 @@ Exp_SpawnCmd(ClientData clientData,Tcl_Interp *interp,int argc,char **argv)
     Tcl_RegisterChannel(interp, spawnChan);
 
     sprintf(interp->result,"%d",(int) globalPid);
-    debuglog("spawn: returns {%s}\r\n",interp->result);
+    exp_debuglog("spawn: returns {%s}\r\n",Tcl_GetStringResult(interp));
     ckfree((char *) nargv);
     return(TCL_OK);
 

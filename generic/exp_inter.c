@@ -8,6 +8,7 @@ would appreciate credit if this program or parts of it are used.
 
 */
 
+/*
 #include "exp_port.h"
 #include <stdio.h>
 #include <sys/types.h>
@@ -24,10 +25,12 @@ would appreciate credit if this program or parts of it are used.
 #include "exp_prog.h"
 #include "exp_command.h"
 #include "exp_log.h"
-#include "exp_tstamp.h"	/* remove when timestamp stuff is gone */
+#include "exp_tstamp.h"	*//* remove when timestamp stuff is gone */
 
-#include "tclRegexp.h"
-//#include "exp_regexp.h"
+/*#include "tclRegexp.h"
+#include "exp_regexp.h"*/
+
+#include "expInt.h"
 
 #ifndef __WIN32__
 
@@ -792,7 +795,7 @@ Exp_InteractCmd(clientData, interp, argc, argv)
 				struct action *action;
 
 				argc--;argv++;
-				debuglog("-eof is deprecated, use eof\r\n");
+				exp_debuglog("-eof is deprecated, use eof\r\n");
 				*action_eof_ptr = action = new_action(&action_base);
 				action->statement = *argv;
 				action->tty_reset = next_tty_reset;
@@ -808,7 +811,7 @@ Exp_InteractCmd(clientData, interp, argc, argv)
 			} else if (exp_flageq("timeout",arg,7)) {
 				int t;
 				struct action *action;
-				debuglog("-timeout is deprecated, use timeout\r\n");
+				exp_debuglog("-timeout is deprecated, use timeout\r\n");
 
 				argc--;argv++;
 				if (argc < 1) {
@@ -851,7 +854,7 @@ Exp_InteractCmd(clientData, interp, argc, argv)
 				next_timestamp = FALSE;
 				continue;
 			} else if (exp_flageq("timestamp",arg,2)) {
-				debuglog("-timestamp is deprecated, use exp_timestamp command\r\n");
+				exp_debuglog("-timestamp is deprecated, use exp_timestamp command\r\n");
 				next_timestamp = TRUE;
 				continue;
 			} else if (exp_flageq("nobrace",arg,7)) {
@@ -910,7 +913,7 @@ Exp_InteractCmd(clientData, interp, argc, argv)
 		argc--;argv++;
 
 		km->action.statement = *argv;
-		debuglog("defining key %s, action %s\r\n",
+		exp_debuglog("defining key %s, action %s\r\n",
 		 km->keys,
 		 km->action.statement?(dprintify(km->action.statement))
 				   :interpreter_cmd);
@@ -1159,11 +1162,11 @@ Exp_InteractCmd(clientData, interp, argc, argv)
 			    /* In theory, interact could be invoked when this situation */
 			    /* already exists, hence the "probably" in the warning below */
 
-			    debuglog("WARNING: interact buffer is full, probably because your\r\n");
-			    debuglog("patterns have matched all of it but require more chars\r\n");
-			    debuglog("in order to complete the match.\r\n");
-			    debuglog("Dumping first half of buffer in order to continue\r\n");
-			    debuglog("Recommend you enlarge the buffer or fix your patterns.\r\n");
+			    exp_debuglog("WARNING: interact buffer is full, probably because your\r\n");
+			    exp_debuglog("patterns have matched all of it but require more chars\r\n");
+			    exp_debuglog("in order to complete the match.\r\n");
+			    exp_debuglog("Dumping first half of buffer in order to continue\r\n");
+			    exp_debuglog("Recommend you enlarge the buffer or fix your patterns.\r\n");
 			    exp_buffer_shuffle(interp,u,0,INTER_OUT,"interact");
 		        }
 			cc = read(m,	u->buffer + u->size,
@@ -1185,7 +1188,7 @@ Exp_InteractCmd(clientData, interp, argc, argv)
 
 				/* avoid another function call if possible */
 				if (debugfile || is_debugging) {
-					debuglog("spawn id %d sent <%s>\r\n",m,
+					exp_debuglog("spawn id %d sent <%s>\r\n",m,
 						exp_printify(u->buffer + u->size - cc));
 				}
 				break;
@@ -1203,7 +1206,7 @@ Exp_InteractCmd(clientData, interp, argc, argv)
 			action = inp->action_eof;
 			attempt_match = FALSE;
 			skip = u->size;
-			debuglog("interact: received eof from spawn_id %d\r\n",m);
+			exp_debuglog("interact: received eof from spawn_id %d\r\n",m);
 			/* actual close is done later so that we have a */
 			/* chance to flush out any remaining characters */
 			need_to_close_master = TRUE;
@@ -1239,7 +1242,7 @@ Exp_InteractCmd(clientData, interp, argc, argv)
 
 		/* put regexp result in variables */
 		if (km && km->re) {
-#define out(var,val)  debuglog("expect: set %s(%s) \"%s\"\r\n",INTER_OUT,var, \
+#define out(var,val)  exp_debuglog("expect: set %s(%s) \"%s\"\r\n",INTER_OUT,var, \
 						dprintify(val)); \
 		    Tcl_SetVar2(interp,INTER_OUT,var,val,0);
 
@@ -1341,7 +1344,7 @@ Exp_InteractCmd(clientData, interp, argc, argv)
 				wc = write(od,u->buffer+u->printed,
 					print - u->printed);
 				if (wc <= 0) {
-					debuglog("interact: write on spawn id %d failed (%s)\r\n",fdp->fd,Tcl_PosixError(interp));
+					exp_debuglog("interact: write on spawn id %d failed (%s)\r\n",fdp->fd,Tcl_PosixError(interp));
 					action = outp->action_eof;
 					change = (action && action->tty_reset);
 
@@ -1566,7 +1569,7 @@ got_action:
 
 				/* avoid another function call if possible */
 				if (debugfile || is_debugging) {
-					debuglog("spawn id %d sent <%s>\r\n",m,
+					exp_debuglog("spawn id %d sent <%s>\r\n",m,
 						exp_printify(u->buffer + u->size - cc));
 				}
 				break;
@@ -1583,7 +1586,7 @@ got_action:
 			attempt_match = FALSE;
 			skip = u->size;
 			rc = EXP_EOF;
-			debuglog("interact: child received eof from spawn_id %d\r\n",m);
+			exp_debuglog("interact: child received eof from spawn_id %d\r\n",m);
 			exp_close(interp,m);
 			break;
 		case EXP_DATA_OLD:
@@ -1603,7 +1606,7 @@ got_action:
 		/* put regexp result in variables */
 		if (km && km->re) {
 #define INTER_OUT "interact_out"
-#define out(i,val)  debuglog("expect: set %s(%s) \"%s\"\r\n",INTER_OUT,i, \
+#define out(i,val)  exp_debuglog("expect: set %s(%s) \"%s\"\r\n",INTER_OUT,i, \
 						dprintify(val)); \
 		    Tcl_SetVar2(interp,INTER_OUT,i,val,0);
 
@@ -1700,7 +1703,7 @@ got_action:
 				wc = write(od,u->buffer+u->printed,
 					print - u->printed);
 				if (wc <= 0) {
-					debuglog("interact: write on spawn id %d failed (%s)\r\n",fdp->fd,Tcl_PosixError(interp));
+					exp_debuglog("interact: write on spawn id %d failed (%s)\r\n",fdp->fd,Tcl_PosixError(interp));
 					action = outp->action_eof;
 
 					te = inter_eval(interp,action,m);
@@ -1801,7 +1804,7 @@ got_action:
 #if defined(SIGCLD) && !defined(SIGCHLD)
 #define SIGCHLD SIGCLD
 #endif
-		debuglog("fork = %d\r\n",pid);
+		exp_debuglog("fork = %d\r\n",pid);
 		signal(SIGCHLD,sigchld_handler);
 /*	restart:*/
 /*		tty_changed = exp_tty_raw_noecho(interp,&tty_old,&was_raw,&was_echo);*/
@@ -1880,7 +1883,7 @@ got_action:
 
 				/* avoid another function call if possible */
 				if (debugfile || is_debugging) {
-					debuglog("spawn id %d sent <%s>\r\n",m,
+					exp_debuglog("spawn id %d sent <%s>\r\n",m,
 						exp_printify(u->buffer + u->size - cc));
 				}
 				break;
@@ -1892,7 +1895,7 @@ got_action:
 				attempt_match = FALSE;
 				skip = u->size;
 				rc = EXP_EOF;
-				debuglog("interact: process died/eof\r\n");
+				exp_debuglog("interact: process died/eof\r\n");
 				clean_up_after_child(interp,fd_list[1]);
 				break;
 			}
@@ -1908,7 +1911,7 @@ got_action:
 			attempt_match = FALSE;
 			skip = u->size;
 			rc = EXP_EOF;
-			debuglog("user sent EOF or disappeared\n\n");
+			exp_debuglog("user sent EOF or disappeared\n\n");
 			break;
 		case EXP_DATA_OLD:
 			cc = 0;
@@ -2019,7 +2022,7 @@ got_action:
 				wc = write(od,u->buffer+u->printed,
 					print - u->printed);
 				if (wc <= 0) {
-					debuglog("interact: write on spawn id %d failed (%s)\r\n",fdp->fd,Tcl_PosixError(interp));
+					exp_debuglog("interact: write on spawn id %d failed (%s)\r\n",fdp->fd,Tcl_PosixError(interp));
 					clean_up_after_child(interp,fdp->fd);
 					action = outp->action_eof;
 					change = (action && action->tty_reset);

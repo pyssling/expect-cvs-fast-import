@@ -16,6 +16,7 @@
  *
  */
 
+/*
 #include "exp_port.h"
 #include "tcl.h"
 #include "tclInt.h"
@@ -23,16 +24,19 @@
 #include "exp_int.h"
 #include "exp_rename.h"
 #include "exp_log.h"
+*/
+
+#include "expInt.h"
 
 #ifdef _MSC_VER
 #  define vsnprintf _vsnprintf
 #endif
 
-int loguser = TRUE;		/* if TRUE, expect/spawn may write to stdout */
-int logfile_all = FALSE;	/* if TRUE, write log of all interactions */
+int exp_loguser = TRUE;		/* if TRUE, expect/spawn may write to stdout */
+int exp_logfile_all = FALSE;	/* if TRUE, write log of all interactions */
 				/* despite value of loguser. */
-Tcl_Channel logfile = NULL;
-Tcl_Channel debugfile = NULL;
+Tcl_Channel exp_logfile = NULL;
+Tcl_Channel exp_debugfile = NULL;
 
 int exp_is_debugging = FALSE;
 
@@ -66,7 +70,8 @@ int exp_is_debugging = FALSE;
  *----------------------------------------------------------------------
  */
 
-#define LOGUSER		(loguser || force_stdout)
+#define LOGUSER		(exp_loguser || force_stdout)
+
 /*VARARGS*/
 void
 exp_log TCL_VARARGS_DEF(int,arg1)
@@ -95,8 +100,8 @@ exp_log TCL_VARARGS_DEF(int,arg1)
 	}
     }
 
-    if (debugfile) Tcl_Write(debugfile, buf, n);
-    if (logfile_all || (LOGUSER && logfile)) Tcl_Write(logfile, buf, n);
+    if (exp_debugfile) Tcl_Write(exp_debugfile, buf, n);
+    if (exp_logfile_all || (LOGUSER && exp_logfile)) Tcl_Write(exp_logfile, buf, n);
     if (LOGUSER) {
 	chan = Tcl_GetStdChannel(TCL_STDOUT);
 	if (chan) {
@@ -135,8 +140,8 @@ exp_nflog(buf,force_stdout)
     int len = strlen(buf);
     Tcl_Channel chan;
     
-    if (debugfile) Tcl_Write(debugfile, buf, len);
-    if (logfile_all || (LOGUSER && logfile)) Tcl_Write(logfile, buf, len);
+    if (exp_debugfile) Tcl_Write(exp_debugfile, buf, len);
+    if (exp_logfile_all || (LOGUSER && exp_logfile)) Tcl_Write(exp_logfile, buf, len);
     if (LOGUSER) {
 	chan = Tcl_GetStdChannel(TCL_STDOUT);
 	if (chan) {
@@ -186,23 +191,23 @@ exp_debuglog TCL_VARARGS_DEF(char *,arg1)
 	n = vsnprintf(p, len, fmt, args);
 	if (n == -1) {
 	    if (p != buf) {
-		free(p);
+		ckfree(p);
 	    }
 	    len *= 2;
-	    p = malloc(len);
+	    p = ckalloc(len);
 	}
     }
 
-    if (debugfile) Tcl_Write(debugfile, buf, n);
-    if (is_debugging) {
+    if (exp_debugfile) Tcl_Write(exp_debugfile, buf, n);
+    if (exp_is_debugging) {
 	chan = Tcl_GetStdChannel(TCL_STDERR);
 	if (chan) {
 	    Tcl_Write(chan, buf, n);
 	}
-	if (logfile) Tcl_Write(logfile, buf, n);
+	if (exp_logfile) Tcl_Write(exp_logfile, buf, n);
     }
     
-    if (p != buf) free(p);
+    if (p != buf) ckfree(p);
     va_end(args);
 }
 
@@ -254,8 +259,8 @@ exp_errorlog TCL_VARARGS_DEF(char *,arg1)
     if (chan) {
 	Tcl_Write(chan, buf, n);
     }
-    if (debugfile) Tcl_Write(debugfile, buf, n);
-    if (logfile) Tcl_Write(logfile, buf, n);
+    if (exp_debugfile) Tcl_Write(exp_debugfile, buf, n);
+    if (exp_logfile) Tcl_Write(exp_logfile, buf, n);
     if (p != buf) free(p);
     va_end(args);
 }
@@ -289,8 +294,8 @@ exp_nferrorlog(buf,force_stdout)
     if (chan) {
 	Tcl_Write(chan, buf, len);
     }
-    if (debugfile) Tcl_Write(debugfile, buf, len);
-    if (logfile) Tcl_Write(logfile, buf, len);
+    if (exp_debugfile) Tcl_Write(exp_debugfile, buf, len);
+    if (exp_logfile) Tcl_Write(exp_logfile, buf, len);
 }
 
 #if 0
