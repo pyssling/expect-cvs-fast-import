@@ -1,10 +1,14 @@
 2002-02-21  Andreas Kupries  <andreas_kupries@users.sourceforge.net>
 
+	* expect.man: Changed the paragraph about [exp_continue] to
+	  contain information about the flag "-continue_timer". This fixes
+	  the bug SF #520630.
+
 	* exp_main_sub.c (Expect_Init): Applied Don Porter's patch which
 	  excludes the initialization of Tcl/Expect packages and the
 	  creation of the ExitHandler from the 'firsttime' guard. This
-	  allows the full use of Expect in slave-iterpreters. This is the
-	  bug SF #459646.
+	  allows the full use of Expect in slave-iterpreters. This fixes
+	  the bug SF #459646.
 
 2002-02-08  Andreas Kupries  <andreas_kupries@users.sourceforge.net>
 
