@@ -1,5 +1,8 @@
 2002-02-07  Andreas Kupries  <andreas_kupries@users.sourceforge.net>
 
+	* Applied patch for SF #514590 to correct behaviour of expect when
+	  expecting and send from and to bogus spawn id's.
+
 	* exp_log.c (expStdoutLogU): Use Tcl_WriteChars/Tcl_Flush instead
 	  of 'fwrite' for tcl 8.1 and beyond to enforce correct conversion
 	  of the internal UTF/8 into the external representation.
