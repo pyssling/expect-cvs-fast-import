@@ -355,7 +355,6 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
      * Prepend the command name and the -nobrace switch so we can
      * reinvoke without recursing.
      */
-
     objc = 2;
     objs[0] = objv[0];
     objs[1] = Tcl_NewStringObj("-nobrace", -1);
@@ -403,7 +402,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 		 numWords--, tokenPtr += (tokenPtr->numComponents + 1)) {
 		objs[objc] = Tcl_EvalTokens(interp, tokenPtr+1,
 			tokenPtr->numComponents);
-		if (objv[objc] == NULL) {
+		if (objs[objc] == NULL) {
 		    rc = TCL_ERROR;
 		    goto done;
 		}
@@ -414,7 +413,6 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 	/*
 	 * Advance to the next command in the script.
 	 */
-
 	next = parse.commandStart + parse.commandSize;
 	bytesLeft -= next - p;
 	p = next;
@@ -426,8 +424,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
      */
 
     rc = Tcl_EvalObjv(interp, objc, objs, 0);
-
-    done:
+ done:
     for (i = 0; i < objc; i++) {
 	Tcl_DecrRefCount(objs[i]);
     }
@@ -544,16 +541,14 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 		/* since cases are initialized this way above */
 		/* ec.use = PAT_GLOB; */
 		if (i >= objc) {
-		    Tcl_WrongNumArgs(interp, 1, objv,
-				     "-glob pattern");
+		    Tcl_WrongNumArgs(interp, 1, objv,"-glob pattern");
 		    return TCL_ERROR;
 		}
 		goto pattern;
 	    case EXP_ARG_REGEXP:
 		i++;
 		if (i >= objc) {
-		    Tcl_WrongNumArgs(interp, 1, objv,
-				     "-regexp regexp");
+		    Tcl_WrongNumArgs(interp, 1, objv,"-regexp regexp");
 		    return TCL_ERROR;
 		}
 		ec.use = PAT_RE;

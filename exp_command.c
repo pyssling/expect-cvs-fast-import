@@ -227,7 +227,7 @@ expStateFromChannelName(interp,name,open,adjust,any,msg)
     if (!channel) return(0);
 
     chanName = Tcl_GetChannelName(channel);
-    if (0 != strncmp(chanName,"exp",3)) {
+    if (!isExpChannelName(chanName)) {
 	exp_error(interp,"%s: %s is not an expect channel - use spawn -open to convert",msg,chanName);
 	return(0);
     }
@@ -236,9 +236,6 @@ expStateFromChannelName(interp,name,open,adjust,any,msg)
 
     return expStateCheck(interp,esPtr,open,adjust,msg);
 }
-
-/* Tcl needs commands in writable space */
-static char close_cmd[] = "close";
 
 /* zero out the wait status field */
 static void
@@ -858,8 +855,7 @@ when trapping, see below in child half of fork */
 	return TCL_OK;
     }
 
-    if (NULL == (argv[0] = Tcl_TranslateFileName(interp, argv[0],
-	    &dstring))) {
+    if (NULL == (argv[0] = Tcl_TranslateFileName(interp,argv[0],&dstring))) {
 	goto parent_error;
     }
 
@@ -1631,7 +1627,10 @@ Tcl_VarTraceProc *updateproc;	/* proc to invoke if indirect is written */
 
 	i = exp_new_i();
 
+	i->direct = (isExpChannelName(arg)?EXP_DIRECT:EXP_INDIRECT);
+#if OBSOLETE
 	i->direct = (isdigit(arg[0]) || (arg[0] == '-'))?EXP_DIRECT:EXP_INDIRECT;
+#endif
 	if (i->direct == EXP_DIRECT) {
 		stringp = &i->value;
 	} else {
@@ -1673,23 +1672,30 @@ ExpState *esPtr;
 }
 
 /* this routine assumes i->esPtr is meaningful */
-void
-exp_i_parse_states(i) /* INTL */
+static void
+exp_i_parse_states(interp,i) /* INTL */
+Tcl_Interp *interp;
 struct exp_i *i;
 {
+    struct ExpState *esPtr;
     char *p = i->value;
     int argc;
     char **argv;
     int j;
 
-    if (Tcl_SplitList(NULL, p, &argc, &argv) != TCL_OK) {
-	return;
-    }
+    if (Tcl_SplitList(NULL, p, &argc, &argv) != TCL_OK) goto error;
 
     for (j = 0; j < argc; j++) {
-	exp_i_add_state(i,argv[j]);
+        esPtr = expStateFromChannelName(interp,argv[j],1,0,0,"");
+	if (!esPtr) goto error;
+	exp_i_add_state(i,esPtr);
     }
     ckfree((char*)argv);
+    return;
+error:
+    expDiagLogU("exp_i_parse_states: ");
+    expDiagLogU(Tcl_GetStringResult(interp));
+    return;
 }
 	
 /* updates a single exp_i struct */
@@ -1698,33 +1704,34 @@ exp_i_update(interp,i)
 Tcl_Interp *interp;
 struct exp_i *i;
 {
-	char *p;	/* string representation of list of spawn ids */
+  char *p;	/* string representation of list of spawn ids */
 
-	if (i->direct == EXP_INDIRECT) {
-		p = Tcl_GetVar(interp,i->variable,TCL_GLOBAL_ONLY);
-		if (!p) {
-			p = "";
-			/* *really* big variable names could blow up expDiagLog! */
-			expDiagLog("warning: indirect variable %s undefined",i->variable);
-		}
+  if (i->direct == EXP_INDIRECT) {
+    p = Tcl_GetVar(interp,i->variable,TCL_GLOBAL_ONLY);
+    if (!p) {
+      p = "";
+      /* *really* big variable names could blow up expDiagLog! */
+      expDiagLog("warning: indirect variable %s undefined",i->variable);
+    }
+    
+    if (i->value) {
+      if (streq(p,i->value)) return;
+      
+      /* replace new value with old */
+      ckfree(i->value);
+    }
+    i->value = ckalloc(strlen(p)+1);
+    strcpy(i->value,p);
 
-		if (i->value) {
-			if (streq(p,i->value)) return;
-
-			/* replace new value with old */
-			ckfree(i->value);
-		}
-		i->value = ckalloc(strlen(p)+1);
-		strcpy(i->value,p);
-
-		exp_free_state(i->state_list);
-		i->state_list = 0;
-	} else {
-		/* no free, because this should only be called on */
-		/* "direct" i's once */
-		i->state_list = 0;
-	}
-	exp_i_parse_states(interp, i);
+    exp_free_state(i->state_list);
+    i->state_list = 0;
+  } else {
+    /* no free, because this should only be called on */
+    /* "direct" i's once */
+    i->state_list = 0;
+  }
+  exp_i_parse_states(interp, i);
+  return;
 }
 
 struct exp_i *

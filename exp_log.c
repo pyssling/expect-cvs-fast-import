@@ -132,9 +132,17 @@ expLogInteractionU(esPtr,buf)
     if (tsdPtr->logAll || (tsdPtr->logUser && tsdPtr->logChannel)) {
 	Tcl_WriteChars(tsdPtr->logChannel,buf,-1);
     }
+
+    /* hmm.... if stdout is closed such as by disconnect, loguser
+       should be forced FALSE */
+
     /* don't write to user if they're seeing it already, i.e., typing it! */
-    if (tsdPtr->logUser && (!expStdinoutIs(esPtr)) && (!expDevttyIs(esPtr)))
-	Tcl_WriteChars(tsdPtr->logChannel,buf,-1);
+    if (tsdPtr->logUser && (!expStdinoutIs(esPtr)) && (!expDevttyIs(esPtr))) {
+	ExpState *stdinout = expStdinoutGet();
+	if (stdinout->valid) {
+	    Tcl_WriteChars(stdinout->channel,buf,-1);
+	}
+    }
     expDiagWriteChars(buf,-1);
 }
 
@@ -638,4 +646,5 @@ expLogInit()
     Tcl_DStringInit(&tsdPtr->logFilename);
     tsdPtr->logChannel = 0;
     tsdPtr->logAll = FALSE;
+    tsdPtr->logUser = TRUE;
 }

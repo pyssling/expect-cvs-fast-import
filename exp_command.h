@@ -43,7 +43,12 @@ EXTERN int exp_flageq_code _ANSI_ARGS_((char *,char *,int));
 	((string[0] == flag) && (string[1] == '\0'))
 
 #define EXP_SPAWN_ID_USER		0
-#define EXP_SPAWN_ID_ANY_LIT		"-1"
+#define EXP_SPAWN_ID_ANY_LIT		"exp?"
+
+#define EXP_CHANNEL_PREFIX "exp"
+#define EXP_CHANNEL_PREFIX_LENGTH 3
+#define isExpChannelName(name) \
+    (0 == strncmp(name,EXP_CHANNEL_PREFIX,EXP_CHANNEL_PREFIX_LENGTH))
 
 #define exp_is_stdinfd(x)	((x) == 0)
 #define exp_is_devttyfd(x)	((x) == exp_dev_tty)

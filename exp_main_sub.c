@@ -180,29 +180,31 @@ static char prompt1_default[] = "expect%d.%d> ";
 
 /*ARGSUSED*/
 int
-Exp_Prompt1Cmd(clientData, interp, argc, argv)
+Exp_Prompt1Cmd(clientData, interp, objc, objv)
 ClientData clientData;
 Tcl_Interp *interp;
-int argc;
-char **argv;
+int objc;
+Tcl_Obj *CONST objv[];		/* Argument objects. */
 {
-	Interp *iPtr = (Interp *)interp;
+    static char buffer[200];
 
-	sprintf(interp->result,prompt1_default,
-		iPtr->numLevels,history_nextid(interp));
-	return(TCL_OK);
+    Interp *iPtr = (Interp *)interp;
+
+    sprintf(buffer,prompt1_default,iPtr->numLevels,history_nextid(interp));
+    Tcl_SetResult(interp,buffer,TCL_STATIC);
+    return(TCL_OK);
 }
 
 /*ARGSUSED*/
 int
-Exp_Prompt2Cmd(clientData, interp, argc, argv)
+Exp_Prompt2Cmd(clientData, interp, objc, objv)
 ClientData clientData;
 Tcl_Interp *interp;
-int argc;
-char **argv;
+int objc;
+Tcl_Obj *CONST objv[];
 {
-	strcpy(interp->result,prompt2_default);
-	return(TCL_OK);
+    Tcl_SetResult(interp,prompt2_default,TCL_STATIC);
+    return(TCL_OK);
 }
 
 /*ARGSUSED*/

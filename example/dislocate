@@ -182,7 +182,6 @@ proc child {argdate argv} {
     global infifosuffix outfifosuffix
 
     disconnect
-
     # these are backwards from the child's point of view so that
     # we can make everything else look "right"
     set  infifosuffix ".o"
@@ -263,7 +262,9 @@ if {$argc} {
     set datearg [clock format [clock seconds]]
 
     fifo_pair_create 0 $datearg $argv
-after 4000
+
+    # to debug by faking child, comment out fork and set pid to a
+    # non-zero int, then you can read/write to pipes manually
 
     set pid [fork]
     say "after fork, pid = $pid"

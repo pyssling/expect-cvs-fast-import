@@ -685,6 +685,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
 
+    Tcl_Obj *CONST *objv_copy;	/* original, for error messages */
     char *string;
     char *arg;	/* shorthand for current argv */
 #ifdef SIMPLE_EVENT
@@ -756,6 +757,8 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 	return(exp_eval_with_one_arg(clientData,interp,new_objv));
     }
 
+    objv_copy = objv;
+
     objv++;
     objc--;
 
@@ -795,7 +798,6 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
     /*
      * Parse the command arguments.
      */
-
     for (;objc>0;objc--,objv++) {
 	string = Tcl_GetString(*objv);
 	if (string[0] == '-') {
@@ -837,7 +839,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 		    goto pattern;
 		case EXP_SWITCH_REGEXP:
 		    if (objc < 1) {
-			exp_error(interp,"-re needs pattern");
+			Tcl_WrongNumArgs(interp,1,objv_copy,"-re pattern");
 			return(TCL_ERROR);
 		    }
 		    next_re = TRUE;
@@ -875,7 +877,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 		    inp->next = 0;
 		    objc--;objv++;
 		    if (objc < 1) {
-			exp_error(interp,"-input needs argument");
+			Tcl_WrongNumArgs(interp,1,objv_copy,"-input spawn_id");
 			return(TCL_ERROR);
 		    }
 		    inp->i_list = exp_new_i_complex(interp,Tcl_GetString(*objv),
@@ -896,7 +898,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 
 		    objc--;objv++;
 		    if (objc < 1) {
-			exp_error(interp,"-output needs argument");
+			Tcl_WrongNumArgs(interp,1,objv_copy,"-output spawn_id");
 			return(TCL_ERROR);
 		    }
 		    outp->i_list = exp_new_i_complex(interp,Tcl_GetString(*objv),
@@ -909,7 +911,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 		case EXP_SWITCH_USER:
 		    objc--;objv++;
 		    if (objc < 1) {
-			exp_error(interp,"-u needs argument");
+			Tcl_WrongNumArgs(interp,1,objv_copy,"-u spawn_id");
 			return(TCL_ERROR);
 		    }
 		    replace_user_by_process = *objv;
@@ -986,7 +988,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 
 		    objc--;objv++;
 		    if (objc < 1) {
-			exp_error(interp,"-timeout needs time");
+			Tcl_WrongNumArgs(interp,1,objv_copy,"-timeout time");
 			return(TCL_ERROR);
 		    }
 
@@ -1066,7 +1068,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 
 		    objc--;objv++;
 		    if (objc < 1) {
-			exp_error(interp,"timeout needs time");
+			Tcl_WrongNumArgs(interp,1,objv_copy,"timeout time");
 			return(TCL_ERROR);
 		    }
 		    if (Tcl_GetIntFromObj(interp, *objv, &t) != TCL_OK) {
@@ -1137,8 +1139,12 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 	}
 
 	objc--;objv++;
+	if (objc >= 1) {
+	    km->action.statement = *objv;
+	} else {
+	    km->action.statement = 0;
+	}
 
-	km->action.statement = *objv;
 	expDiagLogU("defining key ");
 	expDiagLogU(Tcl_GetString(km->keys));
 	expDiagLogU(", action ");
@@ -2150,6 +2156,8 @@ Tcl_Interp *interp;
 
     tsdPtr->cmdObjReturn = Tcl_NewStringObj("return",6);
     Tcl_IncrRefCount(tsdPtr->cmdObjReturn);
+#if 0
     tsdPtr->cmdObjInterpreter = Tcl_NewStringObj("interpreter",11);
     Tcl_IncrRefCount(tsdPtr->cmdObjInterpreter);
+#endif
 }
