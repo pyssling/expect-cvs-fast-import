@@ -155,7 +155,7 @@ exp_fcheck(interp,f,opened,adjust,msg)
     struct exp_f *f;
     int opened;		/* check not closed */
     int adjust;		/* adjust buffer sizes */
-    char *msg;
+    CONST char *msg;
 {
     if ((!opened) || (!f->user_closed)) {
 	if (adjust) {

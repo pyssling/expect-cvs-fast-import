@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expInt.h,v 1.1.2.6 2001/11/07 10:06:30 davygrvy Exp $
+ * RCS: @(#) $Id: expInt.h,v 1.1.4.1 2002/02/10 02:58:52 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -85,6 +85,16 @@
 #define EXP_CMD_AFTER	1
 #define EXP_CMD_BG	2
 #define EXP_CMD_FG	3
+
+#define streq(x,y)	(0 == strcmp((x),(y)))
+#define dprintify(x)	((exp_is_debugging || exp_debugfile)?exp_printify(x):0)
+
+#define exp_flageq(flag,string,minlen) \
+(((string)[0] == (flag)[0]) && (exp_flageq_code(((flag)+1),((string)+1),((minlen)-1))))
+
+/* exp_flageq for single char flags */
+#define exp_flageq1(flag,string) \
+	((string[0] == flag) && (string[1] == '\0'))
 
 
 /* each process is associated with a 'struct exp_f'.  An array of these */
@@ -202,24 +212,21 @@ struct exp_i {
  * definitions for creating commands
  */
 
-#define EXP_NOPREFIX	1	/* don't define with "exp_" prefix */
-#define EXP_REDEFINE	2	/* stomp on old commands with same name */
-
-#define exp_proc(cmdproc) 0, cmdproc
+#define EXP_NOPREFIX	    1	/* don't define with "exp_" prefix */
+#define EXP_REDEFINE	    2	/* stomp on old commands with same name */
+#define exp_proc(cmdproc)   0, cmdproc
+#define exp_deleteProc	    ((Tcl_CmdDeleteProc *) NULL)
+#define exp_deleteProc	    ((Tcl_CmdDeleteProc *) NULL)
 
 struct exp_cmd_data {
-	char		*name;
-	Tcl_ObjCmdProc	*objproc;
-	Tcl_CmdProc	*proc;
-	ClientData	data;
-	int 		flags;
+    char	    *name;
+    Tcl_ObjCmdProc  *objproc;
+    Tcl_CmdProc	    *proc;
+    ClientData	    data;
+    int		    flags;
 };
 
-#define exp_deleteProc ((Tcl_CmdDeleteProc *) NULL)
-#define exp_deleteProc ((Tcl_CmdDeleteProc *) NULL)
 
-
-#define streq(x,y)	(0 == strcmp((x),(y)))
 
 #define EXP_TEMPORARY	1	/* expect */
 #define EXP_PERMANENT	2	/* expect_after, expect_before, expect_bg */
@@ -229,83 +236,63 @@ struct exp_cmd_data {
 
 typedef struct {
     Tcl_Channel channelPtr;
-    int toWrite;
+    int		toWrite;
 } ExpSpawnState;
 
+
 /*
- * Table of struct exp_f
+ * ----------------------------------------
+ * Global variables that are externalized.
+ * ----------------------------------------
  */
+
+
+/* Table of struct exp_f */
 TCL_EXTERN(Tcl_HashTable *) exp_f_table;
 
-TCL_EXTERN(struct exp_f *) exp_f_any;
-TCL_EXTERN(int) exp_default_match_max;
-TCL_EXTERN(int) exp_default_parity;
-TCL_EXTERN(int) exp_default_rm_nulls;
-
-
-#define dprintify(x)	((exp_is_debugging || exp_debugfile)?exp_printify(x):0)
-
-#define exp_flageq(flag,string,minlen) \
-(((string)[0] == (flag)[0]) && (exp_flageq_code(((flag)+1),((string)+1),((minlen)-1))))
-
-/* exp_flageq for single char flags */
-#define exp_flageq1(flag,string) \
-	((string[0] == flag) && (string[1] == '\0'))
-
-TCL_EXTERN(struct exp_f *) exp_dev_tty;
-TCL_EXTERN(char *) exp_dev_tty_id;
-TCL_EXTERN(int) exp_stdin_is_tty;
-TCL_EXTERN(int) exp_stdout_is_tty;
-
+TCL_EXTERN(char *)	    exp_onexit_action;
+TCL_EXTERN(Tcl_Channel)	    exp_debugfile;
+TCL_EXTERN(Tcl_Channel)	    exp_logfile;
+TCL_EXTERN(int)		    exp_logfile_all;
+TCL_EXTERN(int)		    exp_loguser;
+/* useful to know to avoid debug calls */
+TCL_EXTERN(int)		    exp_is_debugging;
+TCL_EXTERN(struct exp_f *)  exp_f_any;
+TCL_EXTERN(int)		    exp_default_match_max;
+TCL_EXTERN(int)		    exp_default_parity;
+TCL_EXTERN(int)		    exp_default_rm_nulls;
+TCL_EXTERN(struct exp_f *)  exp_dev_tty;
+TCL_EXTERN(char *)	    exp_dev_tty_id;
+TCL_EXTERN(int)		    exp_stdin_is_tty;
+TCL_EXTERN(int)		    exp_stdout_is_tty;
 /* procedure to close files in child */
-TCL_EXTERN(void) (*exp_close_in_child) _ANSI_ARGS_((void));
+TCL_EXTERN(void)	    (*exp_close_in_child) _ANSI_ARGS_((void));
 /* place to pass a string generated */
-TCL_EXTERN(char *) exp_pty_error;
+TCL_EXTERN(char *)	    exp_pty_error;
 /* pid of Expect itself */
-TCL_EXTERN(int) exp_getpid;
-
-TCL_EXTERN(Tcl_Interp *) exp_interp;
-TCL_EXTERN(void) (*exp_event_exit) _ANSI_ARGS_((Tcl_Interp *interp));
-
+TCL_EXTERN(int)		    exp_getpid;
+TCL_EXTERN(Tcl_Interp *)    exp_interp;
+TCL_EXTERN(void)	    (*exp_event_exit) _ANSI_ARGS_((Tcl_Interp *interp));
+/* # of times descriptors have been closed
+ * or indirect lists have been changed */
+TCL_EXTERN(int)		    exp_configure_count;	
+/* TRUE if user has requested unrolling of
+ * stack with no trace */
+TCL_EXTERN(int)		    exp_nostack_dump;
+TCL_EXTERN(int)		    expect_key;
 
 /* protos not yet moved to the Stubs table */
-TCL_EXTERN(struct exp_f *)	exp_chan2f _ANSI_ARGS_((Tcl_Interp *,CONST char *,int,int,CONST char *));
-TCL_EXTERN(int)		exp_fcheck _ANSI_ARGS_((Tcl_Interp *, struct exp_f *,
-			    int,int,char *));
-TCL_EXTERN(void)		exp_adjust _ANSI_ARGS_((struct exp_f *));
-TCL_EXTERN(void)		exp_buffer_shuffle _ANSI_ARGS_((Tcl_Interp *,struct exp_f *,int,char *,char *));
-TCL_EXTERN(int)		exp_close_fd _ANSI_ARGS_((Tcl_Interp *,int));
-TCL_EXTERN(int)		exp_close _ANSI_ARGS_((Tcl_Interp *,struct exp_f *));
-TCL_EXTERN(void)		exp_close_all _ANSI_ARGS_((Tcl_Interp *));
-TCL_EXTERN(void)		exp_ecmd_remove_f_direct_and_indirect 
-				_ANSI_ARGS_((Tcl_Interp *,struct exp_f *));
-TCL_EXTERN(void)		exp_trap_on _ANSI_ARGS_((int));
-TCL_EXTERN(int)		exp_trap_off _ANSI_ARGS_((char *));
-
-TCL_EXTERN(void)		exp_strftime();
-
-TCL_EXTERN(int) expect_key;
-TCL_EXTERN(int) exp_configure_count;	/* # of times descriptors have been closed */
-				/* or indirect lists have been changed */
-TCL_EXTERN(int) exp_nostack_dump;	/* TRUE if user has requested unrolling of */
-				/* stack with no trace */
-
-TCL_EXTERN(void)		exp_init_pty _ANSI_ARGS_((Tcl_Interp *));
-TCL_EXTERN(void)		exp_pty_exit _ANSI_ARGS_((void));
-TCL_EXTERN(void)		exp_init_tty _ANSI_ARGS_((Tcl_Interp *));
-TCL_EXTERN(void)		exp_init_stdio _ANSI_ARGS_((void));
+//TCL_EXTERN(int)		exp_fcheck _ANSI_ARGS_((Tcl_Interp *, struct exp_f *,int,int,char *));
+//TCL_EXTERN(void)		exp_buffer_shuffle _ANSI_ARGS_((Tcl_Interp *,struct exp_f *,int,char *,char *));
+//TCL_EXTERN(int)		exp_close_fd _ANSI_ARGS_((Tcl_Interp *,int));
+//TCL_EXTERN(void)		exp_close_all _ANSI_ARGS_((Tcl_Interp *));
+//TCL_EXTERN(void)		exp_trap_on _ANSI_ARGS_((int));
+//TCL_EXTERN(int)		exp_trap_off _ANSI_ARGS_((char *));
+//TCL_EXTERN(void)		exp_strftime();
 /*EXTERN(void)		exp_init_expect _ANSI_ARGS_((Tcl_Interp *));*/
-TCL_EXTERN(void)		exp_init_spawn_ids _ANSI_ARGS_((Tcl_Interp *));
-TCL_EXTERN(void)		exp_init_spawn_id_vars _ANSI_ARGS_((Tcl_Interp *));
-TCL_EXTERN(void)		exp_init_trap _ANSI_ARGS_((void));
-TCL_EXTERN(void)		exp_init_unit_random _ANSI_ARGS_((void));
-TCL_EXTERN(void)		exp_init_sig _ANSI_ARGS_((void));
-
-TCL_EXTERN(int)		exp_tcl2_returnvalue _ANSI_ARGS_((int));
-TCL_EXTERN(int)		exp_2tcl_returnvalue _ANSI_ARGS_((int));
-
-TCL_EXTERN(void)		exp_rearm_sigchld _ANSI_ARGS_((Tcl_Interp *));
-TCL_EXTERN(int)		exp_string_to_signal _ANSI_ARGS_((Tcl_Interp *,char *));
+//TCL_EXTERN(int)		exp_tcl2_returnvalue _ANSI_ARGS_((int));
+//TCL_EXTERN(int)		exp_2tcl_returnvalue _ANSI_ARGS_((int));
+//TCL_EXTERN(int)		exp_string_to_signal _ANSI_ARGS_((Tcl_Interp *,char *));
 
 #include "expIntDecls.h"
 

@@ -91,7 +91,6 @@
 #endif
 
 #ifndef __STDC__
-#define const
 
 static int weeknumber();
 adddecl(static int iso8601wknum();)
@@ -105,34 +104,34 @@ adddecl(static int iso8601wknum(const struct tm *timeptr);)
 /* attempt to use strftime to compute timezone, else fallback to */
 /* less portable ways */
 #if !defined(HAVE_STRFTIME)
-# if defined(HAVE_SV_TIMEZONE)
-#ifndef __WIN32__
-extern char *tzname[2];
-extern int daylight;
-#endif
-# else
-#  if defined(HAVE_TIMEZONE)
+#   if defined(HAVE_SV_TIMEZONE)
+#	ifndef __WIN32__
+	    extern char *tzname[2];
+	    extern int daylight;
+#	endif
+#   else
+#	if defined(HAVE_TIMEZONE)
 
-char           *
+char *
 zone_name (tp)
-struct tm      *tp;
+    struct tm *tp;
 {
-	char           *timezone ();
-	struct timeval  tv;
-	struct timezone tz;
+    char *timezone ();
+    struct timeval  tv;
+    struct timezone tz;
 
-	gettimeofday (&tv, &tz);
+    gettimeofday (&tv, &tz);
 
-	return timezone (tz.tz_minuteswest, tp->tm_isdst);
+    return timezone (tz.tz_minuteswest, tp->tm_isdst);
 }
 
-#  endif /* HAVE_TIMEZONE */
-# endif /* HAVE_SV_TIMEZONE */
+#	endif /* HAVE_TIMEZONE */
+#   endif /* HAVE_SV_TIMEZONE */
 #endif /* HAVE_STRFTIME */
 
 static int
 range(low,item,hi)
-int low, item, hi;
+    int low, item, hi;
 {
 	if (item < low) return low;
 	if (item > hi) return hi;
@@ -147,7 +146,7 @@ void
 exp_strftime(/*s,*/ format, timeptr, dstring)
 /*char *s;*/
 char *format;
-const struct tm *timeptr;
+CONST struct tm *timeptr;
 Tcl_DString *dstring;
 #else
 /*exp_strftime(char *s, size_t maxsize, const char *format, const struct tm *timeptr)*/

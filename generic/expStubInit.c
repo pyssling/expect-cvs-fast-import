@@ -3,7 +3,7 @@
  *
  *	This file contains the initializers for the Expect stub vectors.
  *
- * RCS: @(#) $Id: expStubInit.c,v 1.1.2.4 2001/11/07 10:06:30 davygrvy Exp $
+ * RCS: @(#) $Id: expStubInit.c,v 1.1.4.1 2002/02/10 02:58:53 davygrvy Exp $
  */
 
 #include "expInt.h"
@@ -31,6 +31,22 @@ ExpIntStubs expIntStubs = {
     exp_free_fs, /* 8 */
     exp_free_fs_single, /* 9 */
     exp_i_update, /* 10 */
+    exp_pty_exit, /* 11 */
+    exp_init_spawn_ids, /* 12 */
+    exp_init_pty, /* 13 */
+    exp_init_tty, /* 14 */
+    exp_init_stdio, /* 15 */
+    exp_init_sig, /* 16 */
+    exp_init_trap, /* 17 */
+    exp_init_unit_random, /* 18 */
+    exp_init_spawn_id_vars, /* 19 */
+    exp_adjust, /* 20 */
+    exp_ecmd_remove_f_direct_and_indirect, /* 21 */
+    exp_rearm_sigchld, /* 22 */
+    exp_chan2f, /* 23 */
+    exp_fcheck, /* 24 */
+    exp_close, /* 25 */
+    exp_strftime, /* 26 */
 };
 
 ExpIntPlatStubs expIntPlatStubs = {

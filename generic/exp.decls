@@ -5,7 +5,7 @@
 #	This file is used to generate the expDecls.h, expPlatDecls.h,
 #	expIntDecls.h, and expStub.c files.
 #
-# RCS: @(#) $Id: exp.decls,v 1.1.2.5 2001/11/15 08:23:05 davygrvy Exp $
+# RCS: @(#) $Id: exp.decls,v 1.1.4.1 2002/02/10 02:58:03 davygrvy Exp $
 
 library exp
 
@@ -398,6 +398,58 @@ declare 9 generic {
 }
 declare 10 generic {
     void exp_i_update (Tcl_Interp *interp, struct exp_i *i)
+}
+declare 11 generic {
+    void exp_pty_exit (void)
+}
+declare 12 generic {
+    void exp_init_spawn_ids (Tcl_Interp *interp)
+}
+declare 13 generic {
+    void exp_init_pty (Tcl_Interp *interp)
+}
+declare 14 generic {
+    void exp_init_tty (Tcl_Interp *interp)
+}
+declare 15 generic {
+    void exp_init_stdio (void)
+}
+declare 16 generic {
+    void exp_init_sig (void)
+}
+declare 17 generic {
+    void exp_init_trap (void)
+}
+declare 18 generic {
+    void exp_init_unit_random (void)
+}
+declare 19 generic {
+    void exp_init_spawn_id_vars (Tcl_Interp *interp)
+}
+declare 20 generic {
+    void exp_adjust (struct exp_f *f)
+}
+declare 21 generic {
+    void exp_ecmd_remove_f_direct_and_indirect (Tcl_Interp *interp,
+	struct exp_f *f)
+}
+declare 22 generic {
+    void exp_rearm_sigchld (Tcl_Interp *interp)
+}
+declare 23 generic {
+    struct exp_f * exp_chan2f (Tcl_Interp *interp, CONST char *chan,
+	int opened, int adjust, CONST char *msg)
+}
+declare 24 generic {
+    int exp_fcheck (Tcl_Interp *interp, struct exp_f *f, int opened,
+	int adjust, CONST char *msg)
+}
+declare 25 generic {
+    int exp_close (Tcl_Interp *interp, struct exp_f *f)
+}
+declare 26 generic {
+    void exp_strftime (char *format, const struct tm *timeptr,
+	Tcl_DString *dstring)
 }
 
 interface expIntPlat

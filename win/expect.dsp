@@ -128,25 +128,24 @@ SOURCE=..\generic\exp.decls
 
 # Begin Custom Build - Rebuilding the Stubs table...
 InputDir=\expect_wslive\expect_win32_take2\generic
-TargetDir=.\Debug
 InputPath=..\generic\exp.decls
 
 BuildCmds= \
 	c:\progra~1\tcl\bin\tclsh84 d:/tcl_workspace/tcl_head/tools/genStubs.tcl $(InputDir) $(InputPath)
 
-"$(TargetDir)\expDecls.h" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+"$(InputDir)\expDecls.h" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
    $(BuildCmds)
 
-"$(TargetDir)\expPlatDecls.h" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+"$(InputDir)\expPlatDecls.h" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
    $(BuildCmds)
 
-"$(TargetDir)\expIntDecls.h" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+"$(InputDir)\expIntDecls.h" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
    $(BuildCmds)
 
-"$(TargetDir)\expIntPlatDecls.h" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+"$(InputDir)\expIntPlatDecls.h" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
    $(BuildCmds)
 
-"$(TargetDir)\expStubInit.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+"$(InputDir)\expStubInit.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
    $(BuildCmds)
 # End Custom Build
 
