@@ -23,7 +23,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinPort.h,v 1.1.2.1.2.3 2002/02/10 12:03:30 davygrvy Exp $
+ * RCS: @(#) $Id: expWinPort.h,v 1.1.2.1.2.4 2002/02/11 09:56:00 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -79,7 +79,7 @@
 
 
 #undef TCL_STORAGE_CLASS
-#if defined(BUILD_spawndriver)
+#if defined(BUILD_slavedriver)
 #   define TCL_STORAGE_CLASS
 #elif defined(BUILD_exp)
 #   define TCL_STORAGE_CLASS DLLEXPORT
@@ -96,7 +96,7 @@ extern tclWinMakeFileProcType tclWinMakeFileProc;
 
 
 #include "expPlatDecls.h"
-#include "expIntPlatDecls.h"
+/*#include "expIntPlatDecls.h"*/
 
 #undef TCL_STORAGE_CLASS
 #define TCL_STORAGE_CLASS DLLIMPORT
