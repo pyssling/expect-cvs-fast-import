@@ -42,14 +42,6 @@ dnl unset MFLAGS MAKEFLAGS
 MFLAGS=
 MAKEFLAGS=
 
-CY_AC_PATH_TCLCONFIG
-CY_AC_LOAD_TCLCONFIG
-CC=$TCL_CC
-EXP_AND_TCL_LIBS=$TCL_LIBS
-CY_AC_PATH_TKCONFIG
-CY_AC_LOAD_TKCONFIG
-EXP_AND_TK_LIBS=$TK_LIBS
-
 # An explanation is in order for the strange things going on with the
 # various LIBS.  There are three separate definitions for LIBS.  The
 # reason is that some systems require shared libraries include
@@ -76,6 +68,16 @@ dnl end alas, because the user might have defined CFLAGS.
 OLD_CFLAGS=$CFLAGS
 AC_PROG_CC
 CFLAGS=$OLD_CFLAGS
+
+
+CY_AC_PATH_TCLCONFIG
+CY_AC_LOAD_TCLCONFIG
+CC=$TCL_CC
+EXP_AND_TCL_LIBS=$TCL_LIBS
+CY_AC_PATH_TKCONFIG
+CY_AC_LOAD_TKCONFIG
+EXP_AND_TK_LIBS=$TK_LIBS
+
 
 CY_AC_C_WORKS
 

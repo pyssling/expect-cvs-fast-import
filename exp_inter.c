@@ -302,7 +302,7 @@ in_keymap(esPtr,keymap,km_match,match_length,skip)
 			TCL_REG_ADVANCED|TCL_REG_BOSONLY);
 		flags = (offset > 0) ? TCL_REG_NOTBOL : 0;
 
-		result = Tcl_RegExpMatchObj(NULL, re, esPtr->buffer, offset,
+		result = Tcl_RegExpExecObj(NULL, re, esPtr->buffer, offset,
 			-1 /* nmatches */, flags);
 		if (result > 0) {
 		    *km_match = km;

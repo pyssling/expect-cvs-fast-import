@@ -822,7 +822,7 @@ char *suffix;
 		    
 	re = Tcl_GetRegExpFromObj(interp, e->pat, flags);
 
-	result = Tcl_RegExpMatchObj(interp, re, buffer, 0 /* offset */,
+	result = Tcl_RegExpExecObj(interp, re, buffer, 0 /* offset */,
 		-1 /* nmatches */, 0 /* eflags */);
 	if (result < 0) {
 	    expDiagLogU(no);

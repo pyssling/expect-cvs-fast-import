@@ -181,7 +181,7 @@ struct breakpoint *bp;	/* breakpoint to test */
     if (bp->re) {
 	Tcl_RegExp re = Tcl_GetRegExpFromObj(NULL, bp->pat,
 		TCL_REG_ADVANCED);
-	if (Tcl_RegExpMatchObj(NULL, re, cmd, 0 /* offset */,
+	if (Tcl_RegExpExecObj(NULL, re, cmd, 0 /* offset */,
 		-1 /* nmatches */, 0 /* eflags */) > 0) {
 	    save_re_matches(interp, re, cmd);
 	}
