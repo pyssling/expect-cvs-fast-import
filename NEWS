@@ -126,7 +126,7 @@ include:
   expect -timestamp (flag only; behavior itself was removed years ago)
   expect -iwrite (flag only; behavior occurs all the time)
   expect_version (use "exp_version" command)
-  expect_library (use "exp_library" command)
+  expect_library (use "exp_library" global variable)
   interact -eof (use "eof" keyword)
   interact -timeout (use "timeout" keyword)
   interact -timestamp (use "clock" command)
