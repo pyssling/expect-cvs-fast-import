@@ -76,7 +76,7 @@ extern void TclRegError();
 #define new(x)	(x *)ckalloc(sizeof(x))
 
 struct action {
-	char *statement;
+	Tcl_Obj *statement;
 	int tty_reset;		/* if true, reset tty mode upon action */
 	int iread;		/* if true, reread indirects */
 	int iwrite;		/* if true, write spawn_id element */
@@ -85,7 +85,7 @@ struct action {
 };
 
 struct keymap {
-	char *keys;	/* original pattern provided by user */
+	Tcl_Obj *keys;	/* original pattern provided by user */
 	regexp *re;
 	int null;	/* true if looking to match 0 byte */
 	int case_sensitive;
@@ -515,8 +515,8 @@ int
 Exp_InteractCmd(clientData, interp, argc, argv)
 ClientData clientData;
 Tcl_Interp *interp;
-int argc;
-char **argv;
+int objc;
+Tcl_Obj *CONST objv[];		/* Argument objects. */
 {
     char *arg;	/* shorthand for current argv */
 #ifdef SIMPLE_EVENT
@@ -530,7 +530,7 @@ char **argv;
     ExpState **esPtrs;
     struct keymap *km;	/* ptr for above while parsing */
     ExpState *esPtr = 0;
-    char *chanName = 0;
+    Tcl_Obj *chanName = 0;
     int need_to_close_master = FALSE;	/* if an eof is received */
 				/* we use this to defer close until later */
 
@@ -543,7 +543,6 @@ char **argv;
     int next_indices = FALSE;/* if we should write indices */
     int next_echo = FALSE;	/* if macros should be echoed */
     int next_timestamp = FALSE; /* if we should generate a timestamp */
-    char **oldargv = 0;	/* save original argv here if we split it */
     int status = TCL_OK;	/* final return value */
     int i;			/* trusty temp */
 
@@ -556,7 +555,7 @@ char **argv;
     int was_echo;
     exp_tty tty_old;
 
-    char *replace_user_by_process = 0; /* for -u flag */
+    Tcl_Obj *replace_user_by_process = 0; /* for -u flag */
 
     struct input *input_base;
 #define input_user input_base
@@ -578,17 +577,17 @@ char **argv;
     int key;
     int configure_count;	/* monitor reconfigure events */
 
-    if ((argc == 2) && exp_one_arg_braced(argv[1])) {
-	return(exp_eval_with_one_arg(clientData,interp,argv));
-    } else if ((argc == 3) && streq(argv[1],"-brace")) {
-	char *new_argv[2];
-	new_argv[0] = argv[0];
-	new_argv[1] = argv[2];
-	return(exp_eval_with_one_arg(clientData,interp,new_argv));
+    if ((objc == 2) && exp_one_arg_braced(objv[1])) {
+	return(exp_eval_with_one_arg(clientData,interp,objv));
+    } else if ((objc == 3) && streq(argv[1],"-brace")) {
+	Tcl_Obj *new_objv[2];
+	new_objv[0] = objv[0];
+	new_objv[1] = objv[2];
+	return(exp_eval_with_one_arg(clientData,interp,new_objv));
     }
 
-    argv++;
-    argc--;
+    objv++;
+    objc--;
 
     default_timeout = EXP_TIME_INFINITY;
     arbitrary_timeout = EXP_TIME_INFINITY;	/* if user specifies */
@@ -624,386 +623,432 @@ char **argv;
     action_eof.iwrite = FALSE;
     action_eof.timestamp = FALSE;
 
-	for (;argc>0;argc--,argv++) {
-		arg = *argv;
-		if (exp_flageq("eof",arg,3)) {
-			struct action *action;
+    /*
+     * Parse the command arguments.
+     */
 
-			argc--;argv++;
-			*action_eof_ptr = action = new_action(&action_base);
+    for (;objc>0;objc--,objv++) {
+	string = Tcl_GetString(objv);
+	if (string[0] == '-') {
+	    static char *switches[] = {
+		"--",		"-exact",	"-re",		"-input",
+		"-output",	"-u",		"-o",		"-i",
+		"-echo",	"-nobuffer",	"-indices",	"-f",
+		"-reset",	"-F",		"-iread",	"-iwrite",
+		"-eof",		"-timeout",	"-timestamp",	"-nobrace"
+	    };
+	    enum switches {
+		EXP_SWITCH_DASH,	EXP_SwITCH_EXACT,
+		EXP_SWITCH_REGEXP,	EXP_SWITCH_INPUT,
+		EXP_SWITCH_OUTPUT,	EXP_SWITCH_USER,
+		EXP_SWITCH_OPPOSITE,	EXP_SWITCH_SPAWN_ID,
+		EXP_SWITCH_ECHO,	EXP_SWITCH_NOBUFFER,
+		EXP_SWITCH_INDICES,	EXP_SWITCH_FAST,
+		EXP_SWITCH_RESET,	EXP_SWITCH_CAPFAST,
+		EXP_SWITCH_IREAD,	EXP_SWITCH_IWRITE,
+		EXP_SWITCH_EOF,		EXP_SWITCH_TIMEOUT,
+		EXP_SWITCH_TIMESTAMP,	EXP_SWITCH_NOBRACE
+	    };
+	    int index;
 
-			action->statement = *argv;
+	    /*
+	     * Allow abbreviations of switches and report an error if we
+	     * get an invalid switch.
+	     */
 
-			action->tty_reset = next_tty_reset;
-			next_tty_reset = FALSE;
-			action->iwrite = next_iwrite;
-			next_iwrite = FALSE;
-			action->iread = next_iread;
-			next_iread = FALSE;
-			action->timestamp = next_timestamp;
-			next_timestamp = FALSE;
-			continue;
-		} else if (exp_flageq("timeout",arg,7)) {
-			int t;
-			struct action *action;
-
-			argc--;argv++;
-			if (argc < 1) {
-				exp_error(interp,"timeout needs time");
-				return(TCL_ERROR);
-			}
-			t = atoi(*argv);
-			argc--;argv++;
-
-			/* we need an arbitrary timeout to start */
-			/* search for lowest one later */
-			if (t != -1) arbitrary_timeout = t;
-
-			timeout_simple = FALSE;
-			action = inp->action_timeout = new_action(&action_base);
-			inp->timeout_nominal = t;
-
-			action->statement = *argv;
-
-			action->tty_reset = next_tty_reset;
-			next_tty_reset = FALSE;
-			action->iwrite = next_iwrite;
-			next_iwrite = FALSE;
-			action->iread = next_iread;
-			next_iread = FALSE;
-			action->timestamp = next_timestamp;
-			next_timestamp = FALSE;
-			continue;
-		} else if (exp_flageq("null",arg,4)) {
-			next_null = TRUE;			
-		} else if (arg[0] == '-') {
-			arg++;
-			if (exp_flageq1('-',arg)		/* "--" */
-			 || (exp_flageq("exact",arg,3))) {
-				argc--;argv++;
-			} else if (exp_flageq("regexp",arg,2)) {
-				if (argc < 1) {
-					exp_error(interp,"-re needs pattern");
-					return(TCL_ERROR);
-				}
-				next_re = TRUE;
-				argc--;
-				argv++;
-			} else if (exp_flageq("input",arg,2)) {
-				dash_input_count++;
-				if (dash_input_count == 2) {
-					inp = input_default;
-					input_user->next = input_default;
-				} else if (dash_input_count > 2) {
-					struct input *previous_input = inp;
-					inp = new(struct input);
-					previous_input->next = inp;
-				}
-				inp->output = 0;
-				inp->action_eof = &action_eof;
-				action_eof_ptr = &inp->action_eof;
-				inp->timeout_nominal = default_timeout;
-				inp->action_timeout = &action_timeout;
-				inp->keymap = 0;
-				end_km = &inp->keymap;
-				inp->next = 0;
-				argc--;argv++;
-				if (argc < 1) {
-					exp_error(interp,"-input needs argument");
-					return(TCL_ERROR);
-				}
-/*				inp->spawn_id = atoi(*argv);*/
-				inp->i_list = exp_new_i_complex(interp,*argv,
-						EXP_TEMPORARY,inter_updateproc);
-				continue;
-			} else if (exp_flageq("output",arg,3)) {
-				struct output *tmp;
-
-				/* imply a "-input" */
-				if (dash_input_count == 0) dash_input_count = 1;
-
-				outp = new(struct output);
-
-				/* link new output in front of others */
-				tmp = inp->output;
-				inp->output = outp;
-				outp->next = tmp;
-
-				argc--;argv++;
-				if (argc < 1) {
-					exp_error(interp,"-output needs argument");
-					return(TCL_ERROR);
-				}
-				outp->i_list = exp_new_i_complex(interp,*argv,
-					EXP_TEMPORARY,inter_updateproc);
-
-				outp->action_eof = &action_eof;
-				action_eof_ptr = &outp->action_eof;
-				continue;
-			} else if (exp_flageq1('u',arg)) {	/* treat process as user */
-				argc--;argv++;
-				if (argc < 1) {
-					exp_error(interp,"-u needs argument");
-					return(TCL_ERROR);
-				}
-				replace_user_by_process = *argv;
-
-				/* imply a "-input" */
-				if (dash_input_count == 0) dash_input_count = 1;
-
-				continue;
-			} else if (exp_flageq1('o',arg)) {
-				/* apply following patterns to opposite side */
-				/* of interaction */
-
-				end_km = &input_default->keymap;
-
-				/* imply two "-input" */
-				if (dash_input_count < 2) {
-					dash_input_count = 2;
-					inp = input_default;
-					action_eof_ptr = &inp->action_eof;
-				}
-				continue;
-			} else if (exp_flageq1('i',arg)) {
-				/* substitute master */
-
-				argc--;argv++;
-				chanName = *argv;
-				/* will be used later on */
-
-				end_km = &input_default->keymap;
-
-				/* imply two "-input" */
-				if (dash_input_count < 2) {
-					dash_input_count = 2;
-					inp = input_default;
-					action_eof_ptr = &inp->action_eof;
-				}
-				continue;
-/*			} else if (exp_flageq("nocase",arg,3)) {*/
-/*				next_case_sensitive = FALSE;*/
-/*				continue;*/
-			} else if (exp_flageq("echo",arg,4)) {
-				next_echo = TRUE;
-				continue;
-			} else if (exp_flageq("nobuffer",arg,3)) {
-				next_writethru = TRUE;
-				continue;
-			} else if (exp_flageq("indices",arg,3)) {
-				next_indices = TRUE;
-				continue;
-			} else if (exp_flageq1('f',arg)) {
-				/* leftover from "fast" days */
-				continue;
-			} else if (exp_flageq("reset",arg,5)) {
-				next_tty_reset = TRUE;
-				continue;
-			} else if (exp_flageq1('F',arg)) {
-				/* leftover from "fast" days */
-				continue;
-			} else if (exp_flageq("iread",arg,2)) {
-				next_iread = TRUE;
-				continue;
-			} else if (exp_flageq("iwrite",arg,2)) {
-				next_iwrite = TRUE;
-				continue;
-			} else if (exp_flageq("eof",arg,3)) {
-				struct action *action;
-
-				argc--;argv++;
-				debuglog("-eof is deprecated, use eof\r\n");
-				*action_eof_ptr = action = new_action(&action_base);
-				action->statement = *argv;
-				action->tty_reset = next_tty_reset;
-				next_tty_reset = FALSE;
-				action->iwrite = next_iwrite;
-				next_iwrite = FALSE;
-				action->iread = next_iread;
-				next_iread = FALSE;
-				action->timestamp = next_timestamp;
-				next_timestamp = FALSE;
-
-				continue;
-			} else if (exp_flageq("timeout",arg,7)) {
-				int t;
-				struct action *action;
-				debuglog("-timeout is deprecated, use timeout\r\n");
-
-				argc--;argv++;
-				if (argc < 1) {
-					exp_error(interp,"-timeout needs time");
-					return(TCL_ERROR);
-				}
-
-				t = atoi(*argv);
-				argc--;argv++;
-				if (t != -1)
-					arbitrary_timeout = t;
-				/* we need an arbitrary timeout to start */
-				/* search for lowest one later */
-
-#if 0
-				/* if -timeout comes before "-input", then applies */
-				/* to all descriptors, else just the current one */
-				if (dash_input_count > 0) {
-					timeout_simple = FALSE;
-					action = inp->action_timeout = 
-						new_action(&action_base);
-					inp->timeout_nominal = t;
-				} else {
-					action = &action_timeout;
-					default_timeout = t;
-				}
-#endif
-				timeout_simple = FALSE;
-				action = inp->action_timeout = new_action(&action_base);
-				inp->timeout_nominal = t;
-
-				action->statement = *argv;
-				action->tty_reset = next_tty_reset;
-				next_tty_reset = FALSE;
-				action->iwrite = next_iwrite;
-				next_iwrite = FALSE;
-				action->iread = next_iread;
-				next_iread = FALSE;
-				action->timestamp = next_timestamp;
-				next_timestamp = FALSE;
-				continue;
-			} else if (exp_flageq("timestamp",arg,2)) {
-				debuglog("-timestamp is deprecated, use exp_timestamp command\r\n");
-				next_timestamp = TRUE;
-				continue;
-			} else if (exp_flageq("nobrace",arg,7)) {
-				/* nobrace does nothing but take up space */
-				/* on the command line which prevents */
-				/* us from re-expanding any command lines */
-				/* of one argument that looks like it should */
-				/* be expanded to multiple arguments. */
-				continue;
-			}
-		}
-
-		/*
-		 * pick up the pattern
-		 */
-
-		km = new(struct keymap);
-
-		/* so that we can match in order user specified */
-		/* link to end of keymap list */
-		*end_km = km;
-		km->next = 0;
-		end_km = &km->next;
-
-		km->echo = next_echo;
-		km->writethru = next_writethru;
-		km->indices = next_indices;
-		km->action.tty_reset = next_tty_reset;
-		km->action.iwrite = next_iwrite;
-		km->action.iread = next_iread;
-		km->action.timestamp = next_timestamp;
-/*		km->case_sensitive = next_case_sensitive;*/
-
-		next_indices = next_echo = next_writethru = FALSE;
-		next_tty_reset = FALSE;
-		next_iwrite = next_iread = FALSE;
-/*		next_case_sensitive = TRUE;*/
-
-		km->keys = *argv;
-
-		km->null = FALSE;
-		km->re = 0;
-		if (next_re) {
-			TclRegError((char *)0);
-			if (0 == (km->re = TclRegComp(*argv))) {
-				exp_error(interp,"bad regular expression: %s",
-								TclGetRegError());
-				return(TCL_ERROR);
-			}
-			next_re = FALSE;
-		} if (next_null) {
-			km->null = TRUE;
-			next_null = FALSE;
-		}
-
-		argc--;argv++;
-
-		km->action.statement = *argv;
-		debuglog("defining key %s, action %s\r\n",
-		 km->keys,
-		 km->action.statement?(dprintify(km->action.statement))
-				   :interpreter_cmd);
-
-		/* imply a "-input" */
-		if (dash_input_count == 0) dash_input_count = 1;
-	}
-
-	/* if the user has not supplied either "-output" for the */
-	/* default two "-input"s, fix them up here */
-
-	if (!input_user->output) {
-		struct output *o = new(struct output);
-		if (!chanName) {
-		    if (!(esPtr = expGetCurrentState(interp,1,1))) {
+	    if (Tcl_GetIndexFromObj(interp, objv, switches, "switch", 0,
+		    &index) != TCL_OK) {
+		return TCL_ERROR;
+	    }
+	    switch ((enum switches) index) {
+		case EXP_SWITCH_DASH:
+		case EXP_SWITCH_EXACT:
+		    objc--;
+		    objv++;
+		    goto pattern;
+		case EXP_SWITCH_REGEXP:
+		    if (objc < 1) {
+			exp_error(interp,"-re needs pattern");
 			return(TCL_ERROR);
 		    }
-		    o->i_list = exp_new_i_simple(esPtr,EXP_TEMPORARY);
-		} else {
-		    o->i_list = exp_new_i_complex(interp,chanName,
+		    next_re = TRUE;
+		    objc--;
+		    objv++;
+		    goto pattern;
+		case EXP_SWITCH_INPUT:
+		    dash_input_count++;
+		    if (dash_input_count == 2) {
+			inp = input_default;
+			input_user->next = input_default;
+		    } else if (dash_input_count > 2) {
+			struct input *previous_input = inp;
+			inp = new(struct input);
+			previous_input->next = inp;
+		    }
+		    inp->output = 0;
+		    inp->action_eof = &action_eof;
+		    action_eof_ptr = &inp->action_eof;
+		    inp->timeout_nominal = default_timeout;
+		    inp->action_timeout = &action_timeout;
+		    inp->keymap = 0;
+		    end_km = &inp->keymap;
+		    inp->next = 0;
+		    objc--;objv++;
+		    if (objc < 1) {
+			exp_error(interp,"-input needs argument");
+			return(TCL_ERROR);
+		    }
+		    inp->i_list = exp_new_i_complex(interp,*objv,
 			    EXP_TEMPORARY,inter_updateproc);
+		    break;
+		case EXP_SWITCH_OUTPUT: {
+		    struct output *tmp;
+
+		    /* imply a "-input" */
+		    if (dash_input_count == 0) dash_input_count = 1;
+
+		    outp = new(struct output);
+
+				/* link new output in front of others */
+		    tmp = inp->output;
+		    inp->output = outp;
+		    outp->next = tmp;
+
+		    objc--;objv++;
+		    if (objc < 1) {
+			exp_error(interp,"-output needs argument");
+			return(TCL_ERROR);
+		    }
+		    outp->i_list = exp_new_i_complex(interp,*objv,
+			    EXP_TEMPORARY,inter_updateproc);
+
+		    outp->action_eof = &action_eof;
+		    action_eof_ptr = &outp->action_eof;
+		    break;
 		}
-		o->next = 0;	/* no one else */
-		o->action_eof = &action_eof;
-		input_user->output = o;
+		case EXP_SWITCH_USER:
+		    objc--;objv++;
+		    if (objc < 1) {
+			exp_error(interp,"-u needs argument");
+			return(TCL_ERROR);
+		    }
+		    replace_user_by_process = *objv;
+
+		    /* imply a "-input" */
+		    if (dash_input_count == 0) dash_input_count = 1;
+		    break;
+		case EXP_SWITCH_OPPOSITE:
+		    /* apply following patterns to opposite side */
+		    /* of interaction */
+
+		    end_km = &input_default->keymap;
+
+		    /* imply two "-input" */
+		    if (dash_input_count < 2) {
+			dash_input_count = 2;
+			inp = input_default;
+			action_eof_ptr = &inp->action_eof;
+		    }
+		    break;
+		case EXP_SWITCH_SPAWN_ID:
+		    /* substitute master */
+
+		    objc--;objv++;
+		    chanName = *objv;
+		    /* will be used later on */
+
+		    end_km = &input_default->keymap;
+
+		    /* imply two "-input" */
+		    if (dash_input_count < 2) {
+			dash_input_count = 2;
+			inp = input_default;
+			action_eof_ptr = &inp->action_eof;
+		    }
+		    break;
+		case EXP_SWITCH_ECHO:
+		    next_echo = TRUE;
+		    break;
+		case EXP_SWITCH_NOBUFFER:
+		    next_writethru = TRUE;
+		    break;
+		case EXP_SWITCH_INDICES:
+		    next_indices = TRUE;
+		    break;
+		case EXP_SWITCH_RESET:
+		    next_tty_reset = TRUE;
+		    break;
+		case EXP_SWITCH_IREAD:
+		    next_iread = TRUE;
+		    break;
+		    case EXP_SWITCH_IWRITE
+			next_iwrite= TRUE;
+		    break;
+		case EXP_SWITCH_EOF: {
+		    struct action *action;
+
+		    objc--;objv++;
+		    debuglog("-eof is deprecated, use eof\r\n");
+		    *action_eof_ptr = action = new_action(&action_base);
+		    action->statement = *objv;
+		    action->tty_reset = next_tty_reset;
+		    next_tty_reset = FALSE;
+		    action->iwrite = next_iwrite;
+		    next_iwrite = FALSE;
+		    action->iread = next_iread;
+		    next_iread = FALSE;
+		    action->timestamp = next_timestamp;
+		    next_timestamp = FALSE;
+		    break;
+		}
+		case EXP_SWITCH_TIMEOUT: {
+		    int t;
+		    struct action *action;
+		    debuglog("-timeout is deprecated, use timeout\r\n");
+
+		    objc--;objv++;
+		    if (objc < 1) {
+			exp_error(interp,"-timeout needs time");
+			return(TCL_ERROR);
+		    }
+
+		    if (Tcl_GetIntFromObj(interp, *objv, &t) != TCL_OK) {
+			return TCL_ERROR;
+		    }
+		    objc--;objv++;
+		    if (t != -1)
+			arbitrary_timeout = t;
+		    /* we need an arbitrary timeout to start */
+		    /* search for lowest one later */
+
+		    timeout_simple = FALSE;
+		    action = inp->action_timeout = new_action(&action_base);
+		    inp->timeout_nominal = t;
+
+		    action->statement = *objv;
+		    action->tty_reset = next_tty_reset;
+		    next_tty_reset = FALSE;
+		    action->iwrite = next_iwrite;
+		    next_iwrite = FALSE;
+		    action->iread = next_iread;
+		    next_iread = FALSE;
+		    action->timestamp = next_timestamp;
+		    next_timestamp = FALSE;
+		    break;
+		}
+		case EXP_SWITCH_TIMESTAMP:
+		    debuglog("-timestamp is deprecated, use exp_timestamp command\r\n");
+		    next_timestamp = TRUE;
+		    break;
+		case EXP_SWITCH_FAST:
+		case EXP_SWITCH_CAPFAST:
+		    /* noop compatibility switches for fast mode */
+		    break;
+		case EXP_SWITCH_NOBRACE:
+		    /* nobrace does nothing but take up space */
+		    /* on the command line which prevents */
+		    /* us from re-expanding any command lines */
+		    /* of one argument that looks like it should */
+		    /* be expanded to multiple arguments. */
+		    break;
+	    }
+	    continue;
+    	} else {
+	    static char *options[] = {
+		"eof", "timeout", "null"
+	    };
+	    enum options {
+		EXP_OPTION_EOF, EXP_OPTION_TIMEOUT, EXP_OPTION_NULL
+	    };
+	    int index;
+
+	    /*
+	     * Match keywords exactly, otherwise they are patterns.
+	     */
+
+	    if (Tcl_GetIndexFromObj(interp, objv, options, "option",
+		    1 /* exact */, &index) != TCL_OK) {
+		goto pattern;
+	    }
+	    switch ((enum options) index) {
+		case EXP_OPTION_EOF: {
+		    struct action *action;
+
+		    objc--;objv++;
+		    *action_eof_ptr = action = new_action(&action_base);
+
+		    action->statement = *objv;
+
+		    action->tty_reset = next_tty_reset;
+		    next_tty_reset = FALSE;
+		    action->iwrite = next_iwrite;
+		    next_iwrite = FALSE;
+		    action->iread = next_iread;
+		    next_iread = FALSE;
+		    action->timestamp = next_timestamp;
+		    next_timestamp = FALSE;
+		    break;
+		}
+		case EXP_OPTION_TIMEOUT: {
+		    int t;
+		    struct action *action;
+
+		    objc--;objv++;
+		    if (objc < 1) {
+			exp_error(interp,"timeout needs time");
+			return(TCL_ERROR);
+		    }
+		    if (Tcl_GetIntFromObj(interp, *objv, &t) != TCL_OK) {
+			return TCL_ERROR;
+		    }
+		    objc--;objv++;
+
+		    /* we need an arbitrary timeout to start */
+		    /* search for lowest one later */
+		    if (t != -1) arbitrary_timeout = t;
+
+		    timeout_simple = FALSE;
+		    action = inp->action_timeout = new_action(&action_base);
+		    inp->timeout_nominal = t;
+
+		    action->statement = *objv;
+
+		    action->tty_reset = next_tty_reset;
+		    next_tty_reset = FALSE;
+		    action->iwrite = next_iwrite;
+		    next_iwrite = FALSE;
+		    action->iread = next_iread;
+		    next_iread = FALSE;
+		    action->timestamp = next_timestamp;
+		    next_timestamp = FALSE;
+		    break;
+		}
+		case EXP_OPTION_NULL:
+		    next_null = TRUE;
+		    goto pattern;
+	    }
+	    continue;
 	}
-
-	if (!input_default->output) {
-		struct output *o = new(struct output);
-		o->i_list = exp_new_i_simple(expStdinout,EXP_TEMPORARY);/* stdout by default */
-		o->next = 0;	/* no one else */
-		o->action_eof = &action_eof;
-		input_default->output = o;
-	}
-
-	/* if user has given "-u" flag, substitute process for user */
-	/* in first two -inputs */
-	if (replace_user_by_process) {
-		/* through away old ones */
-		exp_free_i(interp,input_user->i_list,   inter_updateproc);
-		exp_free_i(interp,input_default->output->i_list,inter_updateproc);
-
-		/* replace with arg to -u */
-		input_user->i_list = exp_new_i_complex(interp,
-				replace_user_by_process,
-				EXP_TEMPORARY,inter_updateproc);
-		input_default->output->i_list = exp_new_i_complex(interp,
-				replace_user_by_process,
-				EXP_TEMPORARY,inter_updateproc);
-	}
-
+    
 	/*
+	 * pick up the pattern
+	 */
+
+	pattern:
+	km = new(struct keymap);
+
+	/* so that we can match in order user specified */
+	/* link to end of keymap list */
+	*end_km = km;
+	km->next = 0;
+	end_km = &km->next;
+
+	km->echo = next_echo;
+	km->writethru = next_writethru;
+	km->indices = next_indices;
+	km->action.tty_reset = next_tty_reset;
+	km->action.iwrite = next_iwrite;
+	km->action.iread = next_iread;
+	km->action.timestamp = next_timestamp;
+
+	next_indices = next_echo = next_writethru = FALSE;
+	next_tty_reset = FALSE;
+	next_iwrite = next_iread = FALSE;
+
+	km->keys = *objv;
+
+	km->null = FALSE;
+	km->re = 0;
+	if (next_re) {
+	    TclRegError((char *)0);
+	    if (0 == (km->re = TclRegComp(*objv))) {
+		exp_error(interp,"bad regular expression: %s",
+			TclGetRegError());
+		return(TCL_ERROR);
+	    }
+	    next_re = FALSE;
+	} if (next_null) {
+	    km->null = TRUE;
+	    next_null = FALSE;
+	}
+
+	objc--;objv++;
+
+	km->action.statement = *objv;
+	debuglog("defining key %s, action %s\r\n",
+		km->keys,
+		km->action.statement?(dprintify(km->action.statement))
+		:interpreter_cmd);
+
+	/* imply a "-input" */
+	if (dash_input_count == 0) dash_input_count = 1;
+    }
+
+    /* if the user has not supplied either "-output" for the */
+    /* default two "-input"s, fix them up here */
+
+    if (!input_user->output) {
+	struct output *o = new(struct output);
+	if (!chanName) {
+	    if (!(esPtr = expGetCurrentState(interp,1,1))) {
+		return(TCL_ERROR);
+	    }
+	    o->i_list = exp_new_i_simple(esPtr,EXP_TEMPORARY);
+	} else {
+	    o->i_list = exp_new_i_complex(interp,chanName,
+		    EXP_TEMPORARY,inter_updateproc);
+	}
+	o->next = 0;	/* no one else */
+	o->action_eof = &action_eof;
+	input_user->output = o;
+    }
+
+    if (!input_default->output) {
+	struct output *o = new(struct output);
+	o->i_list = exp_new_i_simple(expStdinout,EXP_TEMPORARY);/* stdout by default */
+	o->next = 0;	/* no one else */
+	o->action_eof = &action_eof;
+	input_default->output = o;
+    }
+
+    /* if user has given "-u" flag, substitute process for user */
+    /* in first two -inputs */
+    if (replace_user_by_process) {
+	/* through away old ones */
+	exp_free_i(interp,input_user->i_list,   inter_updateproc);
+	exp_free_i(interp,input_default->output->i_list,inter_updateproc);
+
+	/* replace with arg to -u */
+	input_user->i_list = exp_new_i_complex(interp,
+		replace_user_by_process,
+		EXP_TEMPORARY,inter_updateproc);
+	input_default->output->i_list = exp_new_i_complex(interp,
+		replace_user_by_process,
+		EXP_TEMPORARY,inter_updateproc);
+    }
+
+    /*
 	 * now fix up for default spawn id
 	 */
 
 	/* user could have replaced it with an indirect, so force update */
-	if (input_default->i_list->direct == EXP_INDIRECT) {
-		exp_i_update(interp,input_default->i_list);
-	}
+    if (input_default->i_list->direct == EXP_INDIRECT) {
+	exp_i_update(interp,input_default->i_list);
+    }
 
-	if    (input_default->i_list->state_list
-	   && (input_default->i_list->state_list->esPtr == EXP_SPAWN_ID_BAD)) {
-	    if (!chanName) {
-		if (!(esPtr = expGetCurrentState(interp,1,1)) {
-		    return(TCL_ERROR);
-		}
-		input_default->i_list->state_list->esPtr = esPtr;
-	    } else {
-		/* discard old one and install new one */
-		exp_free_i(interp,input_default->i_list,inter_updateproc);
-		input_default->i_list = exp_new_i_complex(interp,master_string,
-			EXP_TEMPORARY,inter_updateproc);
+    if    (input_default->i_list->state_list
+	    && (input_default->i_list->state_list->esPtr == EXP_SPAWN_ID_BAD)) {
+	if (!chanName) {
+	    if (!(esPtr = expGetCurrentState(interp,1,1)) {
+		return(TCL_ERROR);
 	    }
+		input_default->i_list->state_list->esPtr = esPtr;
+		} else {
+		    /* discard old one and install new one */
+		    exp_free_i(interp,input_default->i_list,inter_updateproc);
+		    input_default->i_list = exp_new_i_complex(interp,master_string,
+			    EXP_TEMPORARY,inter_updateproc);
+		}
 	}
 
 	/*
@@ -1013,13 +1058,13 @@ char **argv;
 
 	/* user could have replaced it with an indirect, so force update */
 	if (input_user->i_list->direct == EXP_INDIRECT) {
-		exp_i_update(interp,input_user->i_list);
+	    exp_i_update(interp,input_user->i_list);
 	}
 
 	if (input_user->i_list->state_list && input_default->i_list->state_list
-	    && (input_user->i_list->state_list->esPtr == input_default->i_list->state_list->esPtr)) {
-		exp_error(interp,"cannot interact with self - set spawn_id to a spawned process");
-		return(TCL_ERROR);
+		&& (input_user->i_list->state_list->esPtr == input_default->i_list->state_list->esPtr)) {
+	    exp_error(interp,"cannot interact with self - set spawn_id to a spawned process");
+	    return(TCL_ERROR);
 	}
 
 	esPtrs = 0;
@@ -1034,7 +1079,7 @@ char **argv;
 	if (status == TCL_ERROR) finish(TCL_ERROR);
 
 	if (real_tty) {
-		tty_changed = exp_tty_raw_noecho(interp,&tty_old,&was_raw,&was_echo);
+	    tty_changed = exp_tty_raw_noecho(interp,&tty_old,&was_raw,&was_echo);
 	}
 
 	for (inp = input_base,i=0;inp;inp=inp->next,i++) {
@@ -1046,7 +1091,7 @@ char **argv;
 
 	/* declare ourselves "in sync" with external view of close/indirect */
 	configure_count = exp_configure_count;
-
+    
 #ifndef SIMPLE_EVENT
 	/* loop waiting (in event handler) for input */
 	for (;;) {
@@ -2079,7 +2124,7 @@ got_action:
 	}
 }
 #endif /* SIMPLE_EVENT */
-
+    }
  done:
 #ifdef SIMPLE_EVENT
 	/* force child to exit upon eof from master */
@@ -2091,7 +2136,6 @@ got_action:
 	if (need_to_close_master) exp_close(interp,master);
 
 	if (tty_changed) exp_tty_set(interp,&tty_old,was_raw,was_echo);
-	if (oldargv) ckfree((char *)argv);
 	if (esPtrs) ckfree((char *)esPtrs);
 	if (esPtrToInput) Tcl_DeleteHashTable(esPtrToInput);
 	free_input(interp,input_base);

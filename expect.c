@@ -335,10 +335,11 @@ int nosave;
    Current test is very cheap and almost always right :-)
 */
 int 
-exp_one_arg_braced(p)
-char *p;
+exp_one_arg_braced(objPtr)	/* INTL */
+Tcl_Obj *objPtr;
 {
 	int seen_nl = FALSE;
+	char *p = Tcl_GetString(objPtr);
 
 	for (;*p;p++) {
 		if (*p == '\n') {
@@ -346,7 +347,7 @@ char *p;
 			continue;
 		}
 
-		if (!isspace(*p)) {
+		if (!isspace(*p)) { /* INTL: ISO space */
 			return(seen_nl);
 		}
 	}
@@ -358,41 +359,105 @@ char *p;
 /* returns TCL_whatever */
 /*ARGSUSED*/
 int
-exp_eval_with_one_arg(clientData,interp,argv)
+exp_eval_with_one_arg(clientData,interp,objv) /* INTL */
 ClientData clientData;
 Tcl_Interp *interp;
-char **argv;
+Tcl_Obj *CONST objv[];		/* Argument objects. */
 {
-	char *buf;
-	int rc;
-	char *a;
+#define NUM_STATIC_OBJS 20
+    Tcl_Obj *staticObjArray[NUM_STATIC_OBJS], **objv;
+    Tcl_Token *tokenPtr;
+    char *p;
+    int length;
+    Tcl_Obj **objs = staticObjArray;
+    int maxobjs = MAXLOCAL;
+    int objc, next;
 
-	/* + 11 is for " -nobrace " and null at end */
-	buf = ckalloc(strlen(argv[0]) + strlen(argv[1]) + 11);
-	/* recreate statement (with -nobrace to prevent recursion) */
-	sprintf(buf,"%s -nobrace %s",argv[0],argv[1]);
+    /*
+     * Prepend the command name and the -nobrace switch so we can
+     * reinvoke without recursing.
+     */
 
-	/*
-	 * replace top-level newlines with blanks
-	 */
+    objc = 2;
+    objs[0] = objv[0];
+    objs[1] = Tcl_NewStringObj("-nobrace", -1);
+    Tcl_IncrRefCount(objs[0]);
+    Tcl_IncrRefCount(objs[1]);
 
-	/* Should only be necessary to run over argv[1] and then sprintf */
-	/* that into the buffer, but the ICEM guys insist that writing */
-	/* back over the original arguments makes their Tcl compiler very */
-	/* unhappy. */
-	for (a=buf;*a;) {
-		extern char *TclWordEnd();
+    p = Tcl_GetStringFromObj(objv[1], &bytesLeft);
 
-		for (;isspace(*a);a++) {
-			if (*a == '\n') *a = ' ';
+    /*
+     * Treat the pattern/action block like a series of Tcl commands.
+     * For each command, parse the command words, perform substititions
+     * on each word, and add the words to an array of values.  We don't
+     * actually evaluate the individual commands, just the substitutions.
+     */
+
+    do {
+	if (Tcl_ParseCommand(interp, p, bytesLeft, 0, &parse)
+	        != TCL_OK) {
+	    rc = TCL_ERROR;
+	    goto done;
+	}
+	numWords = parse.numWords;
+ 	if (numWords > 0) {
+	    /*
+	     * Generate an array of objects for the words of the command.
+	     */
+    
+	    if (objc + numWords > maxobjs) {
+		Tcl_Obj ** newobjs;
+		maxobjs = (objc + numWords) * 2;
+		newobjs = ckalloc(maxobjs * sizeof (Tcl_Obj *));
+		memcpy(newobjs, objs, objc*sizeof(Tcl_Obj *));
+		if (objs != staticObjArray) {
+		    ckfree((char*)objs);
 		}
-		a = TclWordEnd(a,&a[strlen(a)],0,(int *)0)+1;
+		objs = newobjs;   
+	    }
+
+	    /*
+	     * For each word, perform substitutions then store the
+	     * result in the objs array.
+	     */
+	    
+	    for (tokenPtr = parse.tokenPtr; numWords > 0;
+		 tokenPtr += (tokenPtr->numComponents + 1)) {
+		objs[objc] = Tcl_EvalTokens(interp, tokenPtr+1,
+			tokenPtr->numComponents);
+		if (objv[objc] == NULL) {
+		    rc = TCL_ERROR;
+		    goto done;
+		}
+		objc++;
+	    }
 	}
 
-	rc = Tcl_Eval(interp,buf);
+	/*
+	 * Advance to the next command in the script.
+	 */
 
-	ckfree(buf);
-	return(rc);
+	next = parse.commandStart + parse.commandSize;
+	bytesLeft -= next - p;
+	p = next;
+	Tcl_FreeParse(&parse);
+    } while (bytesLeft > 0);
+
+    /*
+     * Now evaluate the entire command with no further substitutions.
+     */
+
+    rc = Tcl_EvalObjv(interp, objc, objs, 0);
+
+    done:
+    for (i = 0; i < objc; i++) {
+	Tcl_DecrRefCount(objs[i]);
+    }
+    if (objs != staticObjArray) {
+	ckfree((char *) objs);
+    }
+    return(rc);
+#undef NUM_STATIC_OBJS
 }
 
 static void
@@ -2221,11 +2286,11 @@ do_more_data:
 
 /*ARGSUSED*/
 int
-Exp_ExpectCmd(clientData, interp, argc, argv)
+Exp_ExpectCmd(clientData, interp, objc, objv)
 ClientData clientData;
 Tcl_Interp *interp;
-int argc;
-char **argv;
+int objc;
+Tcl_Obj *CONST objv[];		/* Argument objects. */
 {
 	int cc;			/* number of chars returned in a single read */
 				/* or negative EXP_whatever */
@@ -2261,13 +2326,13 @@ char **argv;
 	int remtime;		/* remaining time in timeout */
 	int reset_timer;	/* should timer be reset after continue? */
 
-	if ((argc == 2) && exp_one_arg_braced(argv[1])) {
-		return(exp_eval_with_one_arg(clientData,interp,argv));
-	} else if ((argc == 3) && streq(argv[1],"-brace")) {
-		char *new_argv[2];
-		new_argv[0] = argv[0];
-		new_argv[1] = argv[2];
-		return(exp_eval_with_one_arg(clientData,interp,new_argv));
+	if ((objc == 2) && exp_one_arg_braced(objv[1])) {
+	    return(exp_eval_with_one_arg(clientData,interp,objv));
+	} else if ((objc == 3) && streq(argv[1],"-brace")) {
+	    Tcl_Obj *new_objv[2];
+	    new_objv[0] = objv[0];
+	    new_objv[1] = objv[2];
+	    return(exp_eval_with_one_arg(clientData,interp,new_objv));
 	}
 
 	time(&start_time_total);
@@ -2281,7 +2346,7 @@ char **argv;
 	state_list = 0;
 	masters = 0;
 	if (TCL_ERROR == parse_expect_args(interp,&eg,
-					(ExpState *)clientData,argc,argv))
+					(ExpState *)clientData,objc,objv))
 		return TCL_ERROR;
 
  restart_with_update:
