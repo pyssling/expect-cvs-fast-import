@@ -1,3 +1,11 @@
+2001-07-06  Andreas Kupries <andreas_kupries@users.sourceforge.net>
+
+	* exp_main_exp.c:
+	* exp_main_sub.c:
+	* exp_main_tk.c:
+	* exp_tty.c: Changed calls to 'Tcl_Exit' into calls to the command
+	  [exit], to allow scripts and users to overide the functionality. 
+
 2001-06-05  Andreas Kupries <andreas_kupries@users.sourceforge.net>
 
 	* exp_main_sub.c: Fixed bug [#418892].
