@@ -1,7 +1,7 @@
 /* ----------------------------------------------------------------------------
  * expWinSlaveMain.cpp --
  *
- *	Program entry for the Win32 slave driver helper application.
+ *	Program entry for the Win32 slave tester application.
  *
  * ----------------------------------------------------------------------------
  *
@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinSlaveMain.cpp,v 1.1.4.20 2002/06/22 14:02:03 davygrvy Exp $
+ * RCS: @(#) $Id: expWinSlaveMain.cpp,v 1.1.4.21 2002/06/23 09:21:34 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -48,7 +48,7 @@ main (void)
     int argc;			    // Number of command-line arguments.
     char **argv;		    // Values of command-line arguments.
     ClientTransport *transport;	    // class pointer of transport client.
-    SlaveTrap *slaveCtrl;	    // trap method class pointer.
+    SlaveTrap *slave;		    // trap method class pointer.
     CMclQueue<Message *> messageQ;  // Our message Queue we hand off to everyone.
     CMclEvent Shutdown;		    // global shutdown for the event queue.
     int code;			    // exitcode.
@@ -80,11 +80,11 @@ main (void)
     //  Start the process to be intercepted within the trap method requested
     //  on the commandline (ie. run telnet in a debugger and trap OS calls).
     //
-    slaveCtrl = SlaveOpenTrap(argv[2], argc-3, &argv[3], messageQ);
+    slave = SlaveOpenTrap(argv[2], argc-3, &argv[3], messageQ);
 
     //  Process messages.
     //
-    code = DoEvents(transport, slaveCtrl, messageQ, Shutdown);
+    code = DoEvents(transport, slave, messageQ, Shutdown);
 
     //  Close up.
     //
@@ -159,12 +159,12 @@ SlaveOpenTrap(const char *method, int argc, char * const argv[],
  */
 
 int
-DoEvents(ClientTransport *transport, SlaveTrap *slaveCtrl,
-    CMclQueue<Message *> &mQ, CMclEvent &sd)
+DoEvents(ClientTransport *transport, SlaveTrap *slave,
+    CMclQueue<Message *> &msgQ, CMclEvent &sd)
 {
     Message *msg;
 
-    while (mQ.Get(msg, INFINITE)) {
+    while (msgQ.Get(msg, INFINITE)) {
 	switch (msg->type) {
 	case Message::TYPE_NORMAL:
 	case Message::TYPE_WARNING:
@@ -177,13 +177,13 @@ DoEvents(ClientTransport *transport, SlaveTrap *slaveCtrl,
 	case Message::TYPE_INRECORD:
 	    //  Send stuff to the slave.
 	    //
-	    slaveCtrl->Write(msg);
+	    slave->Write(msg);
 	    break;
 
 	case Message::TYPE_INSTREAM:
 	    // do conversion here.  These get reposted back as
 	    // TYPE_INRECORD messages.
-	    MapToKeys(msg, mQ);
+	    MapToKeys(msg, msgQ);
 	    break;
 
 	case Message::TYPE_FUNCTION:
@@ -192,7 +192,7 @@ DoEvents(ClientTransport *transport, SlaveTrap *slaveCtrl,
 	    break;
 
 	case Message::TYPE_SLAVEDONE:
-	    delete slaveCtrl, transport;
+	    delete slave, transport;
 	    return 0;
 	}
     }
