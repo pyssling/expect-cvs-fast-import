@@ -1,0 +1,44 @@
+!include "..\mkfiles.mif"
+
+!if exist(.\mkfiles.d)
+!include mkfiles.d
+!endif
+
+core : $(EXPTARGET)
+
+$(EXPTARGET) : $(EXPDLL_OBJs)
+!if $(STATIC_BUILD)
+	lib -nologo -out:$@ @<<
+!else
+	link -nologo -out:$@ -dll -subsystem:windows -release $(WIN32LIBs) @<<
+!endif
+$(EXPDLL_OBJs)
+<<
+
+depends : mkfiles.d
+
+#cl -nologo -Zs -P -YX -Fp$(TMP_DIR)^\ -I$(GENERICDIR) -DBUILD_tcl
+mkfiles.d :
+	@echo $(TCLSH) $(TOOLSDIR)\mkinfrdeps.tcl -vc32 -out:$@ $(COMPATDIR) $(GENERICDIR) $(WINDIR) @<<
+$(TCLOBJs)
+<<
+
+
+CFLAGS	= -nologo -MD -Ox -YX -Fo$(TMP_DIR)^\ -Fp$(TMP_DIR)^\
+
+{$(COMPATDIR)}.c{$(TMP_DIR)}.obj ::
+    cl -c $(CFLAGS) -DBUILD_tcl -I$(GENERICDIR) @<<
+$<
+<<
+
+{$(GENERICDIR)}.c{$(TMP_DIR)}.obj ::
+    cl -c $(CFLAGS) -DBUILD_tcl -I$(GENERICDIR) @<<
+$<
+<<
+
+{$(WINDIR)}.c{$(TMP_DIR)}.obj ::
+    cl -c $(CFLAGS) -DBUILD_tcl -I$(GENERICDIR) @<<
+$<
+<<
+
+.SUFFIXES: .c
