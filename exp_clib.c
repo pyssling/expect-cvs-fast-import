@@ -78,7 +78,7 @@ would appreciate credit if this program or parts of it are used.
  * See the file "license.terms" for information on usage and redistribution
  * of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  *
- * RCS: @(#) $Id: exp_clib.c,v 5.28.1.1.2.13 1999/12/22 17:45:57 libes Exp $
+ * RCS: @(#) $Id: exp_clib.c,v 5.29 2000/01/06 23:22:02 wart Exp $
  */
 
 #ifndef _STDLIB
@@ -166,7 +166,7 @@ extern unsigned long	strtoul _ANSI_ARGS_((CONST char *string,
  * *** 2. This in addition to changes to TclRegError makes the   ***
  * ***    code multi-thread safe.                                ***
  *
- * RCS: @(#) $Id: exp_clib.c,v 5.28.1.1.2.13 1999/12/22 17:45:57 libes Exp $
+ * RCS: @(#) $Id: exp_clib.c,v 5.29 2000/01/06 23:22:02 wart Exp $
  */
 
 #if 0
@@ -2311,6 +2311,13 @@ char *argv[];	/* some compiler complains about **argv? */
 		exp_init_pty();
 		exp_init_tty();
 		expDiagLogPtrSet(expDiagLogU);
+
+		/*
+		 * TIP 27; It is unclear why this code produces a
+		 * warning. The equivalent code in exp_main_sub.c
+		 * (line 512) does not generate a warning !
+		 */
+
 		expErrnoMsgSet(Tcl_ErrnoMsg);
 	}
 
