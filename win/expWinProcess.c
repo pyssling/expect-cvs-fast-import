@@ -97,19 +97,27 @@ HasConsole()
  */
 
 DWORD
-ExpApplicationType(originalName, fullPath, imagePath)
-    const char *originalName;	/* Name of the application to find. */
-    char fullPath[MAX_PATH];	/* Filled with complete path to 
+ExpApplicationType(
+    const char *originalName,	/* Name of the application to find. */
+    char fullPath[MAX_PATH],	/* Filled with complete path to 
 				 * application. */
-    char *imagePath;
+    char *imagePath)
 {
-    DWORD applType;
-    int i;
+    int applType, i, nameLen, found;
     HANDLE hFile;
+    TCHAR *rest;
     char *ext;
-    char buf[2];
-    DWORD read;
-    IMAGE_DOS_HEADER header;
+    DWORD attr, read;
+    IMAGE_DOS_HEADER p236;  /* p236, DOS (old-style) executable-file header */
+    union {
+	BYTE buf[200];
+	IMAGE_NT_HEADERS pe;
+	IMAGE_OS2_HEADER ne;
+	IMAGE_VXD_HEADER le;
+    } header;
+    Tcl_DString nameBuf, ds;
+    TCHAR *nativeName;
+    WCHAR nativeFullPath[MAX_PATH];
     static char extensions[][5] = {"", ".com", ".exe", ".bat", ".cmd"};
 
     /* Look for the program as an external program.  First try the name
@@ -125,15 +133,20 @@ ExpApplicationType(originalName, fullPath, imagePath)
      * the extensions, looking for a match.  
      */
 
-    if (imagePath) {
-	imagePath[0] = 0;
-    }
     applType = EXP_APPL_NONE;
+    Tcl_DStringInit(&nameBuf);
+    Tcl_DStringAppend(&nameBuf, originalName, -1);
+    nameLen = Tcl_DStringLength(&nameBuf);
+
     for (i = 0; i < (int) (sizeof(extensions) / sizeof(extensions[0])); i++) {
-	lstrcpyn(fullPath, originalName, MAX_PATH - 5);
-        lstrcat(fullPath, extensions[i]);
-	
-	if (SearchPath(NULL, fullPath, NULL, MAX_PATH, fullPath, NULL) == 0) {
+	Tcl_DStringSetLength(&nameBuf, nameLen);
+	Tcl_DStringAppend(&nameBuf, extensions[i], -1);
+        nativeName = Tcl_WinUtfToTChar(Tcl_DStringValue(&nameBuf), 
+		Tcl_DStringLength(&nameBuf), &ds);
+	found = (*tclWinProcs->searchPathProc)(NULL, nativeName, NULL, 
+		MAX_PATH, nativeFullPath, &rest);
+	Tcl_DStringFree(&ds);
+	if (found == 0) {
 	    continue;
 	}
 
@@ -142,90 +155,30 @@ ExpApplicationType(originalName, fullPath, imagePath)
 	 * a known type.
 	 */
 
-	if (GetFileAttributes(fullPath) & FILE_ATTRIBUTE_DIRECTORY) {
+	attr = GetFileAttributesW(nativeFullPath);
+	if ((attr == 0xffffffff) || (attr & FILE_ATTRIBUTE_DIRECTORY)) {
 	    continue;
 	}
+	strcpy(fullName, Tcl_WinTCharToUtf((TCHAR *) nativeFullPath, -1, &ds));
+	Tcl_DStringFree(&ds);
 
-	ext = strrchr(fullPath, '.');
-	if ((ext != NULL) && (strcmpi(ext, ".bat") == 0)) {
+	ext = strrchr(fullName, '.');
+	if ((ext != NULL) && (stricmp(ext, ".bat") == 0 ||
+		stricmp(ext, ".cmd") == 0)) {
 	    applType = EXP_APPL_DOS;
 	    break;
 	}
-
-	hFile = CreateFile(fullPath, GENERIC_READ, FILE_SHARE_READ, NULL, 
-		OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	
+	hFile = (*tclWinProcs->createFileProc)((TCHAR *) nativeFullPath, 
+		GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 
+		FILE_ATTRIBUTE_NORMAL, NULL);
 	if (hFile == INVALID_HANDLE_VALUE) {
 	    continue;
 	}
 
-	header.e_magic = 0;
-	ReadFile(hFile, (void *) &header, sizeof(header), &read, NULL);
-
-	/*
-	 * A bit of a hack.  Look for a '#!' at the start of the file.  If we
-	 * see it, it indicates the presence of a shell script or something
-	 * along those lines (i.e. perl, tcl, etc).  We extract the name of the
-	 * image that it is looking for, and we try and turn it into the name
-	 * of the Win32 image that needs to be run.
-	 */
-	if (header.e_magic == 0x2123) { /* #! */
-	    char *cpnt;
-	    char *dpnt;
-	    char scriptName[MAX_PATH];
-	    char shellPath[MAX_PATH];
-	    char tmpBuf[MAX_PATH];
-
-	    buf[0] = '\0';
-	    SetFilePointer(hFile, 0, NULL, FILE_BEGIN);
-	    ReadFile(hFile, (void *) tmpBuf, MAX_PATH, &read, NULL);
-	    /*
-	     * Extract the name of the script interpreter.
-	     */
-	    cpnt = tmpBuf + 2;
-	    while (isspace(*cpnt) && *cpnt != '\n') {
-		cpnt++;
-	    }
-	    dpnt = scriptName;
-	    
-	    while (*cpnt && !isspace(*cpnt)) {
-		*dpnt++ = *cpnt++;
-	    }
-	    *dpnt = '\0';
-	    
-	    /*
-	     * First try and normalize the name to a Win32 name.
-	     */
-	    for (cpnt = scriptName; *cpnt != 0; cpnt++) {
-		if (*cpnt == '/') {
-		    *cpnt = '\\';
-		}
-	    }
-	    applType = ExpApplicationType(scriptName, shellPath, NULL);
-	    
-	    if (applType == EXP_APPL_NONE) {
-		if (strcmp(scriptName, "/bin/sh") == 0) {
-		    cpnt = getenv("SHELL");
-		    if (cpnt == NULL) {
-			continue;
-		    }
-		    strcpy(scriptName, cpnt);
-		    for (cpnt = scriptName; *cpnt != 0; cpnt++) {
-			if (*cpnt == '/') {
-			    *cpnt = '\\';
-			}
-		    }
-		    applType = ExpApplicationType(scriptName, shellPath, NULL);
-		}
-	    }
-	    if (applType != EXP_APPL_NONE && imagePath != NULL) {
-		strcpy(imagePath, shellPath);
-	    }
-
-	    CloseHandle(hFile);
-	    return applType;
-	}
-
-	if (header.e_magic != IMAGE_DOS_SIGNATURE) {
+	p236.e_magic = 0;
+	ReadFile(hFile, &p236, sizeof(IMAGE_DOS_HEADER), &read, NULL);
+	if (p236.e_magic != IMAGE_DOS_SIGNATURE) {
 	    /* 
 	     * Doesn't have the magic number for relocatable executables.  If 
 	     * filename ends with .com, assume it's a DOS application anyhow.
@@ -234,18 +187,35 @@ ExpApplicationType(originalName, fullPath, imagePath)
 	     * magic numbers and everything.  
 	     */
 
+	    /*
+	     * Additional notes from Ralf Brown's interupt list:
+	     *
+	     * The COM files are raw binary executables and are a leftover
+	     * from the old CP/M machines with 64K RAM.  A COM program can
+	     * only have a size of less than one segment (64K), including code
+	     * and static data since no fixups for segment relocation or
+	     * anything else is included. One method to check for a COM file
+	     * is to check if the first byte in the file could be a valid jump
+	     * or call opcode, but this is a very weak test since a COM file
+	     * is not required to start with a jump or a call. In principle,
+	     * a COM file is just loaded at offset 100h in the segment and
+	     * then executed.
+	     *
+	     * OFFSET              Count TYPE   Description
+	     * 0000h                   1 byte   ID=0E9h
+	     *                                  ID=0EBh
+	     */
+
 	    CloseHandle(hFile);
-	    if ((ext != NULL) && (strcmpi(ext, ".com") == 0)) {
+	    if ((ext != NULL) && (strcmp(ext, ".com") == 0)) {
 		applType = EXP_APPL_DOS;
 		break;
 	    }
 	    continue;
 	}
-	if (header.e_lfarlc != sizeof(header)) {
+	if (p236.e_lfarlc < 0x40 || p236.e_lfanew == 0 /* reserved */) {
 	    /* 
-	     * All Windows 3.X and Win32 and some DOS programs have this value
-	     * set here.  If it doesn't, assume that since it already had the 
-	     * other magic number it was a DOS application.
+	     * Old-style header only.  Can't be more than a DOS executable.
 	     */
 
 	    CloseHandle(hFile);
@@ -254,39 +224,112 @@ ExpApplicationType(originalName, fullPath, imagePath)
 	}
 
 	/* 
-	 * The DWORD at header.e_lfanew points to yet another magic number.
+	 * The LONG at p236.e_lfanew points to the real exe header only
+	 * when p236.e_lfarlc is set to 40h (or greater).
 	 */
-
-	buf[0] = '\0';
-	SetFilePointer(hFile, header.e_lfanew, NULL, FILE_BEGIN);
-	ReadFile(hFile, (void *) buf, 2, &read, NULL);
+	
+	SetFilePointer(hFile, p236.e_lfanew, NULL, FILE_BEGIN);
+	ReadFile(hFile, header.buf, 200, &read, NULL);
 	CloseHandle(hFile);
 
-	if ((buf[0] == 'L') && (buf[1] == 'E')) {
-	    applType = EXP_APPL_DOS;
-	} else if ((buf[0] == 'N') && (buf[1] == 'E')) {
-	    applType = EXP_APPL_WIN3X;
-	} else if ((buf[0] == 'P') && (buf[1] == 'E')) {
-	    applType = EXP_APPL_WIN32;
+	/*
+	 * Check the sigs against the following list:
+	 *  'PE\0\0'  Win32 (Windows NT and Win32s) portable executable based
+	 *	    on Unix COFF.
+	 *  'NE'  Windows or OS/2 1.x segmented ("new") executable.
+	 *  'LE'  Windows virtual device driver (VxD) linear executable.
+	 *  'LX'  variant of LE used in OS/2 2.x
+	 *  'W3'  Windows WIN386.EXE file; a collection of LE files
+	 *	    (protected mode windows).
+	 *  'MZ'  old-style p236 DOS executable.
+	 */
+
+	if (header.pe.Signature == IMAGE_NT_SIGNATURE) {
+	    /*
+	     * Win32, "PE\0\0" which is short for "Portable Executable".
+	     */
+
+	    if (header.pe.OptionalHeader.Magic != IMAGE_NT_OPTIONAL_HDR_MAGIC
+		    || !(header.pe.FileHeader.Characteristics &
+		    IMAGE_FILE_EXECUTABLE_IMAGE)) {
+		/*
+		 * Not an executable. Might be a dll or a COMDAT library.
+		 */
+
+		applType = EXP_APPL_NONE;
+		break;
+	    }
+
+	    switch (header.pe.OptionalHeader.Subsystem) {
+		case IMAGE_SUBSYSTEM_WINDOWS_CUI:
+		case IMAGE_SUBSYSTEM_OS2_CUI:
+		case IMAGE_SUBSYSTEM_POSIX_CUI:
+		    /* 
+		     * image runs in the Windows, OS/2, or Posix character
+		     * subsystem.
+		     */
+
+		    applType = EXP_APPL_WIN32CUI;
+		    break;
+
+		default:
+		    /*
+		     * Non-CUI applications are run detached.  Return a flag
+		     * that will indicate this error.
+		     */
+
+		    applType = EXP_APPL_WIN32GUI;
+	    }
+	} else if (header.ne.ne_magic == IMAGE_OS2_SIGNATURE) {
+	    switch (header.ne.ne_exetyp) {
+		case 0x1:  /* Microsoft/IBM OS/2 (default)  */
+		case 0x3:  /* Microsoft (European?) MS-DOS 4.x */
+		    /* Only these might be character-mode. */
+		    applType = EXP_APPL_DOS;
+		    break;
+
+		default:
+		    applType = EXP_APPL_NONE;
+	    }
+	} else if (header.le.e32_magic == IMAGE_OS2_SIGNATURE_LE ||
+		header.le.e32_magic == 0x584C /* 'LX' */ ||
+		header.le.e32_magic == 0x3357 /* 'W3' */) {
+	    /*
+	     * Virtual device drivers are not executables, per se.
+	     */
+
+	    applType = EXP_APPL_NONE;
 	} else {
-	    continue;
+	    /*
+	     * NOTE: The Lahey Fortran90 compiler might make executables
+	     * that have a bogus signature and end-up here.
+	     */
+
+	    applType = EXP_APPL_DOS;
 	}
 	break;
     }
+    Tcl_DStringFree(&nameBuf);
 
-    if (applType == EXP_APPL_NONE) {
+    if (applType == APPL_NONE) {
+	TclWinConvertError(GetLastError());
+	Tcl_AppendResult(interp, "couldn't execute \"", originalName,
+		"\": ", Tcl_PosixError(interp), (char *) NULL);
 	return EXP_APPL_NONE;
     }
 
     if ((applType == EXP_APPL_DOS) || (applType == EXP_APPL_WIN3X)) {
 	/* 
-	 * Replace long path name of executable with short path name for 
+	 * Replace long path name of executable with short path name for
 	 * 16-bit applications.  Otherwise the application may not be able
-	 * to correctly parse its own command line to separate off the 
+	 * to correctly parse its own command line to separate off the
 	 * application name from the arguments.
 	 */
 
-	GetShortPathName(fullPath, fullPath, MAX_PATH);
+	(*tclWinProcs->getShortPathNameProc)((TCHAR *) nativeFullPath,
+		nativeFullPath, MAX_PATH);
+	strcpy(imagePath, Tcl_WinTCharToUtf((TCHAR *) nativeFullPath, -1, &ds));
+	Tcl_DStringFree(&ds);
     }
     return applType;
 }
@@ -309,36 +352,55 @@ ExpApplicationType(originalName, fullPath, imagePath)
  *
  *----------------------------------------------------------------------
  */
-
-static void
-BuildCommandLine(argc, argv, linePtr)
-    int argc;			/* Number of arguments. */
-    char **argv;		/* Argument strings. */
-    Tcl_DString *linePtr;	/* Initialized Tcl_DString that receives the
-				 * command line. */
+void
+BuildCommandLine(
+    CONST char *executable,	/* Full path of executable (including 
+				 * extension).  Replacement for argv[0]. */
+    int argc,			/* Number of arguments. */
+    char **argv,		/* Argument strings in UTF. */
+    Tcl_DString *linePtr)	/* Initialized Tcl_DString that receives the
+				 * command line (TCHAR). */
 {
-    char *start, *special;
+    CONST char *arg, *start, *special;
     int quote, i;
+    Tcl_DString ds;
 
+    Tcl_DStringInit(&ds);
+
+    /*
+     * Prime the path.
+     */
+    
+    Tcl_DStringAppend(&ds, Tcl_DStringValue(linePtr), -1);
+    
     for (i = 0; i < argc; i++) {
-	if (i > 0) {
-	    Tcl_DStringAppend(linePtr, " ", 1);	
+	if (i == 0) {
+	    arg = executable;
+	} else {
+	    arg = argv[i];
+	    Tcl_DStringAppend(&ds, " ", 1);
 	}
 
 	quote = 0;
-	for (start = argv[i]; *start != '\0'; start++) {
-	    if (isspace(*start)) {
-		quote = 1;
-		Tcl_DStringAppend(linePtr, "\"", 1);
-    		break;
+	if (arg[0] == '\0') {
+	    quote = 1;
+	} else {
+	    for (start = arg; *start != '\0'; start++) {
+		if (isspace(*start)) { /* INTL: ISO space. */
+		    quote = 1;
+		    break;
+		}
 	    }
 	}
+	if (quote) {
+	    Tcl_DStringAppend(&ds, "\"", 1);
+	}
 
-	start = argv[i];	    
-	for (special = argv[i]; ; ) {
+	start = arg;	    
+	for (special = arg; ; ) {
 	    if ((*special == '\\') && 
 		    (special[1] == '\\' || special[1] == '"')) {
-		Tcl_DStringAppend(linePtr, start, special - start);
+		Tcl_DStringAppend(&ds, start, special - start);
 		start = special;
 		while (1) {
 		    special++;
@@ -348,19 +410,19 @@ BuildCommandLine(argc, argv, linePtr)
 			 * N * 2 + 1 backslashes then a quote.
 			 */
 
-			Tcl_DStringAppend(linePtr, start, special - start);
+			Tcl_DStringAppend(&ds, start, special - start);
 			break;
 		    }
 		    if (*special != '\\') {
 			break;
 		    }
 		}
-		Tcl_DStringAppend(linePtr, start, special - start);
+		Tcl_DStringAppend(&ds, start, special - start);
 		start = special;
 	    }
 	    if (*special == '"') {
-		Tcl_DStringAppend(linePtr, start, special - start);
-		Tcl_DStringAppend(linePtr, "\\\"", 2);
+		Tcl_DStringAppend(&ds, start, special - start);
+		Tcl_DStringAppend(&ds, "\\\"", 2);
 		start = special + 1;
 	    }
 	    if (*special == '\0') {
@@ -368,11 +430,14 @@ BuildCommandLine(argc, argv, linePtr)
 	    }
 	    special++;
 	}
-	Tcl_DStringAppend(linePtr, start, special - start);
+	Tcl_DStringAppend(&ds, start, special - start);
 	if (quote) {
-	    Tcl_DStringAppend(linePtr, "\"", 1);
+	    Tcl_DStringAppend(&ds, "\"", 1);
 	}
     }
+    Tcl_DStringFree(linePtr);
+    Tcl_WinUtfToTChar(Tcl_DStringValue(&ds), Tcl_DStringLength(&ds), linePtr);
+    Tcl_DStringFree(&ds);
 }
 
 /*
@@ -549,10 +614,11 @@ ExpCreateProcess(argc, argv, inputHandle, outputHandle, errorHandle,
     BOOL b;
 
     result = 0;
-    /* XXX: This isn't quite right */
     applType = ExpApplicationType(argv[0], execPath, imagePath);
     if (applType == EXP_APPL_NONE) {
 	return GetLastError();
+    } else if (applType == EXP_APPL_WIN32GUI) {
+	return ERROR_BAD_PIPE;  /* GUI applications can't use pipes. */
     }
     originalName = argv[0];
     argv[0] = execPath;

@@ -1,43 +1,62 @@
-!include "..\mkfiles.mif"
+!include .\mkconfig.mif
+!include .\win\mkvc32.mif
+!include .\win\mkfiles.mif
+TARGETOS = WINNT
+!include <win32.mak>
 
-!if exist(.\mkfiles.d)
-!include mkfiles.d
+### Bring in the dependancies if we have them available.
+!if exist(.\win\mkfiles.d)
+!include .\win\mkfiles.d
 !endif
 
-core : $(EXPTARGET)
+all : setup $(EXPLIB)
+slavedrv : setup $(SLAVEDRV)
 
-$(EXPTARGET) : $(EXPDLL_OBJs)
+setup :
+	@if not exist $(TMP_DIR)\nul mkdir $(TMP_DIR) &\
+		echo Created directory '$(TMP_DIR)'
+	@if not exist $(OUT_DIR)\nul mkdir $(OUT_DIR) &\
+		echo Created directory '$(OUT_DIR)'
+
+$(EXPLIB) : $(EXPLIB_OBJs)
 !if $(STATIC_BUILD)
 	lib -nologo -out:$@ @<<
 !else
-	link -nologo -out:$@ -dll -subsystem:windows -release $(WIN32LIBs) @<<
+	link -nologo -out:$@ $(dlllflags) $(guilibsdll) @<<
 !endif
-$(EXPDLL_OBJs)
+$(EXPLIB_OBJs)
 <<
+
+$(SLAVEDRV) : $(SLAVEDRV_OBJs)
+	link -out:$@ $(conlflags) $(ldebug) $(conlibsdll) $(optlibs) \
+	    imagehlp.lib user32.lib $(TCLSTUBSLIB) @<<
+$(SLAVEDRV_OBJs)
+<<
+
 
 depends : mkfiles.d
 
-#cl -nologo -Zs -P -YX -Fp$(TMP_DIR)^\ -I$(GENERICDIR) -DBUILD_tcl
 mkfiles.d :
 	@echo $(TCLSH) $(TOOLSDIR)\mkinfrdeps.tcl -vc32 -out:$@ $(COMPATDIR) $(GENERICDIR) $(WINDIR) @<<
-$(TCLOBJs)
+$(EXPLIB_OBJs)
 <<
 
 
-CFLAGS	= -nologo -MD -Ox -YX -Fo$(TMP_DIR)^\ -Fp$(TMP_DIR)^\
+expcflags   = -DBUILD_exp -DTCL_THREADS -DUSE_TCL_STUBS -I$(GENERICDIR) -I$(WINDIR) \
+	$(TCL_INCLUDES) -Fo$(TMP_DIR)^\ -Fp$(TMP_DIR)^\
 
 {$(COMPATDIR)}.c{$(TMP_DIR)}.obj ::
-    cl -c $(CFLAGS) -DBUILD_tcl -I$(GENERICDIR) @<<
+    cl $(cflags) -MD$(DBGX) $(cdebug) $(expcflags) @<<
 $<
 <<
 
 {$(GENERICDIR)}.c{$(TMP_DIR)}.obj ::
-    cl -c $(CFLAGS) -DBUILD_tcl -I$(GENERICDIR) @<<
+    cl $(cflags) -MD$(DBGX) $(cdebug) $(expcflags) @<<
 $<
 <<
 
 {$(WINDIR)}.c{$(TMP_DIR)}.obj ::
-    cl -c $(CFLAGS) -DBUILD_tcl -I$(GENERICDIR) @<<
+    cl $(cflags) -MD$(DBGX) $(cdebug) $(expcflags) @<<
 $<
 <<
 

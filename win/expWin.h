@@ -35,7 +35,8 @@
 #define EXP_APPL_NONE	0
 #define EXP_APPL_DOS	1
 #define EXP_APPL_WIN3X	2
-#define EXP_APPL_WIN32	3
+#define EXP_APPL_WIN32CUI	3
+#define EXP_APPL_WIN32GUI	4
 
 typedef struct {
     Tcl_Channel channelPtr;
@@ -44,13 +45,13 @@ typedef struct {
 
 extern DWORD		ExpApplicationType(const char *originalName,
 			    char *fullPath, char *imageName);
+/* should be TclpCreateProcess */
 extern DWORD		ExpCreateProcess(int argc, char **argv,
 			    HANDLE inputHandle, HANDLE outputHandle,
 			    HANDLE errorHandle, int allocConsole,
 			    int hideConsole, int debug, int newProcessGroup,
 			    Tcl_Pid *pidPtr, PDWORD globalPidPtr);
-EXTERN Tcl_Channel	ExpCreateSpawnChannel _ANSI_ARGS_((Tcl_Interp *,
-			    Tcl_Channel chan));
+extern Tcl_Channel	ExpCreateSpawnChannel (Tcl_Interp *, Tcl_Channel chan);
 extern void		ExpSyslog TCL_VARARGS(char *,fmt);
 extern Tcl_Pid		Exp_WaitPid(Tcl_Pid pid, int *statPtr, int options);
 extern void		Exp_KillProcess(Tcl_Pid pid);

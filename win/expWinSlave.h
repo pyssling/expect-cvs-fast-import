@@ -96,11 +96,11 @@ extern BOOL			ExpWriteMaster(int useSocket, HANDLE hFile,
 				    LPCVOID buf, DWORD n, LPOVERLAPPED over);
 extern BOOL			ExpReadMaster(int useSocket, HANDLE hFile,
 				    void *buf, DWORD n, PDWORD pCount,
-				    LPOVERLAPPED over, PDWORD pError);
+				    LPWSAOVERLAPPED over, PDWORD pError);
 extern void			ExpNewConsoleSequences(int useSocket,
-				    HANDLE hMaster, LPOVERLAPPED over);
+				    HANDLE hMaster, LPWSAOVERLAPPED over);
 extern void			ExpProcessFreeByHandle(HANDLE hProcess);
 extern void			ExpSetConsoleSize(HANDLE hConsoleInW,
 				    HANDLE hConsoleOut,
 				    int w, int h, int useSocket,
-				    HANDLE hMaster, LPOVERLAPPED over);
+				    HANDLE hMaster, LPWSAOVERLAPPED over);

@@ -6,7 +6,7 @@
 #   NMAKE specific syntax is allowed in this file.
 #
 #==============================================================================
-# RCS: @(#) $Id: mkvc32.mif,v 1.1.2.1 2001/09/26 14:24:21 davygrvy Exp $
+# RCS: @(#) $Id: mkvc32.mif,v 1.1.2.2 2001/09/28 02:17:27 davygrvy Exp $
 #==============================================================================
 
 !ifndef _MKVC32_MIF
@@ -27,8 +27,13 @@ cvtres32    = cvtres
 OUT_DIR	    = $(TMP_DIR)
 !endif
 
-!ifndef DEBUG
+!if !defined(DEBUG)
 DEBUG		= 0
+NODEBUG		= 1
+!elseif $(DEBUG) == 1
+!undef NODEBUG
+!else
+NODEBUG		= 1
 !endif
 
 !ifndef STATIC_BUILD
@@ -106,6 +111,11 @@ TCLLIB		= "$(TCLROOT)\win\$(TMPDIRNAMEPREFIX)\tcl$(TCLMAJOR)$(TCLMINOR)$(DBGX).l
 TCLSH_PROG	= "$(TCLROOT)\win\$(TMPDIRNAMEPREFIX)\tclsh$(TCLMAJOR)$(TCLMINOR)$(DBGX).exe"
 !endif
 
+!if $(ISTCLINSTALL)
+TCL_INCLUDES	= -I"$(TCLROOT)\include"
+!else
+TCL_INCLUDES	= -I"$(TCLROOT)\generic"
+!endif
 
 #==============================================
 # Test for compiler features

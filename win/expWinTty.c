@@ -2,7 +2,7 @@
  * expWinTty.c --
  *
  *	Implements some tty related functions.  Handles interaction with
- *	the console
+ *	the console.  This file uses only ANSI function headers.
  *
  * Copyright (c) 1997 by Mitel Corporation
  *
@@ -69,8 +69,7 @@ exp_isecho()
  */
 
 void
-exp_tty_raw(set)
-    int set;
+exp_tty_raw(int set)
 {
     if (! consoleInitialized) {
 	return;
@@ -101,8 +100,7 @@ exp_tty_raw(set)
  */
 
 void
-exp_tty_echo(set)
-    int set;
+exp_tty_echo(int set)
 {
     if (! consoleInitialized) {
 	return;
@@ -132,9 +130,7 @@ exp_tty_echo(set)
  */
 
 char *
-exp_cook(s,len)
-    char *s;
-    int *len;	/* current and new length of s */
+exp_cook(char *s, int *len)
 {
     static unsigned int destlen = 0;
     static char *dest = 0;

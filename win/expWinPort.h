@@ -14,6 +14,7 @@
 #ifndef _EXPWINPORT_H
 #define _EXPWINPORT_H
 
+#define _WINSOCKAPI_  /* avoid sourcing winsock.h, so winsock2.h can be used instead. */
 #include <windows.h>
 #include <time.h>
 

@@ -1,35 +1,38 @@
-// Used Sun tcl.rc file as an example
+// RCS: @(#) $Id: $
 
-#define RESOURCE_INCLUDED
-#include <exp_version.h>
+#include <winver.h>
+
+LANGUAGE 0x9, 0x1    /* LANG_ENGLISH, SUBLANG_DEFAULT */
 
 VS_VERSION_INFO VERSIONINFO
  FILEVERSION 	EXP_MAJOR_VERSION,EXP_MINOR_VERSION,EXP_RELEASE_LEVEL,EXP_RELEASE_SERIAL
  PRODUCTVERSION EXP_MAJOR_VERSION,EXP_MINOR_VERSION,EXP_RELEASE_LEVEL,EXP_RELEASE_SERIAL
  FILEFLAGSMASK 	0x3fL
- FILEFLAGS 	0x0L
- FILEOS 	0x4L
- FILETYPE 	0x2L
- FILESUBTYPE 	0x0L
+#if DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS     0x4    /* VOS__WINDOWS32 */
+ FILETYPE     0x2    /* VFT_DLL */
+ FILESUBTYPE     0x0L
 BEGIN
     BLOCK "StringFileInfo"
     BEGIN
-        BLOCK "040a04b0"
+        BLOCK "040904b0" /* LANG_ENGLISH/SUBLANG_ENGLISH_US, Unicode CP */
         BEGIN
-            VALUE "FileDescription", "Expect DLL\0"
+            VALUE "FileDescription", "Expect Tcl extension for Windows.  Interacts with console applications\0"
             VALUE "OriginalFilename", "expect" STRINGIFY(EXP_MAJOR_VERSION) STRINGIFY(EXP_MINOR_VERSION) ".dll\0"
-            VALUE "CompanyName", "Mitel, Inc\0"
-            VALUE "FileVersion", EXP_PATCH_LEVEL
-            VALUE "LegalCopyright", "Copyright \251 Mitel Corporation 1997\0"
+            VALUE "CompanyName", "Telindustrie, LLC\0"
+            VALUE "FileVersion", EXP_PATCH_LEVEL "\0"
+            VALUE "LegalCopyright", "Copyright \251 Telindustrie, LLC 2001\0"
             VALUE "ProductName", "Expect " EXP_VERSION " for Windows NT\0"
-            VALUE "ProductVersion", EXP_PATCH_LEVEL
-	    VALUE "Comments", "Expect was written for Unix by Don Libes at NIST.  This is a Windows NT only port.\0"
+            VALUE "ProductVersion", EXP_PATCH_LEVEL "\0"
+	    VALUE "Comments", "Expect was written for Unix by Don Libes at NIST.\r\n" "Gordon Chaffee ported it to WinNT for Mitel Corporation in 1997.\r\n" "David Gravereaux merged Gordon's port back into the official sources for Telindustrie LLC in Oct. 2001.\0"
         END
     END
     BLOCK "VarFileInfo"
     BEGIN
-        VALUE "Translation", 0x40a, 1200
+        VALUE "Translation", 0x409, 1200
     END
 END
-
-// init SCRIPT "initscript.tcl"

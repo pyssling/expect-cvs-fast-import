@@ -45,13 +45,12 @@
  * same headers 
  */
 
-#include <windows.h>
-#include <imagehlp.h>
-#include <stddef.h>
 #include "tclInt.h"
 #include "tclPort.h"
 #include "expWin.h"
 #include "expWinSlave.h"
+#include <imagehlp.h>
+#include <stddef.h>
 #include <assert.h>
 
 #if 0
@@ -75,14 +74,14 @@
 
 #ifndef UNICODE
 #  define ExpCreateProcessInfo	ExpCreateProcessInfoA
-#  define OnWriteConsoleOutput	OnWriteConsoleOutputA
-#  define ReadSubprocessString	ReadSubprocessStringA
-#  define StartSubprocess	StartSubprocessW
+//#  define OnWriteConsoleOutput	OnWriteConsoleOutputA
+//#  define ReadSubprocessString	ReadSubprocessStringA
+#  define StartSubprocess	StartSubprocessA
 #else
 #  define ExpCreateProcessInfo	ExpCreateProcessInfoW
-#  define OnWriteConsoleOutput	OnWriteConsoleOutputW
-#  define ReadSubprocessString	ReadSubprocessStringW
-#  define StartSubprocess	StartSubprocessA
+//#  define OnWriteConsoleOutput	OnWriteConsoleOutputW
+//#  define ReadSubprocessString	ReadSubprocessStringW
+#  define StartSubprocess	StartSubprocessW
 #endif
 
 typedef struct _ExpProcess ExpProcess;
@@ -207,24 +206,24 @@ static char *SymbolPath;
  * Static functions in this file:
  */
 
-extern void		ExpCommonDebugger();
-extern BOOL		ReadSubprocessMemory(ExpProcess *proc, LPVOID addr,
+static void		ExpCommonDebugger();
+static BOOL		ReadSubprocessMemory(ExpProcess *proc, LPVOID addr,
 			    LPVOID buf, DWORD len);
-extern int		ReadSubprocessStringA(ExpProcess *proc, PVOID base,
+static int		ReadSubprocessStringA(ExpProcess *proc, PVOID base,
 			    PCHAR buf, int buflen);
-extern int		ReadSubprocessStringW(ExpProcess *proc, PVOID base,
+static int		ReadSubprocessStringW(ExpProcess *proc, PVOID base,
 			    PWCHAR buf, int buflen);
-extern BOOL		WriteSubprocessMemory(ExpProcess *proc, LPVOID addr,
+static BOOL		WriteSubprocessMemory(ExpProcess *proc, LPVOID addr,
 			    LPVOID buf, DWORD len);
 
 static DWORD WINAPI	CreateProcessThread(LPVOID *lparg);
-extern void		CreateVtSequence(ExpProcess *, COORD newPos, DWORD n);
+static void		CreateVtSequence(ExpProcess *, COORD newPos, DWORD n);
 static BOOL		SetBreakpoint(ExpProcess *, ExpBreakInfo *);
-extern ExpBreakpoint *	SetBreakpointAtAddr(ExpProcess *, ExpBreakInfo *,
+static ExpBreakpoint *	SetBreakpointAtAddr(ExpProcess *, ExpBreakInfo *,
 			    PVOID funcPtr);
 static void		StartSubprocessA(ExpProcess *, ExpThreadInfo *);
 static void		StartSubprocessW(ExpProcess *, ExpThreadInfo *);
-static void		RefreshScreen(LPOVERLAPPED over);
+static void		RefreshScreen(LPWSAOVERLAPPED over);
 
 static void		OnBeep(ExpProcess *,
 			    ExpThreadInfo *, ExpBreakpoint *, PDWORD, DWORD);
@@ -254,7 +253,7 @@ static void		OnWriteConsoleW(ExpProcess *,
 			    ExpThreadInfo *, ExpBreakpoint *, PDWORD, DWORD);
 static void		OnWriteConsoleOutputA(ExpProcess *,
 			    ExpThreadInfo *, ExpBreakpoint *, PDWORD, DWORD);
-extern void		OnWriteConsoleOutputW(ExpProcess *,
+static void		OnWriteConsoleOutputW(ExpProcess *,
 			    ExpThreadInfo *, ExpBreakpoint *, PDWORD, DWORD);
 static void		OnWriteConsoleOutputCharacterA(ExpProcess *,
 			    ExpThreadInfo *, ExpBreakpoint *, PDWORD, DWORD);
@@ -286,7 +285,7 @@ static void		OnXSecondBreakpoint(ExpProcess *, LPDEBUG_EVENT);
 static void		OnXSecondChanceException(ExpProcess *,LPDEBUG_EVENT);
 static void		OnXSingleStep(ExpProcess *, LPDEBUG_EVENT);
 
-#ifndef UNICODE
+//#ifndef UNICODE
 
 /*
  * Functions where we set breakpoints
@@ -329,9 +328,9 @@ ExpDllBreakpoints BreakPoints[] = {
     {NULL, NULL}
 };
 
-#endif /* !UNICODE */
+//#endif /* !UNICODE */
 
-#ifndef UNICODE
+//#ifndef UNICODE
 
 /*
  *----------------------------------------------------------------------
@@ -350,7 +349,7 @@ ExpDllBreakpoints BreakPoints[] = {
  *----------------------------------------------------------------------
  */
 
-static ExpProcess *
+ExpProcess *
 ExpProcessNew(void)
 {
     ExpProcess *proc;
@@ -393,7 +392,7 @@ ExpProcessNew(void)
  *----------------------------------------------------------------------
  */
 
-static void
+void
 ExpProcessFree(ExpProcess *proc)
 {
     ExpThreadInfo *tcurr, *tnext;
@@ -773,7 +772,7 @@ ExpCommonDebugger()
  *----------------------------------------------------------------------
  */
 
-static int
+int
 LoadedModule(ExpProcess *proc, HANDLE hFile, LPVOID modname, int isUnicode,
     LPVOID baseAddr, DWORD debugOffset)
 {
@@ -853,7 +852,7 @@ LoadedModule(ExpProcess *proc, HANDLE hFile, LPVOID modname, int isUnicode,
  *----------------------------------------------------------------------
  */
 
-static void
+void
 OnXCreateProcess(ExpProcess *proc, LPDEBUG_EVENT pDebEvent)
 {
     ExpThreadInfo *threadInfo;
@@ -912,7 +911,7 @@ OnXCreateProcess(ExpProcess *proc, LPDEBUG_EVENT pDebEvent)
  *----------------------------------------------------------------------
  */
 
-static void
+void
 OnXCreateThread(ExpProcess *proc, LPDEBUG_EVENT pDebEvent)
 {
     /*
@@ -945,7 +944,7 @@ OnXCreateThread(ExpProcess *proc, LPDEBUG_EVENT pDebEvent)
  *----------------------------------------------------------------------
  */
 
-static void
+void
 OnXDeleteThread(ExpProcess *proc, LPDEBUG_EVENT pDebEvent)
 {
     /*
@@ -1011,7 +1010,7 @@ typedef struct _InjectCode {
 } InjectCode;
 #pragma pack(pop)
 
-static void
+void
 OnXFirstBreakpoint(ExpProcess *proc, LPDEBUG_EVENT pDebEvent)
 {
     DWORD base;
@@ -1088,7 +1087,7 @@ OnXFirstBreakpoint(ExpProcess *proc, LPDEBUG_EVENT pDebEvent)
  *----------------------------------------------------------------------
  */
 
-static void
+void
 OnXSecondBreakpoint(ExpProcess *proc, LPDEBUG_EVENT pDebEvent)
 {
     CONTEXT context;
@@ -1138,7 +1137,7 @@ OnXSecondBreakpoint(ExpProcess *proc, LPDEBUG_EVENT pDebEvent)
  *----------------------------------------------------------------------
  */
 
-static void
+void
 OnXBreakpoint(ExpProcess *proc, LPDEBUG_EVENT pDebEvent)
 {
     LPEXCEPTION_DEBUG_INFO exceptInfo;
@@ -1262,7 +1261,7 @@ OnXBreakpoint(ExpProcess *proc, LPDEBUG_EVENT pDebEvent)
  *----------------------------------------------------------------------
  */
 
-static void
+void
 OnXSecondChanceException(ExpProcess *proc,  LPDEBUG_EVENT pDebEvent)
 {
     BOOL b;
@@ -1428,7 +1427,7 @@ error:
  *----------------------------------------------------------------------
  */
 
-static void
+void
 OnXSingleStep(ExpProcess *proc, LPDEBUG_EVENT pDebEvent)
 {
     UCHAR code;
@@ -1455,7 +1454,7 @@ OnXSingleStep(ExpProcess *proc, LPDEBUG_EVENT pDebEvent)
  *----------------------------------------------------------------------
  */
 
-static void
+void
 OnXLoadDll(ExpProcess *proc, LPDEBUG_EVENT pDebEvent)
 {
     WORD w;
@@ -1619,7 +1618,7 @@ OnXLoadDll(ExpProcess *proc, LPDEBUG_EVENT pDebEvent)
  *----------------------------------------------------------------------
  */
 
-static void
+void
 OnXUnloadDll(ExpProcess *proc, LPDEBUG_EVENT pDebEvent)
 {
     Tcl_HashEntry *tclEntry;
@@ -1665,7 +1664,7 @@ OnXUnloadDll(ExpProcess *proc, LPDEBUG_EVENT pDebEvent)
  *----------------------------------------------------------------------
  */
 
-static BOOL
+BOOL
 SetBreakpoint(ExpProcess *proc, ExpBreakInfo *info)
 {
     Tcl_HashEntry *tclEntry;
@@ -1686,6 +1685,7 @@ SetBreakpoint(ExpProcess *proc, ExpBreakInfo *info)
      */
     funcPtr = Tcl_GetHashValue(tclEntry);
     SetBreakpointAtAddr(proc, info, funcPtr);
+    return TRUE;
 }
 
 /*
@@ -1759,7 +1759,7 @@ SetBreakpointAtAddr(ExpProcess *proc, ExpBreakInfo *info, PVOID funcPtr)
  *----------------------------------------------------------------------
  */
 
-static void
+void
 OnOpenConsoleW(ExpProcess *proc, ExpThreadInfo *threadInfo,
     ExpBreakpoint *brkpt, PDWORD returnValue, DWORD direction)
 {
@@ -1806,7 +1806,7 @@ OnOpenConsoleW(ExpProcess *proc, ExpThreadInfo *threadInfo,
  *----------------------------------------------------------------------
  */
 
-static void
+void
 OnWriteConsoleA(ExpProcess *proc, ExpThreadInfo *threadInfo,
     ExpBreakpoint *brkpt, PDWORD returnValue, DWORD direction)
 {
@@ -1865,7 +1865,7 @@ OnWriteConsoleA(ExpProcess *proc, ExpThreadInfo *threadInfo,
  *----------------------------------------------------------------------
  */
 
-static void
+void
 OnWriteConsoleW(ExpProcess *proc, ExpThreadInfo *threadInfo,
     ExpBreakpoint *brkpt, PDWORD returnValue, DWORD direction)
 {
@@ -1931,7 +1931,7 @@ OnWriteConsoleW(ExpProcess *proc, ExpThreadInfo *threadInfo,
  *----------------------------------------------------------------------
  */
 
-static void
+void
 OnFillConsoleOutputCharacter(ExpProcess *proc, ExpThreadInfo *threadInfo,
     ExpBreakpoint *brkpt, PDWORD returnValue, DWORD direction)
 {
@@ -2221,7 +2221,7 @@ ExpSetConsoleSize(HANDLE hConsoleInW, HANDLE hConsoleOut, int w, int h,
  *----------------------------------------------------------------------
  */
 
-static void
+void
 OnWriteConsoleOutputCharacterA(ExpProcess *proc, ExpThreadInfo *threadInfo,
     ExpBreakpoint *brkpt, PDWORD returnValue, DWORD direction)
 {
@@ -2283,7 +2283,7 @@ OnWriteConsoleOutputCharacterA(ExpProcess *proc, ExpThreadInfo *threadInfo,
  *----------------------------------------------------------------------
  */
 
-static void
+void
 OnWriteConsoleOutputCharacterW(ExpProcess *proc, ExpThreadInfo *threadInfo,
     ExpBreakpoint *brkpt, PDWORD returnValue, DWORD direction)
 {
@@ -2370,7 +2370,7 @@ OnWriteConsoleOutputCharacterW(ExpProcess *proc, ExpThreadInfo *threadInfo,
  *----------------------------------------------------------------------
  */
 
-static void
+void
 OnReadConsoleInput(ExpProcess *proc, ExpThreadInfo *threadInfo,
     ExpBreakpoint *brkpt, PDWORD returnValue, DWORD direction)
 {
@@ -2395,7 +2395,7 @@ OnReadConsoleInput(ExpProcess *proc, ExpThreadInfo *threadInfo,
  *----------------------------------------------------------------------
  */
 
-static void
+void
 OnSetConsoleMode(ExpProcess *proc, ExpThreadInfo *threadInfo,
     ExpBreakpoint *brkpt, PDWORD returnValue, DWORD direction)
 {
@@ -2437,7 +2437,7 @@ OnSetConsoleMode(ExpProcess *proc, ExpThreadInfo *threadInfo,
  *----------------------------------------------------------------------
  */
 
-static void
+void
 OnSetConsoleActiveScreenBuffer(ExpProcess *proc, ExpThreadInfo *threadInfo,
     ExpBreakpoint *brkpt, PDWORD returnValue, DWORD direction)
 {
@@ -2467,7 +2467,7 @@ OnSetConsoleActiveScreenBuffer(ExpProcess *proc, ExpThreadInfo *threadInfo,
  *----------------------------------------------------------------------
  */
 
-static void
+void
 OnSetConsoleCursorPosition(ExpProcess *proc, ExpThreadInfo *threadInfo,
     ExpBreakpoint *brkpt, PDWORD returnValue, DWORD direction)
 {
@@ -2504,7 +2504,7 @@ OnSetConsoleCursorPosition(ExpProcess *proc, ExpThreadInfo *threadInfo,
  *----------------------------------------------------------------------
  */
 
-static void
+void
 OnSetConsoleWindowInfo(ExpProcess *proc, ExpThreadInfo *threadInfo,
     ExpBreakpoint *brkpt, PDWORD returnValue, DWORD direction)
 {
@@ -2605,7 +2605,7 @@ OnScrollConsoleScreenBuffer(ExpProcess *proc, ExpThreadInfo *threadInfo,
  *----------------------------------------------------------------------
  */
 
-static void
+void
 OnGetStdHandle(ExpProcess *proc, ExpThreadInfo *threadInfo,
     ExpBreakpoint *brkpt, PDWORD returnValue, DWORD direction)
 {
@@ -2653,7 +2653,7 @@ OnGetStdHandle(ExpProcess *proc, ExpThreadInfo *threadInfo,
  *----------------------------------------------------------------------
  */
 
-static void
+void
 OnBeep(ExpProcess *proc, ExpThreadInfo *threadInfo,
     ExpBreakpoint *brkpt, PDWORD returnValue, DWORD direction)
 {
@@ -2684,7 +2684,7 @@ OnBeep(ExpProcess *proc, ExpThreadInfo *threadInfo,
  *
  *----------------------------------------------------------------------
  */
-static void
+void
 RefreshScreen(LPOVERLAPPED over)
 {
     CONSOLE_SCREEN_BUFFER_INFO info;
@@ -2774,7 +2774,7 @@ RefreshScreen(LPOVERLAPPED over)
  *----------------------------------------------------------------------
  */
 
-static void
+void
 OnIsWindowVisible(ExpProcess *proc, ExpThreadInfo *threadInfo,
     ExpBreakpoint *brkpt, PDWORD returnValue, DWORD direction)
 {
@@ -2805,7 +2805,7 @@ OnIsWindowVisible(ExpProcess *proc, ExpThreadInfo *threadInfo,
  *----------------------------------------------------------------------
  */
 
-#ifdef XXX
+#if 0
 BOOL
 ReadSubprocessMemory(ExpProcess *proc, LPVOID addr, LPVOID buf, DWORD len)
 {
@@ -2965,18 +2965,13 @@ WriteSubprocessMemory(ExpProcess *proc, LPVOID addr, LPVOID buf, DWORD len)
 #endif
     return ret;
 }
-#endif /* !UNICODE */
+//#endif /* !UNICODE */
 
-/*
- * Everything after this point gets compiled twice, once with the UNICODE flag
- * and once without.  This gets us the Unicode and non-Unicode versions
- * of the code that we need
- */
  
 /*
  *----------------------------------------------------------------------
  *
- * OnWriteConsoleOutput --
+ * OnWriteConsoleOutputA --
  *
  *	This function gets called when an WriteConsoleOutputA breakpoint
  *	is hit.  The data is also redirected to expect since expect
@@ -2992,13 +2987,13 @@ WriteSubprocessMemory(ExpProcess *proc, LPVOID addr, LPVOID buf, DWORD len)
  */
 
 void
-OnWriteConsoleOutput(ExpProcess *proc, ExpThreadInfo *threadInfo,
+OnWriteConsoleOutputA(ExpProcess *proc, ExpThreadInfo *threadInfo,
     ExpBreakpoint *brkpt, PDWORD returnValue, DWORD direction)
 {
     CHAR buf[1024];
     PVOID ptr;
     DWORD n;
-    PCHAR p, end;
+    CHAR *p, *end;
     int maxbuf;
     BOOL b;
     COORD bufferSize;
@@ -3008,7 +3003,7 @@ OnWriteConsoleOutput(ExpProcess *proc, ExpThreadInfo *threadInfo,
     CHAR_INFO *charBuf, *pcb;
     SHORT x, y;
 
-    LOG_ENTRY("WriteConsoleOutput");
+    LOG_ENTRY("WriteConsoleOutputA");
 
     if (*returnValue == 0) {
 	return;
@@ -3042,11 +3037,7 @@ OnWriteConsoleOutput(ExpProcess *proc, ExpThreadInfo *threadInfo,
 	maxbuf = sizeof(buf);
 	end = buf + maxbuf;
 	for (x = 0; x <= writeRegion.Right - writeRegion.Left; x++, pcb++) {
-#ifdef UNICODE
-	    *p++ = (CHAR) (pcb->Char.UnicodeChar & 0xff);
-#else
 	    *p++ = pcb->Char.AsciiChar;
-#endif
 	    if (p == end) {
 		ResetEvent(proc->overlapped.hEvent);
 		b = ExpWriteMaster(UseSocket, HMaster, buf, maxbuf, &proc->overlapped);
@@ -3068,13 +3059,107 @@ OnWriteConsoleOutput(ExpProcess *proc, ExpThreadInfo *threadInfo,
     }
 
     free(charBuf);
-    LOG_EXIT("WriteConsoleOutput");
+    LOG_EXIT("WriteConsoleOutputA");
 }
 
 /*
  *----------------------------------------------------------------------
  *
- * ReadSubprocessString --
+ * OnWriteConsoleOutputW --
+ *
+ *	This function gets called when an WriteConsoleOutputW breakpoint
+ *	is hit.  The data is also redirected to expect since expect
+ *	normally couldn't see any output going through this interface.
+ *
+ * Results:
+ *	None
+ *
+ * Side Effects:
+ *	Prints some output.
+ *
+ *----------------------------------------------------------------------
+ */
+
+void
+OnWriteConsoleOutputW(ExpProcess *proc, ExpThreadInfo *threadInfo,
+    ExpBreakpoint *brkpt, PDWORD returnValue, DWORD direction)
+{
+    WCHAR buf[1024];
+    PVOID ptr;
+    DWORD n;
+    WCHAR *p, *end;
+    int maxbuf;
+    BOOL b;
+    COORD bufferSize;
+    COORD bufferCoord;
+    COORD curr;
+    SMALL_RECT writeRegion;
+    CHAR_INFO *charBuf, *pcb;
+    SHORT x, y;
+
+    LOG_ENTRY("WriteConsoleOutputW");
+
+    if (*returnValue == 0) {
+	return;
+    }
+
+    bufferSize = *((PCOORD) &threadInfo->args[2]);
+    bufferCoord = *((PCOORD) &threadInfo->args[3]);
+    ptr = (PVOID) threadInfo->args[4]; /* Get the rectangle written */
+    if (ptr == NULL) return;
+    ReadSubprocessMemory(proc, ptr, &writeRegion,sizeof(SMALL_RECT));
+
+    ptr = (PVOID) threadInfo->args[1]; /* Get character array */
+    if (ptr == NULL) return;
+
+    n = bufferSize.X * bufferSize.Y * sizeof(CHAR_INFO);
+    charBuf = malloc(n);
+
+#if 0
+    wsprintfA((char *) charBuf, "writeRegion: (%d,%d) to (%d,%d)   bufferCoord: (%d,%d)   bufferSize: (%d,%d)", writeRegion.Left, writeRegion.Top, writeRegion.Right, writeRegion.Bottom, bufferCoord.X, bufferCoord.Y, bufferSize.X, bufferSize.Y);
+    ExpSyslog("Debug 0: %s", charBuf);
+#endif
+
+    ReadSubprocessMemory(proc, ptr, charBuf, n);
+
+    pcb = charBuf;
+    for (y = 0; y <= writeRegion.Bottom - writeRegion.Top; y++) {
+	pcb = charBuf;
+	pcb += (y + bufferCoord.Y) * bufferSize.X;
+	pcb += bufferCoord.X;
+	p = buf;
+	maxbuf = sizeof(buf);
+	end = buf + maxbuf;
+	for (x = 0; x <= writeRegion.Right - writeRegion.Left; x++, pcb++) {
+	    *p++ = (CHAR) (pcb->Char.UnicodeChar & 0xff);
+	    if (p == end) {
+		ResetEvent(proc->overlapped.hEvent);
+		b = ExpWriteMaster(UseSocket, HMaster, buf, maxbuf, &proc->overlapped);
+		p = buf;
+	    }
+	}
+	curr.X = writeRegion.Left;
+	curr.Y = writeRegion.Top + y;
+	n = writeRegion.Right - writeRegion.Left;
+	CreateVtSequence(proc, curr, n);
+	ResetEvent(proc->overlapped.hEvent);
+
+	maxbuf = p - buf;
+	b = ExpWriteMaster(UseSocket, HMaster, buf, maxbuf, &proc->overlapped);
+	buf[maxbuf] = 0;
+#if 0
+	ExpSyslog("Writing %s", buf);
+#endif
+    }
+
+    free(charBuf);
+    LOG_EXIT("WriteConsoleOutputW");
+}
+
+/*
+ *----------------------------------------------------------------------
+ *
+ * ReadSubprocessStringA --
  *
  *	Read a character string from the subprocess
  *
@@ -3085,16 +3170,48 @@ OnWriteConsoleOutput(ExpProcess *proc, ExpThreadInfo *threadInfo,
  */
 
 int
-ReadSubprocessString(ExpProcess *proc, PVOID base, PTCHAR buf, int buflen)
+ReadSubprocessStringA(ExpProcess *proc, PVOID base, PCHAR buf, int buflen)
 {
-    PTCHAR ip, op;
+    CHAR *ip, *op;
     int i;
     
     ip = base;
     op = buf;
     i = 0;
     while (i < buflen-1) {
-	if (! ReadSubprocessMemory(proc, ip, op, sizeof(TCHAR))) {
+	if (! ReadSubprocessMemory(proc, ip, op, sizeof(CHAR))) {
+	    break;
+	}
+	if (*op == 0) break;
+	op++; ip++; i++;
+    }
+    *op = 0;
+    return i;
+}
+/*
+ *----------------------------------------------------------------------
+ *
+ * ReadSubprocessStringW --
+ *
+ *	Read a character string from the subprocess
+ *
+ * Results:
+ *	The length of the string
+ *
+ *----------------------------------------------------------------------
+ */
+
+int
+ReadSubprocessStringW(ExpProcess *proc, PVOID base, PWCHAR buf, int buflen)
+{
+    WCHAR *ip, *op;
+    int i;
+    
+    ip = base;
+    op = buf;
+    i = 0;
+    while (i < buflen-1) {
+	if (! ReadSubprocessMemory(proc, ip, op, sizeof(WCHAR))) {
 	    break;
 	}
 	if (*op == 0) break;

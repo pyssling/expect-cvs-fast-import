@@ -11,9 +11,9 @@
  *
  */
 
-#include "exp_port.h"
 #include "tclInt.h"
 #include "tclPort.h"
+#include "expect_tcl.h"
 #include "exp_command.h"
 #include "expWin.h"
 

@@ -2,27 +2,39 @@ EXP_MAJOR   = 5
 EXP_MINOR   = 32
 
 EXPLIBBASE  = $(OUT_DIR)\expect$(EXP_MAJOR)$(EXP_MINOR)$(STCX)$(DBGX)
-EXPLIB	    = $(EXPLIBBASE).$(OUTEXT)
+EXPLIB	    = "$(EXPLIBBASE).$(OUTEXT)"
+
+SLAVEDRV    = "$(OUT_DIR)\slavedrv.exe"
 
 EXPLIB_OBJs = \
 	$(TMP_DIR)\expCommand.obj \
-	$(TMP_DIR)\expWinCommand.obj \
-	$(TMP_DIR)\expWinLog.obj \
-	$(TMP_DIR)\expWinProcess.obj \
-	$(TMP_DIR)\expWinTty.obj \
-	$(TMP_DIR)\exp_log.obj \
-	$(TMP_DIR)\exp_glob.obj \
-	$(TMP_DIR)\Dbg.obj \
-	$(TMP_DIR)\exp_closetcl.obj \
-	$(TMP_DIR)\exp_regexp.obj \
-	$(TMP_DIR)\exp_printify.obj \
-	$(TMP_DIR)\getopt.obj \
-	$(TMP_DIR)\exp_main_sub.obj \
-	$(TMP_DIR)\exp_inter.obj \
-	$(TMP_DIR)\expect.obj \
-	$(TMP_DIR)\exp_event.obj \
-	$(TMP_DIR)\exp_strf.obj \
+#	$(TMP_DIR)\exp_command.obj \
+#	$(TMP_DIR)\expWinCommand.obj \
+#	$(TMP_DIR)\expWinLog.obj \
+#	$(TMP_DIR)\expWinProcess.obj \
+#	$(TMP_DIR)\expWinTty.obj \
+#	$(TMP_DIR)\exp_log.obj \
+#	$(TMP_DIR)\exp_glob.obj \
+#	$(TMP_DIR)\Dbg.obj \
+#	$(TMP_DIR)\exp_closetcl.obj \
+#	$(TMP_DIR)\exp_regexp.obj \
+#	$(TMP_DIR)\exp_printify.obj \
+#	$(TMP_DIR)\getopt.obj \
+#	$(TMP_DIR)\exp_main_sub.obj \
+#	$(TMP_DIR)\exp_inter.obj \
+#	$(TMP_DIR)\expect.obj \
+#	$(TMP_DIR)\exp_event.obj \
+#	$(TMP_DIR)\exp_strf.obj \
 	$(TMP_DIR)\expSpawnChan.obj \
-	$(TMP_DIR)\expWinSpawnChan.obj \
-	$(TMP_DIR)\expChan.obj \
-	$(TMP_DIR)\expTrap.obj
+#	$(TMP_DIR)\expWinSpawnChan.obj \
+#	$(TMP_DIR)\expChan.obj \
+#	$(TMP_DIR)\expTrap.obj
+
+SLAVEDRV_OBJs = \
+#	$(TMP_DIR)\expCommand.obj \
+	$(TMP_DIR)\expWinSlaveDrv.obj \
+	$(TMP_DIR)\expWinSlaveKey.obj \
+	$(TMP_DIR)\expWinSlaveDbg.obj \
+#	$(TMP_DIR)\expWinSlaveDbgW.obj \
+	$(TMP_DIR)\expWinProcess.obj \
+	$(TMP_DIR)\expWinLog.obj

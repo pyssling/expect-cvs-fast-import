@@ -10,12 +10,11 @@
  *
  */
 
-#include "exp_port.h"
 #include "tclInt.h"
 #include "tclPort.h"
-#include "tclWinInt.h"
-#include "expWin.h"
+//#include "tclWinInt.h"
 #include "expect_tcl.h"
+#include "expWin.h"
 #include "exp_command.h"
 #include "exp_rename.h"
 #include "exp_log.h"
@@ -36,67 +35,6 @@
 static void ExpSockAcceptProc _ANSI_ARGS_((ClientData callbackData,
         Tcl_Channel chan, char *address, int port));
 
-/*
- *----------------------------------------------------------------------
- *
- * exp_f_new_platform --
- *
- *	Platform specific initialization of exp_f structure
- *
- * Results:
- *	TRUE if successful, FALSE if unsuccessful.
- *
- * Side Effects:
- *	None
- *
- *----------------------------------------------------------------------
- */
-
-int
-exp_f_new_platform(f)
-    struct exp_f *f;
-{
-    if (EXP_NOPID != f->pid) {
-	f->tclPid = (Tcl_Pid)
-	    OpenProcess(PROCESS_ALL_ACCESS, FALSE, f->pid);
-	TclWinAddProcess((HANDLE) f->tclPid, f->pid);
-    } else {
-	f->tclPid = (Tcl_Pid) INVALID_HANDLE_VALUE;
-    }
-
-    /* WIN32 only fields */
-    f->over.hEvent = NULL;
-    return TRUE;
-}
-
-/*
- *----------------------------------------------------------------------
- *
- * exp_f_free_platform --
- *
- *	Frees any platform specific pieces of the exp_f structure.
- *
- * Results:
- *	None
- *
- *----------------------------------------------------------------------
- */
-
-void
-exp_f_free_platform(f)
-    struct exp_f *f;
-{
-    if (f->tclPid != (Tcl_Pid) INVALID_HANDLE_VALUE) {
-	__try {
-	    CloseHandle((HANDLE) f->tclPid);
-	}
-	__except (GetExceptionCode()) {};
-    }
-    if (f->over.hEvent) {
-	CloseHandle(f->over.hEvent);
-	f->over.hEvent = NULL;
-    }
-}
 
 void
 exp_close_on_exec(fd)
@@ -146,7 +84,7 @@ exp_getpidproc()
  *	than once console.  There is no way to call DuplicateHandle()
  *	on a console handle so a single executable could control
  *	multiple consoles.  This leaves one option: execute slave
- *	controllers who allocate their own consoles and then control.
+ *	controllers who allocate their own consoles and then control
  *	the actual slave.  The normal expect process communicates
  *	with these slave drivers over pipes.  There is still one
  *	remaining problem: consoles pop up on the screen.  When
@@ -545,7 +483,7 @@ Exp_SpawnCmd(ClientData clientData,Tcl_Interp *interp,int argc,char **argv)
     debuglog("parent: now unsynchronized from child\r\n");
 
     /* tell user id of new process */
-    Tcl_SetVar(interp, EXP_SPAWN_ID_VARNAME, Tcl_GetChannelName(spawnChan), 0);
+    Tcl_SetVar(interp, SPAWN_ID_VARNAME, Tcl_GetChannelName(spawnChan), 0);
 
     Tcl_RegisterChannel(interp, spawnChan);
 

@@ -50,16 +50,11 @@
  *----------------------------------------------------------------------
  */
 
-/*
- * Even though we won't have access to most of the commands, use the
- * normal headers 
- */
-
-#include <winsock2.h>
 #include "tcl.h"
 #include "tclPort.h"
 #include "expWin.h"
 #include "expWinSlave.h"
+//#include <windows.h>
 
 #define STATE_WAIT_CMD   0	/* Waiting for the next command */
 #define STATE_CREATE     1	/* Doesn't happen currently */
@@ -150,7 +145,7 @@ static void		SshdProcessInput(HANDLE sock, HANDLE hConsoleInW,
 static BOOL		WriteBufferToSlave(int sshd, int useSocket,
 			    int noEscapes, HANDLE hMaster,
 			    HANDLE hConsoleInW, HANDLE hConsoleOut,
-			    PUCHAR buf, DWORD n, LPOVERLAPPED over);
+			    PUCHAR buf, DWORD n, LPWSAOVERLAPPED over);
 static DWORD WINAPI	PassThroughThread(LPVOID *arg);
 static DWORD WINAPI	WaitQueueThread(LPVOID *arg);
 static void		SetArgv(char *cmdLine, int *argcPtr, char ***argvPtr);
@@ -191,16 +186,14 @@ static void		SetArgv(char *cmdLine, int *argcPtr, char ***argvPtr);
  */
 
 void
-main(argc, argv)
-    int argc;
-    char **argv;
+main(int argc, char **argv)
 {
-    HANDLE hConsoleInW;		/* Console, writeable input handle */
-    HANDLE hConsoleOut;	/* Console, readable output handle */
-    HANDLE hMaster;		/* Pipe between master and us */
-    HANDLE hSlaveOut;		/* Pipe from slave's STDOUT to us */
-    HANDLE hSlaveOutW;		/* Pipe from slave's STDOUT to us */
-    HANDLE hProcess;		/* Current process handle */
+    HANDLE hConsoleInW;	    /* Console, writeable input handle */
+    HANDLE hConsoleOut;	    /* Console, readable output handle */
+    HANDLE hMaster;	    /* Pipe between master and us */
+    HANDLE hSlaveOut;	    /* Pipe from slave's STDOUT to us */
+    HANDLE hSlaveOutW;	    /* Pipe from slave's STDOUT to us */
+    HANDLE hProcess;	    /* Current process handle */
     UCHAR cmdline[BUFSIZE];
     BOOL bRet;
     DWORD dwResult;
@@ -252,7 +245,7 @@ main(argc, argv)
 	}
     } else {
 	SOCKET fdmaster;
-	dwResult = WSAStartup(MAKEWORD(2, 0), &SockData);
+	dwResult = WSAStartup(WINSOCK_VERSION, &SockData);
 	if (dwResult != 0) {
 	    fprintf(stderr, "Unexpected error 0x%x\n", WSAGetLastError());
 	    EXP_LOG("Unexpected error 0x%x", WSAGetLastError());
@@ -306,8 +299,8 @@ main(argc, argv)
     InitializeWaitQueue();
 
     if (sshd) {
-	OVERLAPPED over;
-	memset(&over, 0, sizeof(over));
+	WSAOVERLAPPED over;
+	ZeroMemory(&over, sizeof(WSAOVERLAPPED));
 	over.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
 
 	bRet = ExpReadMaster(useSocket, hMaster, cmdline, BUFSIZE, &n, &over,
@@ -407,7 +400,7 @@ static void
 ExpProcessInput(HANDLE hMaster, HANDLE hConsoleInW, HANDLE hConsoleOut,
 		int useSocket, ExpSlaveDebugArg *debugInfo)
 {
-    OVERLAPPED over;
+    WSAOVERLAPPED over;
     UCHAR buffer[BUFSIZE];
     DWORD dwState;
     DWORD dwHave;
@@ -421,7 +414,7 @@ ExpProcessInput(HANDLE hMaster, HANDLE hConsoleInW, HANDLE hConsoleOut,
     dwState = STATE_WAIT_CMD;
     dwNeeded = 1;
 
-    memset(&over, 0, sizeof(over));
+    ZeroMemory(&over, sizeof(WSAOVERLAPPED));
     over.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
     while (1) {
 	bRet = ExpReadMaster(useSocket, hMaster, &buffer[dwHave],
@@ -565,9 +558,9 @@ SshdProcessInput(HANDLE hMaster, HANDLE hConsoleInW, HANDLE hConsoleOut)
     UCHAR buffer[BUFSIZE];
     BOOL b;
     DWORD dwError;
-    OVERLAPPED over;
+    WSAOVERLAPPED over;
 
-    memset(&over, 0, sizeof(over));
+    ZeroMemory(&over, sizeof(WSAOVERLAPPED));
     over.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
 
     ExpNewConsoleSequences(TRUE, hMaster, &over);
@@ -691,7 +684,7 @@ PipeRespondToMaster(int useSocket, HANDLE handle, DWORD value, DWORD pid)
 
 BOOL
 ExpWriteMaster(int useSocket, HANDLE hFile, void *buf, DWORD n,
-	       LPOVERLAPPED over)
+	       LPWSAOVERLAPPED over)
 {
     DWORD count, dwResult;
     BOOL bRet;
@@ -740,7 +733,7 @@ ExpWriteMaster(int useSocket, HANDLE hFile, void *buf, DWORD n,
 
 BOOL
 ExpReadMaster(int useSocket, HANDLE hFile, void *buf, DWORD n,
-	      PDWORD pCount, LPOVERLAPPED over, PDWORD pError)
+	      PDWORD pCount, LPWSAOVERLAPPED over, PDWORD pError)
 {
     int x;
     WSABUF wsabuf[1];
@@ -822,7 +815,7 @@ PassThroughThread(LPVOID *arg)
     HANDLE hIn = thru->in;
     HANDLE hMaster = thru->hMaster;
     int useSocket = thru->useSocket;
-    OVERLAPPED over;
+    WSAOVERLAPPED over;
     DWORD nread;
     DWORD max;
     DWORD count, n;
@@ -1135,7 +1128,7 @@ FlushInputRecords(HANDLE hConsole, INPUT_RECORD *records, DWORD pos)
 static BOOL
 WriteBufferToSlave(int sshd, int useSocket, int noEscapes, HANDLE hMaster,
 		   HANDLE hConsoleInW, HANDLE hConsoleOut,
-		   PUCHAR buf, DWORD n, LPOVERLAPPED over)
+		   PUCHAR buf, DWORD n, LPWSAOVERLAPPED over)
 {
     INPUT_RECORD ibuf[1024];
     DWORD i;
