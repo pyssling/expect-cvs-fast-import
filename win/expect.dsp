@@ -43,7 +43,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "EXPECT_EXPORTS" /YX /FD /c
-# ADD CPP /nologo /MD /W3 /GX /O2 /I "." /I "..\generic" /I "d:\tcl_workspace\tcl_head\generic" /I "d:\tcl_workspace\tcl_head\win" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D TCL_THREADS=1 /D _WIN32_WINNT=0x0400 /YX /FD /c
+# ADD CPP /nologo /MD /W3 /GX /O2 /I "." /I "..\generic" /I "d:\tcl_workspace\tcl_head\generic" /I "d:\tcl_workspace\tcl_head\win" /D "NDEBUG" /D "WIN32" /D TCL_THREADS=1 /D _WIN32_WINNT=0x0400 /YX /FD /c
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
@@ -53,7 +53,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /dll /machine:I386
-# ADD LINK32 tcl84.lib advapi32.lib user32.lib /nologo /dll /machine:I386 /out:"Release/expect52.dll" /libpath:"d:\tcl_workspace\tcl_head\win\Release"
+# ADD LINK32 advapi32.lib user32.lib /nologo /dll /machine:I386 /out:"Release/expect52.dll" /libpath:"d:\tcl_workspace\tcl_head\win\Release"
 
 !ELSEIF  "$(CFG)" == "expect - Win32 Debug"
 
@@ -69,7 +69,7 @@ LINK32=link.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "EXPECT_EXPORTS" /YX /FD /GZ /c
-# ADD CPP /nologo /G5 /MDd /W3 /Gm /GX /ZI /Od /I "." /I "..\generic" /I "d:\tcl_workspace\tcl_head\generic" /I "d:\tcl_workspace\tcl_head\win" /D "_DEBUG" /D "WIN32" /D "_WINDOWS" /D TCL_THREADS=1 /D _WIN32_WINNT=0x0400 /FR /YX /FD /GZ /c
+# ADD CPP /nologo /G5 /MDd /W3 /Gm /GX /ZI /Od /I "." /I "..\generic" /I "d:\tcl_workspace\tcl_head\generic" /I "d:\tcl_workspace\tcl_head\win" /D "_DEBUG" /D "WIN32" /D TCL_THREADS=1 /D _WIN32_WINNT=0x0400 /FR /YX /FD /GZ /c
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
@@ -79,7 +79,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /dll /debug /machine:I386 /pdbtype:sept
-# ADD LINK32 tcl84d.lib advapi32.lib user32.lib /nologo /dll /debug /machine:I386 /out:"Debug/expect52d.dll" /pdbtype:sept /libpath:"d:\tcl_workspace\tcl_head\win\Debug"
+# ADD LINK32 advapi32.lib user32.lib /nologo /dll /debug /machine:I386 /out:"Debug/expect52d.dll" /pdbtype:sept /libpath:"d:\tcl_workspace\tcl_head\win\Debug"
 
 !ENDIF 
 
