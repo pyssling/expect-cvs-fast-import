@@ -190,8 +190,17 @@ BOOL CMclMailbox::Post( const void *lpMsg, DWORD dwTimeout) {
             CopyMemory( GetTailPtr(), lpMsg, m_pHdr->cbMsgSize);
             IncrementTail();
             m_cGuardMutexAPtr->Release();
+
+            // Nov 7, 2001: only release semaphore if
+            // we've actually place something in the mailbox.
+            // Previously, the following line of code was outside
+            // this if block.
+            //
+            // Thanks to Johan Vanslembrouck for finding and
+            // reporting this bug.
+            //
+            m_cPendingCountSemaphoreAPtr->Release(1);
         }
-        m_cPendingCountSemaphoreAPtr->Release(1);
     }
 
     return (CMclWaitSucceeded(dwStatus, 1));
@@ -205,8 +214,17 @@ BOOL CMclMailbox::Get( void *lpMsg, DWORD dwTimeout) {
             CopyMemory( lpMsg, GetHeadPtr(), m_pHdr->cbMsgSize);
             IncrementHead();
             m_cGuardMutexAPtr->Release();
+
+            // Nov 7, 2001: only release semaphore if
+            // we've actually place something in the mailbox.
+            // Previously, the following line of code was outside
+            // this if block.
+            //
+            // Thanks to Johan Vanslembrouck for finding and
+            // reporting this bug.
+            //
+            m_cFreeCountSemaphoreAPtr->Release(1);
         }
-        m_cFreeCountSemaphoreAPtr->Release(1);
     }
 
     return (CMclWaitSucceeded(dwStatus, 1));
@@ -223,8 +241,17 @@ BOOL CMclMailbox::PostAlertable( const void *lpMsg, CMclEvent *pInterrupt, DWORD
             IncrementTail();
             m_cGuardMutexAPtr->Release();
             bStatus = TRUE;
+
+            // Nov 7, 2001: only release semaphore if
+            // we've actually place something in the mailbox.
+            // Previously, the following line of code was outside
+            // this if block.
+            //
+            // Thanks to Johan Vanslembrouck for finding and
+            // reporting this bug.
+            //
+            m_cPendingCountSemaphoreAPtr->Release(1);
         }
-        m_cPendingCountSemaphoreAPtr->Release(1);
     }
     return bStatus;
 }
@@ -240,8 +267,17 @@ BOOL CMclMailbox::GetAlertable( void *lpMsg, CMclEvent *pInterrupt, DWORD dwTime
             IncrementHead();
             m_cGuardMutexAPtr->Release();
             bStatus = TRUE;
+
+            // Nov 7, 2001: only release semaphore if
+            // we've actually place something in the mailbox.
+            // Previously, the following line of code was outside
+            // this if block.
+            //
+            // Thanks to Johan Vanslembrouck for finding and
+            // reporting this bug.
+            //
+            m_cFreeCountSemaphoreAPtr->Release(1);
         }
-        m_cFreeCountSemaphoreAPtr->Release(1);
     }
     return bStatus;
 }
@@ -263,8 +299,17 @@ DWORD CMclMailbox::PostAlertable( const void *lpMsg, const CMclWaitableCollectio
             IncrementTail();
             m_cGuardMutexAPtr->Release();
             dwStatus = WAIT_OBJECT_0;
+
+            // Nov 7, 2001: only release semaphore if
+            // we've actually place something in the mailbox.
+            // Previously, the following line of code was outside
+            // this if block.
+            //
+            // Thanks to Johan Vanslembrouck for finding and
+            // reporting this bug.
+            //
+            m_cPendingCountSemaphoreAPtr->Release(1);
         }
-        m_cPendingCountSemaphoreAPtr->Release(1);
     }
 
     return dwStatus;
@@ -287,8 +332,17 @@ DWORD CMclMailbox::GetAlertable( void *lpMsg, const CMclWaitableCollection & rCo
             IncrementHead();
             m_cGuardMutexAPtr->Release();
             dwStatus = WAIT_OBJECT_0;
+
+            // Nov 7, 2001: only release semaphore if
+            // we've actually place something in the mailbox.
+            // Previously, the following line of code was outside
+            // this if block.
+            //
+            // Thanks to Johan Vanslembrouck for finding and
+            // reporting this bug.
+            //
+            m_cFreeCountSemaphoreAPtr->Release(1);
         }
-        m_cFreeCountSemaphoreAPtr->Release(1);
     }
 
     return dwStatus;
@@ -321,5 +375,4 @@ void CMclMailbox::CreateFreeCountSemaphoreName( LPTSTR lpszName, LPCTSTR lpszBas
 void CMclMailbox::CreatePendingCountSemaphoreName( LPTSTR lpszName, LPCTSTR lpszBasename) {
     wsprintf( lpszName, TEXT("%s::%s"), TEXT("MailboxPendingCountSemaphore"), lpszBasename);
 }
-
 
