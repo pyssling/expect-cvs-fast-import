@@ -6,24 +6,16 @@
 #   NMAKE specific syntax is allowed in this file.
 #
 #==============================================================================
-# RCS: @(#) $Id: mkvc32.mif,v 1.1.2.5 2001/09/16 07:00:34 davygrvy Exp $
+# RCS: @(#) $Id: mkvc32.mif,v 1.1.2.1 2001/09/26 14:24:21 davygrvy Exp $
 #==============================================================================
 
 !ifndef _MKVC32_MIF
 _MKVC32_MIF = 1
 
-
-#==============================================
-# check for local.
-#==============================================
-!if !exist(.\mkvc32.mif)
-!error The current working directory must be Tcl's windows platform directory before running 'makefile.win'
-!endif
+!include "mkconfig.mif"
 
 
 TOOLSET	    = vc32
-MAKECMD	    = nmake.exe -nologo /$(MAKEFLAGS) -f makefile.vc32
-SYM	    =
 
 rc32	    = $(RC)
 cc32	    = $(CC)
@@ -35,34 +27,84 @@ cvtres32    = cvtres
 OUT_DIR	    = $(TMP_DIR)
 !endif
 
-
-#==============================================
-# Are the tools in the path already?
-#==============================================
-
-###  Unfortunetly, we can't just source this into the parent
-###  environment just once and have it affect all targets.
-###  This just isn't UNIX.
-
-!if !defined(MSVCDIR)
-!if     $(TOOLSETvc32VER) == 5
-vcvars	    = "$(TOOLSETvc32)\vc\bin\vcvars32.bat"
-!elseif $(TOOLSETvc32VER) == 6
-vcvars	    = "$(TOOLSETvc32)\vc98\bin\vcvars32.bat"
-!endif
-!message +++ Microsoft Visual C++ tools are NOT in the path and
-!message +++    $(vcvars) will be used.
-
-
-### We now need to recurse back into ourselves to fix the environment,
-### then bail on this run.
-!if [ $(vcvars) & nmake -nologo /$(MAKEFLAGS) -f makefile.win ] != 0
+!ifndef DEBUG
+DEBUG		= 0
 !endif
 
-BAILOUT = 1
+!ifndef STATIC_BUILD
+STATIC_BUILD	= 0
+!endif
 
+!ifndef USE_TCL_STUBS
+USE_TCL_STUBS	= 1
+!endif
+
+# Set NOMSVCRT to 1 to use libcmt(d).lib instead of the
+# dynamic run-time.
+#
+!ifndef NOMSVCRT
+!if $(STATIC_BUILD)
+NOMSVCRT	= 1
 !else
-#!message +++ Microsoft Visual C++ tools are in the path.
+NOMSVCRT	= 0
+!endif
+!endif
+
+!if $(STATIC_BUILD) == 0 && $(NOMSVCRT) == 1
+!error The static runtime in a loadable (dll) extension is a useless configuration that will cause abnormal and unnecessary code bloat.
+!endif
+
+!if $(DEBUG)
+TMPDIRNAMEPREFIX = Debug
+DBGX = d
+!else
+TMPDIRNAMEPREFIX = Release
+DBGX =
+!endif
+
+TMPDIRNAME	=
+
+!if $(STATIC_BUILD)
+!if $(NOMSVCRT) == 0
+TMPDIRNAME = $(TMPDIRNAMEPREFIX)_StaticX
+STCX	= x
+!else
+TMPDIRNAME = $(TMPDIRNAMEPREFIX)_Static
+STCX	= s
+!endif
+OUTEXT	= lib
+!else
+STCX	=
+OUTEXT	= dll
+!endif
+
+!if "$(TMPDIRNAME)" == ""
+TMPDIRNAME	= $(TMPDIRNAMEPREFIX)
+!endif
+
+SOURCEROOT	= .
+COMPATDIR	= $(SOURCEROOT)\compat
+GENERICDIR	= $(SOURCEROOT)\generic
+TESTDIR		= $(SOURCEROOT)\tests
+TOOLSDIR	= $(SOURCEROOT)\tools
+WINDIR		= $(SOURCEROOT)\win
+TMP_DIR		= $(WINDIR)\$(TMPDIRNAME)
+
+!ifndef OUT_DIR
+OUT_DIR		= $(WINDIR)\$(TMPDIRNAME)
+!endif
+
+# Is TCLROOT pointing to the sources or the install ?
+#
+!if $(ISTCLINSTALL)
+TCLSTUBSLIB	= "$(TCLROOT)\lib\tclstub$(TCLMAJOR)$(TCLMINOR).lib"
+TCLLIB		= "$(TCLROOT)\lib\tcl$(TCLMAJOR)$(TCLMINOR).lib"
+TCLSH_PROG	= "$(TCLROOT)\bin\tclsh$(TCLMAJOR)$(TCLMINOR).exe"
+!else
+TCLSTUBSLIB	= "$(TCLROOT)\win\$(TMPDIRNAMEPREFIX)\tclstub$(TCLMAJOR)$(TCLMINOR)$(DBGX).lib"
+TCLLIB		= "$(TCLROOT)\win\$(TMPDIRNAMEPREFIX)\tcl$(TCLMAJOR)$(TCLMINOR)$(DBGX).lib"
+TCLSH_PROG	= "$(TCLROOT)\win\$(TMPDIRNAMEPREFIX)\tclsh$(TCLMAJOR)$(TCLMINOR)$(DBGX).exe"
+!endif
 
 
 #==============================================
@@ -82,8 +124,10 @@ BAILOUT = 1
 
 !if [ $(cc32) -nologo -Ox -c -Zs -TC -Fdtemp nul 2>&1 | find /c "D4002" > nul ] != 0
 !message +++ compiler has `optimizations`
+COPTS	= -Ox
 !else
 !message +++ compiler doesn't have `optimizations`
+COPTS	=
 !endif
 
 ### Force a chariage return.
@@ -93,6 +137,8 @@ BAILOUT = 1
 ### Clean-up temp files after tests.
 !if [ @for %d in (temp.idb temp.pdb) do @if exist %d erase %d ] != 0
 !endif
+
+CFLAGS	= -nologo -c $(COPTS) -MD$(DBGX) -YX -Fo$(TMP_DIR)^\ -Fp$(TMP_DIR)^\
 
 !else
 !error "$(cc32)" is STILL not available in the path.
@@ -156,5 +202,4 @@ _NMAKE_VER  = $(_NMAKE_VER:6.00.8168.0=600)
 # erase  $(ObjDir)\*.exp >NUL
 #!endif  # OS == Windows_NT
 
-!endif
 !endif  # _MKVC32_MIF
