@@ -234,7 +234,7 @@ BOOL CMclMailbox::PostAlertable( const void *lpMsg, CMclEvent *pInterrupt, DWORD
     BOOL bStatus = FALSE;
     DWORD dwStatus = pInterrupt->WaitForTwo( *m_cFreeCountSemaphoreAPtr, FALSE, dwTimeout);
     if (CMclWaitSucceeded( dwStatus, 2)
-            && (CMclWaitSucceededIndex(dwStatus) == (WAIT_OBJECT_0 + 1))) {
+            && (CMclWaitSucceededIndex(dwStatus) == 1)) {
         dwStatus = m_cGuardMutexAPtr->Wait(dwTimeout);
         if (CMclWaitSucceeded(dwStatus, 1) || CMclWaitAbandoned(dwStatus, 1)) {
             CopyMemory( GetTailPtr(), lpMsg, m_pHdr->cbMsgSize);
@@ -260,7 +260,7 @@ BOOL CMclMailbox::GetAlertable( void *lpMsg, CMclEvent *pInterrupt, DWORD dwTime
     BOOL bStatus = FALSE;
     DWORD dwStatus = pInterrupt->WaitForTwo( *m_cPendingCountSemaphoreAPtr, FALSE, dwTimeout);    
     if (CMclWaitSucceeded( dwStatus, 2)
-            && (CMclWaitSucceededIndex(dwStatus) == (WAIT_OBJECT_0 + 1))) {
+            && (CMclWaitSucceededIndex(dwStatus) == 1)) {
         dwStatus = m_cGuardMutexAPtr->Wait(dwTimeout);
         if (CMclWaitSucceeded(dwStatus, 1) || CMclWaitAbandoned(dwStatus, 1)) {
             CopyMemory( lpMsg, GetHeadPtr(), m_pHdr->cbMsgSize);
@@ -292,7 +292,7 @@ DWORD CMclMailbox::PostAlertable( const void *lpMsg, const CMclWaitableCollectio
     DWORD dwStatus = cCollection.Wait( FALSE, dwTimeout);
  
     if (CMclWaitSucceeded( dwStatus, nObjects)
-            && (CMclWaitSucceededIndex(dwStatus) == WAIT_OBJECT_0)) {
+            && (CMclWaitSucceededIndex(dwStatus) == 0)) {
         dwStatus = m_cGuardMutexAPtr->Wait(dwTimeout);
         if (CMclWaitSucceeded(dwStatus, 1) || CMclWaitAbandoned(dwStatus, 1)) {
             CopyMemory( GetTailPtr(), lpMsg, m_pHdr->cbMsgSize);
@@ -325,7 +325,7 @@ DWORD CMclMailbox::GetAlertable( void *lpMsg, const CMclWaitableCollection & rCo
     DWORD dwStatus = cCollection.Wait( FALSE, dwTimeout);
  
     if (CMclWaitSucceeded( dwStatus, nObjects)
-            && (CMclWaitSucceededIndex(dwStatus) == WAIT_OBJECT_0)) {
+            && (CMclWaitSucceededIndex(dwStatus) == 0)) {
         dwStatus = m_cGuardMutexAPtr->Wait(dwTimeout);
         if (CMclWaitSucceeded(dwStatus, 1) || CMclWaitAbandoned(dwStatus, 1)) {
             CopyMemory( lpMsg, GetHeadPtr(), m_pHdr->cbMsgSize);
