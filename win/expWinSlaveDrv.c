@@ -362,7 +362,7 @@ main(argc, argv)
 
     bRet = PipeRespondToMaster(useSocket, hMaster, debugInfo.result, debugInfo.globalPid);
 
-    DebugBreak();
+//    DebugBreak();
 
     if (bRet == FALSE) {
 	ExitProcess(255);
