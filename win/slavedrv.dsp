@@ -68,7 +68,7 @@ LINK32=link.exe
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /GZ /c
 # ADD CPP /nologo /G5 /MDd /W3 /Gm /GX /ZI /Od /I "." /I "..\generic" /I "d:\tcl_workspace\tcl_head\generic" /I "d:\tcl_workspace\tcl_head\win" /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "USE_TCL_STUBS" /D "BUILD_slavedriver" /YX /FD /GZ /c
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
-# ADD RSC /l 0x409 /d "_DEBUG"
+# ADD RSC /l 0x409 /i "..\generic" /i "d:\tcl_workspace\tcl_head\generic" /d "_DEBUG"
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
@@ -208,6 +208,48 @@ SOURCE=.\MsvcDbgControl.cpp
 # Begin Source File
 
 SOURCE=.\MsvcDbgControl.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\slavedrv.rc
+
+!IF  "$(CFG)" == "slavedrv - Win32 Release"
+
+!ELSEIF  "$(CFG)" == "slavedrv - Win32 Debug"
+
+# ADD BASE RSC /l 0x409
+# ADD RSC /l 0x409 /i "$(INTDIR)"
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
+SOURCE=.\slavedrvmc.mc
+
+!IF  "$(CFG)" == "slavedrv - Win32 Release"
+
+!ELSEIF  "$(CFG)" == "slavedrv - Win32 Debug"
+
+# Begin Custom Build - Compiling message catalog...
+IntDir=.\Debug\slavedrv
+InputPath=.\slavedrvmc.mc
+
+BuildCmds= \
+	mc -w -h "$(IntDir)" -r "$(IntDir)" $(InputPath)
+
+"$(IntDir)\spawndrvmc.rc" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+   $(BuildCmds)
+
+"$(IntDir)\spawndrvmc.h" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+   $(BuildCmds)
+
+"$(IntDir)\MSG00409.bin" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+   $(BuildCmds)
+# End Custom Build
+
+!ENDIF 
+
 # End Source File
 # End Target
 # End Project
