@@ -43,7 +43,7 @@ $(EXPLIB_OBJs)
 
 
 expcflags   = -DBUILD_exp -DTCL_THREADS -DUSE_TCL_STUBS -I$(GENERICDIR) -I$(WINDIR) \
-	$(TCL_INCLUDES) -Fo$(TMP_DIR)^\ -Fp$(TMP_DIR)^\
+	-I$(TMP_DIR) $(TCL_INCLUDES) -Fo$(TMP_DIR)^\ -Fp$(TMP_DIR)^\
 
 {$(COMPATDIR)}.c{$(TMP_DIR)}.obj ::
     $(cc32) $(cflags) -MD$(DBGX) $(cdebug) $(expcflags) @<<
