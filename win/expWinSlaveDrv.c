@@ -55,11 +55,25 @@
  * normal headers 
  */
 
-#include <winsock2.h>
 #include "tcl.h"
 #include "tclPort.h"
 #include "expWin.h"
 #include "expWinSlave.h"
+
+#ifdef _MSC_VER
+    // Only do this when MSVC++ is compiling us.
+#   ifdef USE_TCL_STUBS
+#	pragma comment (lib, "tclstub" \
+		STRINGIFY(JOIN(TCL_MAJOR_VERSION,TCL_MINOR_VERSION)) ".lib")
+#	if !defined(_MT) || !defined(_DLL) || defined(_DEBUG)
+	    // This fixes a bug with how the Stubs library was compiled.
+	    // The requirement for msvcrt.lib from tclstubXX.lib must
+	    // be removed.  This bug has been fixed since 8.4a3, I beleive.
+#	    pragma comment(linker, "-nodefaultlib:msvcrt.lib")
+#	endif
+#   endif
+#endif
+
 
 #define STATE_WAIT_CMD   0	/* Waiting for the next command */
 #define STATE_CREATE     1	/* Doesn't happen currently */
@@ -153,7 +167,7 @@ static BOOL		WriteBufferToSlave(int sshd, int useSocket,
 			    PUCHAR buf, DWORD n, LPOVERLAPPED over);
 static DWORD WINAPI	PassThroughThread(LPVOID *arg);
 static DWORD WINAPI	WaitQueueThread(LPVOID *arg);
-static void		SetArgv(char *cmdLine, int *argcPtr, char ***argvPtr);
+static void		SetArgv(int *argcPtr, char ***argvPtr);
 
 /*
  *----------------------------------------------------------------------
@@ -191,17 +205,16 @@ static void		SetArgv(char *cmdLine, int *argcPtr, char ***argvPtr);
  */
 
 void
-main(argc, argv)
+main(void)
+{
     int argc;
     char **argv;
-{
     HANDLE hConsoleInW;		/* Console, writeable input handle */
     HANDLE hConsoleOut;	/* Console, readable output handle */
     HANDLE hMaster;		/* Pipe between master and us */
     HANDLE hSlaveOut;		/* Pipe from slave's STDOUT to us */
     HANDLE hSlaveOutW;		/* Pipe from slave's STDOUT to us */
     HANDLE hProcess;		/* Current process handle */
-    UCHAR cmdline[BUFSIZE];
     BOOL bRet;
     DWORD dwResult;
     HANDLE hThread;
@@ -210,7 +223,6 @@ main(argc, argv)
     PassThrough thruSlaveOut;
     int passThrough = 0;
     int useSocket = 0;
-    int n;
     int sshd = 0;
 
     struct sockaddr_in sin;
@@ -221,6 +233,7 @@ main(argc, argv)
 #endif
 
     ExpWinInit();
+    SetArgv(&argc, &argv);
 
     if (argc < 2) {
 	exit(1);
@@ -247,7 +260,7 @@ main(argc, argv)
     if (!useSocket) {
 	hMaster = CreateFile(argv[1], GENERIC_READ | GENERIC_WRITE,
 			     0, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, NULL);
-	if (hMaster == NULL) {
+	if (hMaster == INVALID_HANDLE_VALUE) {
 	    EXP_LOG("Unexpected error 0x%x", GetLastError());
 	    Sleep(5000);
 	    ExitProcess(255);
@@ -308,6 +321,7 @@ main(argc, argv)
     InitializeWaitQueue();
 
     if (sshd) {
+	/*
 	OVERLAPPED over;
 	memset(&over, 0, sizeof(over));
 	over.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
@@ -317,6 +331,7 @@ main(argc, argv)
 	CloseHandle(over.hEvent);
 	cmdline[n] = 0;
 	SetArgv(cmdline, &debugInfo.argc, &debugInfo.argv);
+	*/
     } else {
 	debugInfo.argc = argc-4;
 	debugInfo.argv = &argv[4];
@@ -369,10 +384,6 @@ main(argc, argv)
     if (debugInfo.result) {
 	ExitProcess(0);
     }
-
-#ifdef _DEBUG
-    DebugBreak();
-#endif
 
     if (passThrough) {
 	hProcess = GetCurrentProcess();
@@ -1342,22 +1353,76 @@ WaitQueueThread(LPVOID *arg)
  */
 
 static void
-SetArgv(char *cmdLine, int *argcPtr, char ***argvPtr)
+SetArgv(
+    int *argcPtr,		/* Filled with number of argument strings. */
+    char ***argvPtr)		/* Filled with argument strings in UTF (malloc'd). */
 {
     char *p, *arg, *argSpace;
     char **argv;
     int argc, size, inquote, copy, slashes;
-    
+    Tcl_DString cmdLine;
+    WCHAR *cmdLineUni;
+    char buff[MAX_PATH];
+
+    GetModuleFileName(GetModuleHandle(NULL), buff, MAX_PATH);
+    Tcl_FindExecutable(buff);
+
+    Tcl_DStringInit(&cmdLine);
+    if (IsDebuggerPresent()) {
+	/*
+	 * There will be a unicode loss here.
+	 */
+	Tcl_DString cmdLineTChar;
+	Tcl_DString enVar;
+	DWORD needed;
+
+	Tcl_DStringInit(&cmdLineTChar);
+	Tcl_DStringInit(&enVar);
+	Tcl_WinUtfToTChar("EXP_SPAWN_DEBUG_CMDLINE", -1, &enVar);
+	/* Calc size needed */
+	needed = (*expWinProcs->getEnvironmentVariableProc)(
+		(LPCTSTR) Tcl_DStringValue(&enVar),
+		(LPTSTR) Tcl_DStringValue(&cmdLineTChar),
+		0);
+	Tcl_DStringSetLength(&cmdLineTChar, (expWinProcs->useWide ?
+		needed * sizeof(WCHAR) :
+		needed * sizeof(CHAR)));
+	/* get it */
+	needed = (*expWinProcs->getEnvironmentVariableProc)(
+		(LPCTSTR) Tcl_DStringValue(&enVar),
+		(LPTSTR) Tcl_DStringValue(&cmdLineTChar),
+		needed);
+	/* truncate it again just to be sure it's null terminated */
+	Tcl_DStringSetLength(&cmdLineTChar, (expWinProcs->useWide ?
+		needed * sizeof(WCHAR) :
+		needed * sizeof(CHAR)));
+	/* convert it to UTF-8 */
+	Tcl_WinTCharToUtf(Tcl_DStringValue(&cmdLineTChar),
+		Tcl_DStringLength(&cmdLineTChar), &cmdLine);
+	Tcl_DStringFree(&cmdLineTChar);
+	Tcl_DStringFree(&enVar);
+    } else {
+	/*
+	 * Always get the unicode commandline because *ALL* Win32 platforms
+	 * support it.
+	 */
+	cmdLineUni = GetCommandLineW();
+	size = WideCharToMultiByte(CP_UTF8, 0, cmdLineUni, -1, 0, 0, NULL, NULL);
+	Tcl_DStringSetLength(&cmdLine, size);
+	WideCharToMultiByte(CP_UTF8, 0, cmdLineUni, -1,
+		Tcl_DStringValue(&cmdLine), size, NULL, NULL);
+    }
+
     /*
      * Precompute an overly pessimistic guess at the number of arguments
      * in the command line by counting non-space spans.
      */
 
     size = 2;
-    for (p = cmdLine; *p != '\0'; p++) {
-	if (isspace(*p)) {
+    for (p = Tcl_DStringValue(&cmdLine); *p != '\0'; p++) {
+	if ((*p == ' ') || (*p == '\t')) {	/* INTL: ISO space. */
 	    size++;
-	    while (isspace(*p)) {
+	    while ((*p == ' ') || (*p == '\t')) { /* INTL: ISO space. */
 		p++;
 	    }
 	    if (*p == '\0') {
@@ -1365,16 +1430,16 @@ SetArgv(char *cmdLine, int *argcPtr, char ***argvPtr)
 	    }
 	}
     }
-    argSpace = (char *) ckalloc((unsigned) (size * sizeof(char *) 
-	    + strlen(cmdLine) + 1));
+    argSpace = (char *) ckalloc(
+	    (unsigned) (size * sizeof(char *) + Tcl_DStringLength(&cmdLine) + 1));
     argv = (char **) argSpace;
     argSpace += size * sizeof(char *);
     size--;
 
-    p = cmdLine;
+    p = Tcl_DStringValue(&cmdLine);
     for (argc = 0; argc < size; argc++) {
 	argv[argc] = arg = argSpace;
-	while (isspace(*p)) {
+	while ((*p == ' ') || (*p == '\t')) {	/* INTL: ISO space. */
 	    p++;
 	}
 	if (*p == '\0') {
@@ -1408,7 +1473,8 @@ SetArgv(char *cmdLine, int *argcPtr, char ***argvPtr)
 		slashes--;
 	    }
 
-	    if ((*p == '\0') || (!inquote && isspace(*p))) {
+	    if ((*p == '\0')
+		    || (!inquote && ((*p == ' ') || (*p == '\t')))) { /* INTL: ISO space. */
 		break;
 	    }
 	    if (copy != 0) {
@@ -1424,5 +1490,6 @@ SetArgv(char *cmdLine, int *argcPtr, char ***argvPtr)
 
     *argcPtr = argc;
     *argvPtr = argv;
-}
 
+    Tcl_DStringFree(&cmdLine);
+}

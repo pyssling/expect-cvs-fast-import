@@ -11,6 +11,7 @@ extern CComModule _Module;
 #include <ObjModel\dbgguid.h>
 #include <ObjModel\dbgdefs.h>
 
+/* local global */
 static IApplication *pApp = NULL;
 
 //Uninitialize COM and VC++
@@ -25,10 +26,11 @@ UnInitializeCOMandVC()
 }
 
 
-void nameMangled (void)
+void nameMangledAndTooCPlusPlusishToBeExternC (void)
 {
-    VARIANT_BOOL visibility=VARIANT_TRUE;
+    VARIANT_BOOL visibility = VARIANT_TRUE;
     HRESULT hr;
+    CComPtr<IDispatch> iDisp = NULL;
 
     if (pApp == NULL) {
 	// Initialize COM libraries
@@ -66,8 +68,6 @@ void nameMangled (void)
 	    return;
 	}
 
-	CComPtr<IDispatch> iDisp=NULL;
-    
 	// Obtain the IDocuments pointer using smart pointer classes
 	pApp->get_Documents(&iDisp);
 	CComQIPtr<IDocuments, &IID_IDocuments> pDocs(iDisp);
@@ -86,13 +86,27 @@ void nameMangled (void)
 	}
     }
 
+    // Obtain the IDebugger pointer using smart pointer classes
+    pApp->get_Debugger(&iDisp);
+    CComQIPtr<IDebugger, &IID_IDebugger> pDebug(iDisp);
+    DsExecutionState state;
+
+    pDebug->get_State(&state);
+    if (state != dsNoDebugee) pDebug->Stop();
+    hr = pDebug->Go();
+    if(FAILED(hr)) {
+	OutputDebugString("Failed to start the debugger\n");
+	// Uninitialize COM libraries and quit from Visual C++
+	UnInitializeCOMandVC();
+	return;
+    }
 }
 
 extern "C" void
 ExpWinDbgLaunch(void)
 {
     __try {
-	nameMangled();
+	nameMangledAndTooCPlusPlusishToBeExternC();
     }
     __except(EXCEPTION_EXECUTE_HANDLER) {
     }
