@@ -579,3 +579,29 @@ AC_DEFUN(SC_ENABLE_THREADS, [
     AC_MSG_RESULT(no (default))
 
 ])
+
+AC_DEFUN(AC_FUNC_SETPGRP,
+[AC_CACHE_CHECK(whether setpgrp takes no argument, ac_cv_func_setpgrp_void,
+AC_TRY_RUN([
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
+
+/*
+ * If this system has a BSD-style setpgrp, which takes arguments, exit
+ * successfully.
+ */
+main()
+
+    if (setpgrp(1,1) == -1)
+        exit(0);
+    else
+        exit(1);
+
+], ac_cv_func_setpgrp_void=no, ac_cv_func_setpgrp_void=yes,
+   AC_MSG_ERROR(cannot check setpgrp if cross compiling))
+
+if test $ac_cv_func_setpgrp_void = yes; then
+  AC_DEFINE(SETPGRP_VOID)
+fi
+])
