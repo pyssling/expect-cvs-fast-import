@@ -23,7 +23,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinInjectorMain.cpp,v 1.1.2.4 2002/06/20 05:39:45 davygrvy Exp $
+ * RCS: @(#) $Id: expWinInjectorMain.cpp,v 1.1.2.5 2002/06/20 06:43:29 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -53,19 +53,28 @@ private:
 
 	wsprintf(boxName, "ExpectInjector_pid%d", GetCurrentProcessId());
 
-	// open the mailbox
-	ConsoleDebuggerIPC = new CMclMailbox(boxName);
+	// Create the shared memory IPC transfer mechanism by name
+	// (a mailbox).
+	ConsoleDebuggerIPC = 
+		new CMclMailbox(10, sizeof(INPUT_RECORD), boxName);
 
 	// Check status.
-	err = ConsoleDebuggerIPC->Status();
-	if (err != NO_ERROR) {
-	    // Bad!
-	    delete ConsoleDebuggerIPC;
-	    OutputDebugString("Expect's injector DLL could not start IPC.\n");
-	    return 0x666;
+	switch (err = ConsoleDebuggerIPC->Status()) {
+	case NO_ERROR:
+	    OutputDebugString("Expect's injector DLL loaded and ready.\n");
+	    break;
+	case ERROR_ALREADY_EXISTS:
+	    OutputDebugString("Expect's injector DLL could not start IPC: "
+		    "another mailbox of the same name already exists.\n");
+	    break;
+	default:
+	    OutputDebugString(GetSysMsg(err));
 	}
 
-	OutputDebugString("Expect's injector DLL loaded into the slave process correctly.\n");
+	if (err != NO_ERROR) {
+	    delete ConsoleDebuggerIPC;
+	    return 0x666;
+	}
 
 	// forever loop receiving INPUT_RECORDs over IPC.
 	while (ConsoleDebuggerIPC->GetAlertable(&ir, interrupt)) {
@@ -77,6 +86,21 @@ private:
 	delete ConsoleDebuggerIPC;
 	return 0;
     }
+
+    char *GetSysMsg(DWORD id)
+    {
+	int chars;
+
+	chars = wsprintf(sysMsgSpace,
+		"Expect's injector DLL could not start IPC: [%u] ", id);
+	FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM |
+		FORMAT_MESSAGE_IGNORE_INSERTS |
+		FORMAT_MESSAGE_MAX_WIDTH_MASK, 0L, id, 0,
+		sysMsgSpace+chars, (512-chars),	0);
+	return sysMsgSpace;
+    }
+
+    char sysMsgSpace[512];
 };
 
 CMclEvent *interrupt;
@@ -103,6 +127,7 @@ DllMain (HINSTANCE hInst, ULONG ulReason, LPVOID lpReserved)
     case DLL_PROCESS_DETACH:
 	interrupt->Set();
 	injectorThread->Wait(INFINITE);
+	CloseHandle(console);
 	delete interrupt;
 	delete inject;
 	delete injectorThread;
