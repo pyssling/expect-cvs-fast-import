@@ -1,3 +1,279 @@
+2002-03-13  davygrvy
+	* win/expWinConsoleDebugger.cpp:
+	* win/expWinConsoleDebugger.hpp:
+	* win/expWinConsoleDebuggerBreakPoints.cpp:
+	* win/expWinSlaveMain.cpp:
+	* win/expWinSlaveTrapDbg.cpp:
+	* win/slavedrv.dsp:
+		milestone!  It works.
+
+2002-03-12  davygrvy
+	* win/MsvcDbgControl.cpp:
+	* win/MsvcDbgControl.h:
+	* win/expWinSlaveMain.cpp:
+	* win/slavedrv.dsp:
+		Got debug build working again.
+
+	* win/expWinConsoleDebugger.cpp:
+	* win/expWinConsoleDebugger.hpp:
+	* win/expWinConsoleDebuggerBreakPoints.cpp:
+	* win/expWinMessage.cpp:
+	* win/expWinMessage.hpp:
+	* win/expWinSlave.hpp:
+	* win/expWinSlaveMain.cpp:
+	* win/expWinSlaveTrap.hpp:
+	* win/expWinSlaveTrapDbg.cpp:
+	* win/expWinSpawnClient.hpp:
+	* win/expWinSpawnPipeClient.cpp:
+		removed all use of Tcl from the slavedrv.  It was only being
+		used for hash tables.  replaced them with std::map.  It's a bit
+		fatter now, but i'll live.
+
+	* win/expWinConsoleDebugger.cpp:
+	* win/expWinConsoleDebugger.hpp:
+		re-added use of tcl's hash tables, but this time using the
+		template.
+
+	* win/expWinDynloadTclStubs.c:
+	* win/expWinDynloadTclStubs.cpp:
+	* win/expWinSpawnPipeClient.cpp:
+	* win/expWinSpawnStdioClient.cpp:
+		renamed
+
+	* win/TclAdapter.hpp:
+	* win/expWinConsoleDebugger.hpp:
+	* win/expWinMessage.cpp:
+	* win/expWinMessage.hpp:
+	* win/expWinSlave.hpp:
+	* win/expWinSlaveMain.cpp:
+	* win/expWinSpawnPipeClient.cpp:
+	* win/expWinTest.cpp:
+	* win/expWinUtils.cpp:
+	* win/expWinUtils.hpp:
+	* win/slavedrv.dsp:
+	* win/slavedrv_test.dsp:
+		Message class pulled-out to a seperate source file, due to
+		expected growth in that area.
+
+	* win/expWinConsoleDebugger.hpp:
+	* win/expWinSlave.hpp:
+	* win/expWinSlaveMain.cpp:
+	* win/expWinSlaveTrapDbg.cpp:
+	* win/expWinUtils.cpp:
+	* win/expWinUtils.hpp:
+	* win/slavedrv.dsp:
+	* win/slavedrv.rc:
+	* win/slavedrv_test.dsp:
+		final cleaning of Tcl from the slavedrv.
+
+	* win/MsvcDbgControl.cpp:
+	* win/expWinMessage.cpp:
+	* win/expWinMessage.hpp:
+	* win/expWinSlaveMain.cpp:
+	* win/expWinSpawnPipeClient.cpp:
+		more stuff added to the pipe client component.  slavedrv.exe
+		now sits at a miniature 29,184 bytes :)
+
+	* win/expWinSlave.hpp:
+	* win/expWinSlaveMain.cpp:
+	* win/expWinSlaveTrapDbg.cpp:
+		Re-arranged headers.  The ConsoleDebugger class is now hidden
+		from public veiw.  I might have to pull off a bridge pattern to
+		hide it more correctly.
+
+	* win/TclHash.hpp:
+		Added a Top() and Next() for hash searches.
+
+	* win/expWinSlaveMain.cpp:
+	* win/expWinSpawnClient.hpp:
+		renamed SpawnPipeClient to SpawnStdioClient to be more
+		meaningful.
+
+	* win/expWinDynloadTclStubs.c:
+	* win/expWinSlaveDbg.c:
+	* win/expWinSlaveDrv.c:
+	* win/expWinSlaveKey.c:
+		not needed anymore
+
+	* win/expWinDynloadTclStubs.cpp:
+	* win/expWinSlave.hpp:
+		added a ShutdownTcl() so I wouldn't have to share the HMODULE.
+
+	* win/TclHash.hpp:
+		Wait a sec.  I'm not happy with the STL's map template.  It
+		adds too much bloat.  Let's go back to Tcl's hash tables.
+
+	* win/expWinDynloadTclStubs.c:
+		we'll need this again.
+
+	* win/expWinSlaveTrap.hpp:
+	* win/expWinSlaveTrapDbg.cpp:
+		added a write() method.
+
+2002-03-11  davygrvy
+	* win/expWinUtils.cpp:
+	* win/expWinUtils.hpp:
+		Moved BuildCommandLine out of the ConsoleDebugger class for
+		testing reasons.
+
+	* win/expWinUtils.cpp:
+		minor lint
+
+	* win/TclAdapter.hpp:
+	* win/expWinTest.cpp:
+	* win/slavedrv.dsw:
+	* win/slavedrv_test.dsp:
+		Added a test for the BuildCommandLine function.
+
+	* win/expWinConsoleDebugger.cpp:
+	* win/expWinConsoleDebugger.hpp:
+	* win/expWinDynloadTclStubs.c:
+	* win/expWinSlave.hpp:
+	* win/expWinSlaveMain.cpp:
+	* win/expWinSpawnMailboxCli.cpp:
+	* win/expWinSpawnPipeClient.cpp:
+	* win/slavedrv.dsp:
+		replacing mailboxing with simple pipes as our transport.
+
+	* win/expWinSpawnPipeClient.cpp:
+	* win/expWinUtils.cpp:
+		added missing file header comments
+
+	* generic/exp.decls:
+	* generic/expIntPlatDecls.h:
+	* generic/expStubInit.c:
+		added ExpSyslogGetSysMsg()
+
+2002-03-10  davygrvy
+	* win/expWinSlave.hpp:
+	* win/expWinSlaveMain.cpp:
+	* win/expWinSlaveTrapDbg.cpp:
+	* win/expWinSpawnMailboxCli.cpp:
+	* win/slavedrvmc.mc:
+		Added more fatal error checks.
+
+2002-03-09  davygrvy
+	* win/MsvcDbgControl.cpp:
+	* win/MsvcDbgControl.h:
+	* win/expWinConsoleDebugger.cpp:
+	* win/expWinConsoleDebugger.hpp:
+	* win/expWinConsoleDebuggerBreakPoints.cpp:
+	* win/expWinInt.h:
+	* win/expWinSlaveMain.cpp:
+	* win/expWinSpawnMailboxCli.cpp:
+	* win/slavedrv.dsp:
+	* win/slavedrv.dsw:
+		Almost linkable again.
+
+	* win/expWinConsoleDebugger.cpp:
+	* win/expWinConsoleDebuggerBreakPoints.cpp:
+		Changed all uses of NULL to the C++ 0L understanding.
+
+	* win/slavedrv.mc:
+		fixed file header comments, again.
+
+	* win/slavedrv.dsp:
+		now builds for release once more.
+
+	* win/expWinConsoleDebugger.cpp:
+	* win/expWinConsoleDebuggerBreakPoints.cpp:
+	* win/expWinDynloadTclStubs.c:
+	* win/expWinInt.h:
+	* win/expWinLog.c:
+	* win/expWinProcess.c:
+	* win/expWinSlaveMain.cpp:
+		Got error codes working.
+
+	* win/slavedrv.mc:
+	* win/slavedrvmc.mc:
+		Needed to rename this.
+
+	* win/slavedrv.dsp:
+	* win/slavedrv.rc:
+		resource script for the slave driver.
+
+	* win/expWinConsoleDebugger.cpp:
+	* win/expWinConsoleDebugger.hpp:
+	* win/expWinConsoleDebuggerBreakPoints.cpp:
+	* win/expWinSlaveTrapDbg.cpp:
+		links once more, but isn't yet working again.
+
+	* win/expWinConsoleDebugger.cpp:
+	* win/expWinConsoleDebugger.hpp:
+	* win/expWinSlave.hpp:
+	* win/expWinSlaveMain.cpp:
+	* win/expWinSlaveTrapDbg.cpp:
+		Started on the app-level message queue.
+
+	* win/expWinConsoleDebugger.hpp:
+		more little stuff.
+
+2002-03-08  davygrvy
+	* win/expWinSlave.hpp:
+	* win/expWinSlaveTrapDbg.cpp:
+		not close to done, but a good launch point.
+
+	* win/expWinProcess.c:
+		When is a pid not a pid?  When it's a process handle, so stop
+		lying about it.
+
+	* win/slavedrv.mc:
+		fixed file header comments.
+
+	* win/expWinConsoleDebugger.cpp:
+	* win/expWinConsoleDebugger.hpp:
+	* win/expWinConsoleDebuggerBreakPoints.cpp:
+		more cleanup.
+
+	* win/slavedrv.mc:
+		multi-lingual message catalog used for error messages in the
+		slave driver.
+
+	* win/expWinSlaveMain.cpp:
+		name change for the event loop function.
+
+	* win/expWinPort.h:
+		stopped including the IntPlat stuff from here.
+
+2002-03-07  davygrvy
+	* win/expWinConsoleDebugger.cpp:
+	* win/expWinConsoleDebugger.hpp:
+	* win/expWinConsoleDebuggerBreakPoints.cpp:
+		C++ rewrite of the debugger code is coming along well.
+
+	* generic/exp.decls:
+	* generic/exp.h:
+	* generic/expInt.h:
+	* generic/expIntPlatDecls.h:
+		changed some win protos.
+
+	* win/expWinConsoleDebugger.hpp:
+		++ rewrite of expWinSlaveDbg.c (mostly done.. good time to save
+		it)
+
+	* win/expWinConsoleDebugger.hpp:
+	* win/expWinConsoleDebuggerBreakPoints.cpp:
+		breakpoints completed.  module compiles cleanly, but does not yet function.
+		The hook-in for posting work has not been established.
+
+2002-03-06  davygrvy
+	* generic/exp.h:
+		small changes that are minor.
+
+	* win/expWinInt.h:
+	* win/expWinSlave.hpp:
+	* win/expWinSlaveMain.cpp:
+	* win/expWinSpawnMailboxCli.cpp:
+	* win/slavedrv.dsp:
+		Our main() for the slave driver is getting a deep rewrite.  This shell has a
+		good structure.  The outer edges are in process.  slavedrv.exe currently
+		won't link at this time.
+
+2002-02-16  davygrvy
+	* win/expWinInit.c:
+	* win/winDllMain.c:
+		A static build issue.
+
 2002-02-13  davygrvy
 	* generic/exp.decls:
 	* generic/expCommand.c:
@@ -41,7 +317,7 @@
 	* generic/exp.h:
 		fixed some preprocessor logic that was in error.
 
-	* generic/exp_memmove.c (deleted):
+	* generic/exp_memmove.c:
 		already in compat/
 
 	* generic/exp.decls:
@@ -452,14 +728,10 @@
 		file expWinSlaveEvents.cpp was initially added on branch telco
 		tec-win32-branch.
 
-	* win/expWinSlave.hpp:
 	* win/expWinSlaveEvents.cpp:
-	* win/expWinSlaveMain.cpp:
 	* win/expWinSlaveTrap.cpp:
-	* win/expWinSlaveTrapDbg.cpp:
 	* win/expWinSlaveTrapPipe.cpp:
 	* win/expWinSpawnCliTransport.cpp:
-	* win/expWinSpawnMailboxCli.cpp:
 	* win/expWinSpawnSocketCli.cpp:
 	* win/expWinSpawnTransport.cpp:
 		unfinished work committed anyway.
@@ -486,40 +758,13 @@
 		file expWinSlaveTrap.cpp was initially added on branch telco
 		tec-win32-branch.
 
-	* win/expWinSlaveTrapDbg.cpp:
-		file expWinSlaveTrapDbg.cpp was initially added on branch telco
-		tec-win32-branch.
-
-2001-11-09  andreas_kupries
-	* expect.man:
-		
-		Upgrading to 5.33.
-
-	* expect.man:
-		Upgrading to 5.33.
-
 2001-11-09  davygrvy
-	* win/expWinSlaveMain.cpp:
-		file expWinSlaveMain.cpp was initially added on branch telco
-		tec-win32-branch.
-
-	* win/expWinSlave.hpp:
-		file expWinSlave.hpp was initially added on branch telco-tec
-		win32-branch.
-
-	* win/expWinSpawnMailboxCli.cpp:
-		file expWinSpawnMailboxCli.cpp was initially added on branch
-		telco-tec-win32-branch.
-
 	* win/expWinSpawnTransport.cpp:
 		file expWinSpawnTransport.cpp was initially added on branch
 		telco-tec-win32-branch.
 
 	* win/expSlaveDrvMain.c:
 	* win/expWinMailboxCli.cpp:
-	* win/expWinSlave.hpp:
-	* win/expWinSlaveMain.cpp:
-	* win/expWinSpawnMailboxCli.cpp:
 	* win/expWinSpawnTransport.cpp:
 		beginning the C++ rewrite.
 
@@ -686,18 +931,6 @@
 		file spawndrvmc.mc was initially added on branch telco-tec
 		win32-branch.
 
-2001-10-11  davygrvy
-	* win/mkfiles.mif:
-		Added Stubs dynloading stuff.  slavedrv.exe appears to be
-		working thus far,
-
-	* win/makefile.vc32:
-	* win/makefile.vc32:
-	* win/mkfiles.mif:
-	* win/mkvc32.mif:
-	* win/mkvc32.mif:
-		slavedrv.exe is building..  need to add Stubs startup code.
-
 2001-10-02  davygrvy
 	* generic/tcldbg.h:
 		Brought in 5.32.2 and fixed compiler warnings about
@@ -706,66 +939,6 @@
 	* generic/tcldbg.h:
 		file tcldbg.h was initially added on branch telco-tec-win32
 		branch.
-
-2001-09-28  davygrvy
-	* win/mkfiles.mif:
-		Common list of target object files for all make implimentations.
-
-	* win/mkfiles.mif:
-		file mkfiles.mif was initially added on branch telco-tec-win32
-		branch.
-
-	* makefile.win:
-		Added list of expected (pun intended) targets that will be used.
-
-	* win/mkprepvc32.mif:
-	* win/mkvc32.mif:
-		Moved the makefile prep work to a seperate file.
-
-	* win/mkprepvc32.mif:
-		file mkprepvc32.mif was initially added on branch telco-tec
-		win32-branch.
-
-	* mkconfig.mif:
-		Added more config info the build system will need.
-
-2001-09-26  davygrvy
-	* win/mkvc32.mif:
-		file mkvc32.mif was initially added on branch telco-tec-win32
-		branch.
-
-	* win/mkbc32.mif:
-		file mkbc32.mif was initially added on branch telco-tec-win32
-		branch.
-
-	* mkconfig.mif:
-		file mkconfig.mif was initially added on branch telco-tec-win32
-		branch.
-
-	* win/mkwc32.mif:
-		file mkwc32.mif was initially added on branch telco-tec-win32
-		branch.
-
-	* win/mkmgw32.mif:
-		file mkmgw32.mif was initially added on branch telco-tec-win32
-		branch.
-
-	* win/makefile.vc32:
-		file makefile.vc32 was initially added on branch telco-tec
-		win32-branch.
-
-	* makefile.win:
-		file makefile.win was initially added on branch telco-tec-win32
-		branch.
-
-	* makefile.win:
-	* mkconfig.mif:
-	* win/makefile.vc32:
-	* win/mkbc32.mif:
-	* win/mkmgw32.mif:
-	* win/mkvc32.mif:
-	* win/mkwc32.mif:
-		New top-root makefile under windows.
 
 2001-09-13  davygrvy
 	* exp_memmove.c:
