@@ -4,11 +4,11 @@
 #  that needs editing to build Expect.
 #
 #==============================================================================
-# RCS: @(#) $Id: mkconfig.mif,v 1.1.2.2 2001/09/28 00:41:50 davygrvy Exp $
+# RCS: @(#) $Id: mkconfig.mif,v 1.1.2.3 2001/10/14 22:15:48 davygrvy Exp $
 #==============================================================================
 
 
-#!error Please set the user defaults in this file before using this build system.
+!error Please set the user defaults in this file before using this build system.
 
 
 #==============================================
