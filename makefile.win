@@ -34,7 +34,7 @@
 !include "win\mkbc32.mif"	# Borland Toolset
 !else
 !ifdef BUILDLIB
-			# Lcc-Win32 doesn't have an include directive...  oh well.
+				# Lcc-Win32 doesn't have an include directive...  oh well.
 !else
 !ifdef MAKE_VERSION
 !include win/mkmgw32.mif	# MinGW Toolset
@@ -59,4 +59,5 @@ cvsupdate : $(SYM)
 	cd ..
 	set CVS_RSH=$(CVS_RSH)
 	$(CVSCMD) update $(CVS_OPTS)
+
 !endif
