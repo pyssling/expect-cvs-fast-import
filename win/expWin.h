@@ -61,8 +61,8 @@ typedef struct {
 } ExpSpawnState;
 
 extern void		ExpWinProcessInit(void);
-extern DWORD		ExpApplicationType(const char *originalName,
-			    char *fullPath, char *imageName);
+extern DWORD		ExpWinApplicationType(const char *originalName,
+			    Tcl_DString *fullPath);
 extern DWORD		ExpWinCreateProcess(int argc, char **argv,
 			    HANDLE inputHandle, HANDLE outputHandle,
 			    HANDLE errorHandle, int allocConsole,

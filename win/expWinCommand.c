@@ -182,8 +182,7 @@ Exp_SpawnCmd(ClientData clientData,Tcl_Interp *interp,int argc,char **argv)
     static int slaveId = 1;	/* Start at one because console0 is expect's */
     UCHAR buf[8];		/* enough space for child status info */
     char execPath[MAX_PATH];
-    char slavePath[MAX_PATH];
-    char imagePath[MAX_PATH];
+    Tcl_DString slavePath;
     struct exp_f *f;
     HANDLE hEvent = NULL;
     OVERLAPPED over;
@@ -313,7 +312,8 @@ Exp_SpawnCmd(ClientData clientData,Tcl_Interp *interp,int argc,char **argv)
 	return TCL_ERROR;
     }
 
-    dwRet = ExpApplicationType(argv[0], slavePath, imagePath);
+    Tcl_DStringInit(&slavePath);
+    dwRet = ExpWinApplicationType(argv[0], &slavePath);
     if (dwRet == EXP_APPL_NONE) {
 	errno = ENOENT;
 	exp_error(interp, "couldn't execute \"%s\": %s",
@@ -392,8 +392,8 @@ Exp_SpawnCmd(ClientData clientData,Tcl_Interp *interp,int argc,char **argv)
     nargv[2] = usePipes ? "1" : "0";
     nargv[3] = debug    ? "1" : "0";
     j = 4;
-    if (imagePath[0]) {
-	nargv[j++] = imagePath;
+    if (Tcl_DStringValue(&slavePath)) {
+	nargv[j++] = Tcl_DStringValue(&slavePath);
     }
     for (i = 0; i < argc; i++, j++) {
 	nargv[j] = argv[i];
@@ -419,7 +419,7 @@ Exp_SpawnCmd(ClientData clientData,Tcl_Interp *interp,int argc,char **argv)
     }
 
     hide = !debug;
-    dwRet = ExpCreateProcess(argc, nargv, NULL, NULL, NULL,
+    dwRet = ExpWinCreateProcess(argc, nargv, NULL, NULL, NULL,
 			     TRUE, hide, FALSE, FALSE,
 			     &slaveDrvPid, &globalPid);
     if (dwRet != 0) {
@@ -577,7 +577,8 @@ Exp_SpawnCmd(ClientData clientData,Tcl_Interp *interp,int argc,char **argv)
     ckfree((char *) nargv);
     return(TCL_OK);
 
- end:
+end:
+    Tcl_DStringFree(&slavePath);
     if (hSlaveDrv != NULL) CloseHandle(hSlaveDrv);
     if (hEvent != NULL) CloseHandle(hEvent);
     if (nargv != NULL) ckfree((char *) nargv);
