@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinInt.h,v 1.1.4.5 2002/03/09 01:17:29 davygrvy Exp $
+ * RCS: @(#) $Id: expWinInt.h,v 1.1.4.6 2002/03/09 05:48:51 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 #ifndef _EXPWININT
@@ -48,14 +48,11 @@
 
 #undef TCL_STORAGE_CLASS
 #if defined(BUILD_slavedriver)
-#   define TCL_STORAGE_CLASS
-#   include "expWinSlave.hpp"
-#   ifdef _DEBUG
-#	include "MsvcDbgControl.h"
-#   endif
-#   include "slavedrvmc.h"
+//#   define TCL_STORAGE_CLASS
+//#   include "expWinSlave.hpp"
 #elif defined(BUILD_exp)
 #   define TCL_STORAGE_CLASS DLLEXPORT
+#   include "slavedrvmc.h"  /* error code constants */
 #else
 #   ifdef USE_EXP_STUBS
 #	define TCL_STORAGE_CLASS
@@ -131,7 +128,7 @@ typedef struct {
 	    DWORD);
 } ExpWinProcs;
 
-extern TCL_CPP ExpWinProcs *expWinProcs;
+TCL_EXTRNC ExpWinProcs *expWinProcs;
 
 
 #include "expIntPlatDecls.h"

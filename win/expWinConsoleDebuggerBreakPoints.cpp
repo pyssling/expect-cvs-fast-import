@@ -24,15 +24,15 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinConsoleDebuggerBreakPoints.cpp,v 1.1.2.14 2002/06/29 00:44:36 davygrvy Exp $
+ * RCS: @(#) $Id: expWinConsoleDebuggerBreakPoints.cpp,v 1.1.2.15 2002/06/29 02:11:06 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
-#include "expWinSlave.hpp"
+#include "expWinConsoleDebugger.hpp"
 
-//////////////////////////////////////////////////////////
-// NOTE:  black magic abounds...  be warry young padwon...
-//////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////
+// NOTE:  black magic abounds...  be warry young padwon... //
+/////////////////////////////////////////////////////////////
 
 /*
  *----------------------------------------------------------------------
@@ -97,6 +97,9 @@ void
 ConsoleDebugger::OnAllocConsole(Process *proc, ThreadInfo *threadInfo,
     Breakpoint *brkpt, PDWORD returnValue, DWORD direction)
 {
+    if (*returnValue == FALSE) {
+	return;
+    }
     __asm nop;
 }
 
@@ -139,6 +142,58 @@ ConsoleDebugger::OnBeep(Process *proc, ThreadInfo *threadInfo,
 	    }
 	}
     }
+}
+
+/*
+ *-----------------------------------------------------------------------------
+ *
+ * ConsoleDebugger::OnCreateConsoleScreenBuffer --
+ *
+ *	This function gets called when a CreateConsoleScreenBuffer
+ *	breakpoint is hit.
+ *
+ * Results:
+ *	None
+ *
+ * Side Effects:
+ *	unknown.
+ *
+ *-----------------------------------------------------------------------------
+ */
+
+void
+ConsoleDebugger::OnCreateConsoleScreenBuffer(Process *proc,
+    ThreadInfo *threadInfo, Breakpoint *brkpt, PDWORD returnValue,
+    DWORD direction)
+{
+    if (*returnValue == FALSE) {
+	return;
+    }
+    // TODO: what to do here?
+    __asm nop;
+}
+
+/*
+ *-----------------------------------------------------------------------------
+ *
+ * ConsoleDebugger::OnFillConsoleOutputAttribute --
+ *
+ * Results:
+ *	None
+ *
+ * Notes:
+ *
+ *-----------------------------------------------------------------------------
+ */
+
+void
+ConsoleDebugger::OnFillConsoleOutputAttribute(Process *proc, ThreadInfo *threadInfo,
+    Breakpoint *brkpt, PDWORD returnValue, DWORD direction)
+{
+    if (*returnValue == FALSE) {
+	return;
+    }
+    __asm nop;
 }
 
 /*
@@ -370,6 +425,9 @@ void
 ConsoleDebugger::OnFreeConsole(Process *proc, ThreadInfo *threadInfo,
     Breakpoint *brkpt, PDWORD returnValue, DWORD direction)
 {
+    if (*returnValue == FALSE) {
+	return;
+    }
     __asm nop;
 }
 

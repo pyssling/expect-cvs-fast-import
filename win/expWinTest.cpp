@@ -1,16 +1,16 @@
-#include "TclAdapter.hpp"
+#include "TclAdaptor.hpp"
 #include "expWinUtils.hpp"
 
-class Test1 : protected Tcl::Adapter<Test1>, ArgMaker
+class Test1 : protected Tcl::Adaptor<Test1>, ArgMaker
 {
-    friend Tcl::Adapter<Test1>;
+    friend Tcl::Adaptor<Test1>;
 
 public:
     Test1(Tcl_Interp *_interp)
-	: Tcl::Adapter<Test1>(_interp)
+	: Tcl::Adaptor<Test1>(_interp)
     {
-	NewTclCmd(interp, "test_buildcmdline", TestCmdLineCmd);
-	NewTclCmd(interp, "test_passthru", TestPassThruCmd);
+	NewTclCmd("test_buildcmdline", TestCmdLineCmd);
+	NewTclCmd("test_passthru", TestPassThruCmd);
     }
     ~Test1() {
 	// can't use interp pointer in here.

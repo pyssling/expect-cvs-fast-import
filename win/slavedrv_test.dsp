@@ -69,7 +69,7 @@ LINK32=link.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "SLAVEDRV_TEST_EXPORTS" /YX /FD /GZ /c
-# ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I "d:\tcl_workspace\tcl_head\generic" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "USE_TCL_STUBS" /YX /FD /GZ /c
+# ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I "." /I "d:\tcl_workspace\tcl_head_stock\generic" /I "$(OUTDIR)..\slavedrv" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "USE_TCL_STUBS" /YX /FD /GZ /c
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
@@ -94,6 +94,13 @@ SOURCE=.\expWinTest.cpp
 # Begin Source File
 
 SOURCE=.\expWinUtils.cpp
+
+!IF  "$(CFG)" == "slavedrv_test - Win32 Release"
+
+!ELSEIF  "$(CFG)" == "slavedrv_test - Win32 Debug"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 

@@ -28,24 +28,24 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------
- * RCS: @(#) $Id: expWinConsoleDetour.cpp,v 1.1.2.2 2002/07/03 04:25:36 davygrvy Exp $
+ * RCS: @(#) $Id: expWinConsoleDetour.cpp,v 1.1.2.3 2002/07/04 23:05:23 davygrvy Exp $
  * ----------------------------------------------------------------------
  */
 
 #include "expWinSlave.hpp"
 
 DETOUR_TRAMPOLINE(
-	BOOL WINAPI Yours_AllocConsole(VOID),
+	BOOL WINAPI Real_AllocConsole(VOID),
 	AllocConsole
 	);
 
 DETOUR_TRAMPOLINE(
-	BOOL WINAPI Yours_Beep(DWORD dwFreq, DWORD dwDuration),
+	BOOL WINAPI Real_Beep(DWORD dwFreq, DWORD dwDuration),
 	Beep
 	);
 
 DETOUR_TRAMPOLINE(
-	HANDLE WINAPI Yours_CreateConsoleScreenBuffer(
+	HANDLE WINAPI Real_CreateConsoleScreenBuffer(
 		DWORD dwDesiredAccess,
 		DWORD dwShareMode,
 		CONST SECURITY_ATTRIBUTES *lpSecurityAttributes,
@@ -55,7 +55,7 @@ DETOUR_TRAMPOLINE(
 	);
 
 DETOUR_TRAMPOLINE(
-	BOOL WINAPI Yours_FillConsoleOutputAttribute(
+	BOOL WINAPI Real_FillConsoleOutputAttribute(
 		HANDLE hConsoleOutput,
 		WORD wAttribute,
 		DWORD nLength,
@@ -65,7 +65,7 @@ DETOUR_TRAMPOLINE(
 	);
 
 DETOUR_TRAMPOLINE(
-	BOOL WINAPI Yours_FillConsoleOutputCharacterA(
+	BOOL WINAPI Real_FillConsoleOutputCharacterA(
 		HANDLE hConsoleOutput,
 		CHAR cCharacter,
 		DWORD  nLength,
@@ -75,7 +75,7 @@ DETOUR_TRAMPOLINE(
 	);
 
 DETOUR_TRAMPOLINE(
-	BOOL WINAPI Yours_FillConsoleOutputCharacterW(
+	BOOL WINAPI Real_FillConsoleOutputCharacterW(
 		HANDLE hConsoleOutput,
 		WCHAR cCharacter,
 		DWORD  nLength,
@@ -85,19 +85,19 @@ DETOUR_TRAMPOLINE(
 	);
 
 DETOUR_TRAMPOLINE(
-	BOOL WINAPI Yours_FreeConsole(VOID),
+	BOOL WINAPI Real_FreeConsole(VOID),
 	FreeConsole
 	);
 
 DETOUR_TRAMPOLINE(
-	HANDLE WINAPI Yours_GetStdHandle(DWORD nStdHandle),
+	HANDLE WINAPI Real_GetStdHandle(DWORD nStdHandle),
 	GetStdHandle
 	);
 
-//DETOUR_TRAMPOLINE(BOOL WINAPI Yours_OpenConsoleW(???), OpenConsoleW);
+//DETOUR_TRAMPOLINE(BOOL WINAPI Real_OpenConsoleW(???), OpenConsoleW);
 
 DETOUR_TRAMPOLINE(
-	BOOL WINAPI Yours_ScrollConsoleScreenBufferA(
+	BOOL WINAPI Real_ScrollConsoleScreenBufferA(
 		HANDLE hConsoleOutput,
 		CONST SMALL_RECT *lpScrollRectangle,
 		CONST SMALL_RECT *lpClipRectangle,
@@ -107,7 +107,7 @@ DETOUR_TRAMPOLINE(
 	);
 
 DETOUR_TRAMPOLINE(
-	BOOL WINAPI Yours_ScrollConsoleScreenBufferW(
+	BOOL WINAPI Real_ScrollConsoleScreenBufferW(
 		HANDLE hConsoleOutput,
 		CONST SMALL_RECT *lpScrollRectangle,
 		CONST SMALL_RECT *lpClipRectangle,
@@ -117,51 +117,51 @@ DETOUR_TRAMPOLINE(
 	);
 
 DETOUR_TRAMPOLINE(
-	BOOL WINAPI Yours_SetConsoleActiveScreenBuffer(
+	BOOL WINAPI Real_SetConsoleActiveScreenBuffer(
 		HANDLE hConsoleOutput),
 	SetConsoleActiveScreenBuffer
 	);
 
 DETOUR_TRAMPOLINE(
-	BOOL WINAPI Yours_SetConsoleCP(UINT wCodePageID),
+	BOOL WINAPI Real_SetConsoleCP(UINT wCodePageID),
 	SetConsoleCP
 	);
 
 DETOUR_TRAMPOLINE(
-	BOOL WINAPI Yours_SetConsoleCursorInfo(
+	BOOL WINAPI Real_SetConsoleCursorInfo(
 		HANDLE hConsoleOutput,
 		CONST CONSOLE_CURSOR_INFO *lpConsoleCursorInfo),
 	SetConsoleCursorInfo
 	);
 
 DETOUR_TRAMPOLINE(
-	BOOL WINAPI Yours_SetConsoleCursorPosition(
+	BOOL WINAPI Real_SetConsoleCursorPosition(
 		HANDLE hConsoleOutput,
 		COORD dwCursorPosition),
 	SetConsoleCursorPosition
 	);
 
 DETOUR_TRAMPOLINE(
-	BOOL WINAPI Yours_SetConsoleMode(
+	BOOL WINAPI Real_SetConsoleMode(
 		HANDLE hConsoleHandle,
 		DWORD dwMode),
 	SetConsoleMode
 	);
 
 DETOUR_TRAMPOLINE(
-	BOOL WINAPI Yours_SetConsoleOutputCP(UINT wCodePageID),
+	BOOL WINAPI Real_SetConsoleOutputCP(UINT wCodePageID),
 	SetConsoleOutputCP
 	);
 
 DETOUR_TRAMPOLINE(
-	BOOL WINAPI Yours_SetConsoleTextAttribute(
+	BOOL WINAPI Real_SetConsoleTextAttribute(
 		HANDLE hConsoleOutput,
 		WORD wAttributes),
 	SetConsoleTextAttribute
 	);
 
 DETOUR_TRAMPOLINE(
-	BOOL WINAPI Yours_SetConsoleWindowInfo(
+	BOOL WINAPI Real_SetConsoleWindowInfo(
 		HANDLE hConsoleOutput,
 		BOOL bAbsolute,
 		CONST SMALL_RECT *lpConsoleWindow),
@@ -169,7 +169,7 @@ DETOUR_TRAMPOLINE(
 	);
 
 DETOUR_TRAMPOLINE(
-	BOOL WINAPI Yours_WriteConsoleA(
+	BOOL WINAPI Real_WriteConsoleA(
 		HANDLE hConsoleOutput,
 		CONST VOID *lpBuffer,
 		DWORD nNumberOfCharsToWrite,
@@ -179,7 +179,7 @@ DETOUR_TRAMPOLINE(
 	);
 
 DETOUR_TRAMPOLINE(
-	BOOL WINAPI Yours_WriteConsoleW(
+	BOOL WINAPI Real_WriteConsoleW(
 		HANDLE hConsoleOutput,
 		CONST VOID *lpBuffer,
 		DWORD nNumberOfCharsToWrite,
@@ -189,7 +189,7 @@ DETOUR_TRAMPOLINE(
 	);
 
 DETOUR_TRAMPOLINE(
-	BOOL WINAPI Yours_WriteConsoleOutputA(
+	BOOL WINAPI Real_WriteConsoleOutputA(
 		HANDLE hConsoleOutput,
 		CONST CHAR_INFO *lpBuffer,
 		COORD dwBufferSize,
@@ -199,7 +199,7 @@ DETOUR_TRAMPOLINE(
 	);
 
 DETOUR_TRAMPOLINE(
-	BOOL WINAPI Yours_WriteConsoleOutputW(
+	BOOL WINAPI Real_WriteConsoleOutputW(
 		HANDLE hConsoleOutput,
 		CONST CHAR_INFO *lpBuffer,
 		COORD dwBufferSize,
@@ -209,7 +209,7 @@ DETOUR_TRAMPOLINE(
 	);
 
 DETOUR_TRAMPOLINE(
-	BOOL WINAPI Yours_WriteConsoleOutputCharacterA(
+	BOOL WINAPI Real_WriteConsoleOutputCharacterA(
 		HANDLE hConsoleOutput,
 		LPCSTR lpCharacter,
 		DWORD nLength,
@@ -219,7 +219,7 @@ DETOUR_TRAMPOLINE(
 	);
 
 DETOUR_TRAMPOLINE(
-	BOOL WINAPI Yours_WriteConsoleOutputCharacterW(
+	BOOL WINAPI Real_WriteConsoleOutputCharacterW(
 		HANDLE hConsoleOutput,
 		LPCWSTR lpCharacter,
 		DWORD nLength,
@@ -229,7 +229,7 @@ DETOUR_TRAMPOLINE(
 	);
 
 DETOUR_TRAMPOLINE(
-	BOOL WINAPI Yours_WriteFile(
+	BOOL WINAPI Real_WriteFile(
 		HANDLE hFile,
 		LPCVOID lpBuffer,
 		DWORD nNumberOfBytesToWrite,
@@ -239,10 +239,39 @@ DETOUR_TRAMPOLINE(
 	);
 
 DETOUR_TRAMPOLINE(
-	BOOL WINAPI Yours_IsWindowVisible(HWND hWnd),
+	BOOL WINAPI Real_IsWindowVisible(HWND hWnd),
 	IsWindowVisible
 	);
 
+DETOUR_TRAMPOLINE(
+	BOOL WINAPI Real_CreateProcessA(
+		LPCSTR lpApplicationName,
+		LPSTR lpCommandLine,
+		LPSECURITY_ATTRIBUTES lpProcessAttributes,
+		LPSECURITY_ATTRIBUTES lpThreadAttributes,
+		BOOL bInheritHandles,
+		DWORD dwCreationFlags,
+		LPVOID lpEnvironment,
+		LPCSTR lpCurrentDirectory,
+		LPSTARTUPINFOA lpStartupInfo,
+		LPPROCESS_INFORMATION lpProcessInformation),
+	CreateProcessA,
+	);
+
+DETOUR_TRAMPOLINE(
+	BOOL WINAPI Real_CreateProcessW(
+		LPCWSTR lpApplicationName,
+		LPWSTR lpCommandLine,
+		LPSECURITY_ATTRIBUTES lpProcessAttributes,
+		LPSECURITY_ATTRIBUTES lpThreadAttributes,
+		BOOL bInheritHandles,
+		DWORD dwCreationFlags,
+		LPVOID lpEnvironment,
+		LPCWSTR lpCurrentDirectory,
+		LPSTARTUPINFOW lpStartupInfo,
+		LPPROCESS_INFORMATION lpProcessInformation),
+	CreateProcessW
+	);
 
 
 BOOL WINAPI
@@ -250,7 +279,7 @@ Mine_AllocConsole (VOID)
 {
     BOOL rv = FALSE;
     __try {
-        rv = Yours_AllocConsole();
+        rv = Real_AllocConsole();
     }
     __finally {}
     return rv;
@@ -275,7 +304,7 @@ Mine_CreateConsoleScreenBuffer (
 {
     HANDLE rv = INVALID_HANDLE_VALUE;
     __try {
-        rv = Yours_CreateConsoleScreenBuffer(dwDesiredAccess, dwShareMode,
+        rv = Real_CreateConsoleScreenBuffer(dwDesiredAccess, dwShareMode,
 		lpSecurityAttributes, dwFlags, lpScreenBufferData);
     }
     __finally {}
@@ -292,7 +321,7 @@ Mine_FillConsoleOutputAttribute(
 {
     BOOL rv = FALSE;
     __try {
-        rv = Yours_FillConsoleOutputAttribute(hConsoleOutput, wAttribute,
+        rv = Real_FillConsoleOutputAttribute(hConsoleOutput, wAttribute,
 		nLength, dwWriteCoord, lpNumberOfAttrsWritten);
     }
     __finally {}
@@ -309,7 +338,7 @@ Mine_FillConsoleOutputCharacterA(
 {
     BOOL rv = FALSE;
     __try {
-        rv = Yours_FillConsoleOutputCharacterA(hConsoleOutput, cCharacter,
+        rv = Real_FillConsoleOutputCharacterA(hConsoleOutput, cCharacter,
 		nLength, dwWriteCoord, lpNumberOfCharsWritten);
     }
     __finally {}
@@ -326,7 +355,7 @@ Mine_FillConsoleOutputCharacterW(
 {
     BOOL rv = FALSE;
     __try {
-        rv = Yours_FillConsoleOutputCharacterW(hConsoleOutput, cCharacter,
+        rv = Real_FillConsoleOutputCharacterW(hConsoleOutput, cCharacter,
 		nLength, dwWriteCoord, lpNumberOfCharsWritten);
     }
     __finally {}
@@ -338,7 +367,7 @@ Mine_FreeConsole(VOID)
 {
     BOOL rv = FALSE;
     __try {
-        rv = Yours_FreeConsole();
+        rv = Real_FreeConsole();
     }
     __finally {}
     return rv;
@@ -349,7 +378,7 @@ Mine_GetStdHandle(DWORD nStdHandle)
 {
     HANDLE rv = INVALID_HANDLE_VALUE;
     __try {
-        rv = Yours_GetStdHandle(nStdHandle);
+        rv = Real_GetStdHandle(nStdHandle);
     }
     __finally {}
     return rv;
@@ -365,7 +394,7 @@ Mine_ScrollConsoleScreenBufferA(
 {
     BOOL rv = FALSE;
     __try {
-        rv = Yours_ScrollConsoleScreenBufferA(hConsoleOutput, lpScrollRectangle,
+        rv = Real_ScrollConsoleScreenBufferA(hConsoleOutput, lpScrollRectangle,
 		lpClipRectangle, dwDestinationOrigin, lpFill);
     }
     __finally {}
@@ -382,7 +411,7 @@ Mine_ScrollConsoleScreenBufferW(
 {
     BOOL rv = FALSE;
     __try {
-        rv = Yours_ScrollConsoleScreenBufferW(hConsoleOutput, lpScrollRectangle,
+        rv = Real_ScrollConsoleScreenBufferW(hConsoleOutput, lpScrollRectangle,
 		lpClipRectangle, dwDestinationOrigin, lpFill);
     }
     __finally {}
@@ -394,7 +423,7 @@ Mine_SetConsoleActiveScreenBuffer(HANDLE hConsoleOutput)
 {
     BOOL rv = FALSE;
     __try {
-        rv = Yours_SetConsoleActiveScreenBuffer(hConsoleOutput);
+        rv = Real_SetConsoleActiveScreenBuffer(hConsoleOutput);
     }
     __finally {}
     return rv;
@@ -405,7 +434,7 @@ Mine_SetConsoleCP(UINT wCodePageID)
 {
     BOOL rv = FALSE;
     __try {
-        rv = Yours_SetConsoleCP(wCodePageID);
+        rv = Real_SetConsoleCP(wCodePageID);
     }
     __finally {}
     return rv;
@@ -418,7 +447,7 @@ Mine_SetConsoleCursorInfo(
 {
     BOOL rv = FALSE;
     __try {
-        rv = Yours_SetConsoleCursorInfo(hConsoleOutput, lpConsoleCursorInfo);
+        rv = Real_SetConsoleCursorInfo(hConsoleOutput, lpConsoleCursorInfo);
     }
     __finally {}
     return rv;
@@ -431,7 +460,7 @@ Mine_SetConsoleCursorPosition(
 {
     BOOL rv = FALSE;
     __try {
-        rv = Yours_SetConsoleCursorPosition(hConsoleOutput, dwCursorPosition);
+        rv = Real_SetConsoleCursorPosition(hConsoleOutput, dwCursorPosition);
     }
     __finally {}
     return rv;
@@ -444,7 +473,7 @@ Mine_SetConsoleMode(
 {
     BOOL rv = FALSE;
     __try {
-        rv = Yours_SetConsoleMode(hConsoleHandle, dwMode);
+        rv = Real_SetConsoleMode(hConsoleHandle, dwMode);
     }
     __finally {}
     return rv;
@@ -455,7 +484,7 @@ Mine_SetConsoleOutputCP(UINT wCodePageID)
 {
     BOOL rv = FALSE;
     __try {
-        rv = Yours_SetConsoleOutputCP(wCodePageID);
+        rv = Real_SetConsoleOutputCP(wCodePageID);
     }
     __finally {}
     return rv;
@@ -468,7 +497,7 @@ Mine_SetConsoleTextAttribute(
 {
     BOOL rv = FALSE;
     __try {
-        rv = Yours_SetConsoleTextAttribute(hConsoleOutput, wAttributes);
+        rv = Real_SetConsoleTextAttribute(hConsoleOutput, wAttributes);
     }
     __finally {}
     return rv;
@@ -482,7 +511,7 @@ Mine_SetConsoleWindowInfo(
 {
     BOOL rv = FALSE;
     __try {
-        rv = Yours_SetConsoleWindowInfo(hConsoleOutput, bAbsolute,
+        rv = Real_SetConsoleWindowInfo(hConsoleOutput, bAbsolute,
 		lpConsoleWindow);
     }
     __finally {}
@@ -499,7 +528,7 @@ Mine_WriteConsoleA(
 {
     BOOL rv = FALSE;
     __try {
-        rv = Yours_WriteConsoleA(hConsoleOutput, lpBuffer,
+        rv = Real_WriteConsoleA(hConsoleOutput, lpBuffer,
 		nNumberOfCharsToWrite, lpNumberOfCharsWritten,
 		lpReserved);
     }
@@ -517,7 +546,7 @@ Mine_WriteConsoleW(
 {
     BOOL rv = FALSE;
     __try {
-        rv = Yours_WriteConsoleW(hConsoleOutput, lpBuffer,
+        rv = Real_WriteConsoleW(hConsoleOutput, lpBuffer,
 		nNumberOfCharsToWrite, lpNumberOfCharsWritten,
 		lpReserved);
     }
@@ -535,7 +564,7 @@ Mine_WriteConsoleOutputA(
 {
     BOOL rv = FALSE;
     __try {
-        rv = Yours_WriteConsoleOutputA(hConsoleOutput, lpBuffer,
+        rv = Real_WriteConsoleOutputA(hConsoleOutput, lpBuffer,
 		dwBufferSize, dwBufferCoord, lpWriteRegion);
     }
     __finally {}
@@ -552,7 +581,7 @@ Mine_WriteConsoleOutputW(
 {
     BOOL rv = FALSE;
     __try {
-        rv = Yours_WriteConsoleOutputW(hConsoleOutput, lpBuffer,
+        rv = Real_WriteConsoleOutputW(hConsoleOutput, lpBuffer,
 		dwBufferSize, dwBufferCoord, lpWriteRegion);
     }
     __finally {}
@@ -569,7 +598,7 @@ Mine_WriteConsoleOutputCharacterA(
 {
     BOOL rv = FALSE;
     __try {
-        rv = Yours_WriteConsoleOutputCharacterA(hConsoleOutput, lpCharacter,
+        rv = Real_WriteConsoleOutputCharacterA(hConsoleOutput, lpCharacter,
 		nLength, dwWriteCoord, lpNumberOfCharsWritten);
     }
     __finally {}
@@ -586,7 +615,7 @@ Mine_WriteConsoleOutputCharacterW(
 {
     BOOL rv = FALSE;
     __try {
-        rv = Yours_WriteConsoleOutputCharacterW(hConsoleOutput, lpCharacter,
+        rv = Real_WriteConsoleOutputCharacterW(hConsoleOutput, lpCharacter,
 		nLength, dwWriteCoord, lpNumberOfCharsWritten);
     }
     __finally {}
@@ -603,7 +632,7 @@ Mine_WriteFile(
 {
     BOOL rv = FALSE;
     __try {
-        rv = Yours_WriteFile(hFile, lpBuffer, nNumberOfBytesToWrite,
+        rv = Real_WriteFile(hFile, lpBuffer, nNumberOfBytesToWrite,
 		lpNumberOfBytesWritten, lpOverlapped);
     }
     __finally {}
@@ -614,6 +643,58 @@ BOOL WINAPI
 Mine_IsWindowVisible(HWND hWnd)
 {
     return TRUE;
+}
+
+BOOL WINAPI
+Mine_CreateProcessW(
+	LPCWSTR lpApplicationName,
+	LPWSTR lpCommandLine,
+	LPSECURITY_ATTRIBUTES lpProcessAttributes,
+	LPSECURITY_ATTRIBUTES lpThreadAttributes,
+	BOOL bInheritHandles,
+	DWORD dwCreationFlags,
+	LPVOID lpEnvironment,
+	LPCWSTR lpCurrentDirectory,
+	LPSTARTUPINFOW lpStartupInfo,
+	LPPROCESS_INFORMATION lpProcessInformation)
+{
+    BOOL rv = FALSE;
+
+    // TODO: new consoles must be created hidden!
+
+    rv = DetourCreateProcessWithDllW(lpApplicationName,
+	    lpCommandLine, lpProcessAttributes, lpThreadAttributes,
+            bInheritHandles, dwCreationFlags, lpEnvironment,
+	    lpCurrentDirectory, lpStartupInfo, lpProcessInformation,
+	    L""/*s_wzDllPath*/, Real_CreateProcessW);
+
+    return rv;
+}
+
+BOOL WINAPI
+Mine_CreateProcessA(
+	LPCSTR lpApplicationName,
+	LPSTR lpCommandLine,
+	LPSECURITY_ATTRIBUTES lpProcessAttributes,
+	LPSECURITY_ATTRIBUTES lpThreadAttributes,
+	BOOL bInheritHandles,
+	DWORD dwCreationFlags,
+	LPVOID lpEnvironment,
+	LPCSTR lpCurrentDirectory,
+	LPSTARTUPINFOA lpStartupInfo,
+	LPPROCESS_INFORMATION lpProcessInformation)
+{
+    BOOL rv = FALSE;
+
+    // TODO: new consoles must be created hidden!
+
+    rv = DetourCreateProcessWithDllA(lpApplicationName,
+	    lpCommandLine, lpProcessAttributes, lpThreadAttributes,
+            bInheritHandles, dwCreationFlags, lpEnvironment,
+	    lpCurrentDirectory, lpStartupInfo, lpProcessInformation,
+	    ""/*s_wzDllPath*/, Real_CreateProcessA);
+
+    return rv;
 }
 
 

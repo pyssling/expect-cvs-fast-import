@@ -22,14 +22,16 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinConsoleDebugger.cpp,v 1.1.2.30 2002/06/28 01:26:56 davygrvy Exp $
+ * RCS: @(#) $Id: expWinConsoleDebugger.cpp,v 1.1.2.31 2002/06/29 00:44:35 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
 #include <stddef.h>
 #include <assert.h>
-#include "expWinSlave.hpp"
+#include "expWinConsoleDebugger.hpp"
 #include "expWinInjectorIPC.hpp"
+#include <vdmdbg.h>
+#pragma comment (lib, "vdmdbg.lib")
 
 #ifdef _MSC_VER
 #   pragma comment (lib, "imagehlp.lib")
@@ -102,6 +104,9 @@ ConsoleDebugger::ConsoleDebugger (
     //  functions.
     //
 
+    // interesting ones I might want to add:
+    // DuplicateConsoleHandle
+
     BreakArrayKernel32[0].funcName = "AllocConsole";
     BreakArrayKernel32[0].nargs = 0;
     BreakArrayKernel32[0].breakProc = OnAllocConsole;
@@ -112,120 +117,130 @@ ConsoleDebugger::ConsoleDebugger (
     BreakArrayKernel32[1].breakProc = OnBeep;
     BreakArrayKernel32[1].dwFlags = BREAK_OUT|BREAK_IN;
 
-    BreakArrayKernel32[2].funcName = "FillConsoleOutputCharacterA";
+    BreakArrayKernel32[2].funcName = "CreateConsoleScreenBuffer";
     BreakArrayKernel32[2].nargs = 5;
-    BreakArrayKernel32[2].breakProc = OnFillConsoleOutputCharacterA;
+    BreakArrayKernel32[2].breakProc = OnCreateConsoleScreenBuffer;
     BreakArrayKernel32[2].dwFlags = BREAK_OUT;
 
-    BreakArrayKernel32[3].funcName = "FillConsoleOutputCharacterW";
+    BreakArrayKernel32[3].funcName = "FillConsoleOutputAttribute";
     BreakArrayKernel32[3].nargs = 5;
-    BreakArrayKernel32[3].breakProc = OnFillConsoleOutputCharacterW;
+    BreakArrayKernel32[3].breakProc = OnFillConsoleOutputAttribute;
     BreakArrayKernel32[3].dwFlags = BREAK_OUT;
 
-    BreakArrayKernel32[4].funcName = "FreeConsole";
-    BreakArrayKernel32[4].nargs = 0;
-    BreakArrayKernel32[4].breakProc = OnFreeConsole;
+    BreakArrayKernel32[4].funcName = "FillConsoleOutputCharacterA";
+    BreakArrayKernel32[4].nargs = 5;
+    BreakArrayKernel32[4].breakProc = OnFillConsoleOutputCharacterA;
     BreakArrayKernel32[4].dwFlags = BREAK_OUT;
 
-    BreakArrayKernel32[5].funcName = "GetStdHandle";
-    BreakArrayKernel32[5].nargs = 1;
-    BreakArrayKernel32[5].breakProc = OnGetStdHandle;
+    BreakArrayKernel32[5].funcName = "FillConsoleOutputCharacterW";
+    BreakArrayKernel32[5].nargs = 5;
+    BreakArrayKernel32[5].breakProc = OnFillConsoleOutputCharacterW;
     BreakArrayKernel32[5].dwFlags = BREAK_OUT;
 
-    BreakArrayKernel32[6].funcName = "OpenConsoleW";
-    BreakArrayKernel32[6].nargs = 4;
-    BreakArrayKernel32[6].breakProc = OnOpenConsoleW;
+    BreakArrayKernel32[6].funcName = "FreeConsole";
+    BreakArrayKernel32[6].nargs = 0;
+    BreakArrayKernel32[6].breakProc = OnFreeConsole;
     BreakArrayKernel32[6].dwFlags = BREAK_OUT;
 
-    BreakArrayKernel32[7].funcName = "ScrollConsoleScreenBufferA";
-    BreakArrayKernel32[7].nargs = 5;
-    BreakArrayKernel32[7].breakProc = OnScrollConsoleScreenBuffer;
+    BreakArrayKernel32[7].funcName = "GetStdHandle";
+    BreakArrayKernel32[7].nargs = 1;
+    BreakArrayKernel32[7].breakProc = OnGetStdHandle;
     BreakArrayKernel32[7].dwFlags = BREAK_OUT;
 
-    BreakArrayKernel32[8].funcName = "ScrollConsoleScreenBufferW";
-    BreakArrayKernel32[8].nargs = 5;
-    BreakArrayKernel32[8].breakProc = OnScrollConsoleScreenBuffer;
+    BreakArrayKernel32[8].funcName = "OpenConsoleW";
+    BreakArrayKernel32[8].nargs = 4;
+    BreakArrayKernel32[8].breakProc = OnOpenConsoleW;
     BreakArrayKernel32[8].dwFlags = BREAK_OUT;
 
-    BreakArrayKernel32[9].funcName = "SetConsoleActiveScreenBuffer";
-    BreakArrayKernel32[9].nargs = 1;
-    BreakArrayKernel32[9].breakProc = OnSetConsoleActiveScreenBuffer;
+    BreakArrayKernel32[9].funcName = "ScrollConsoleScreenBufferA";
+    BreakArrayKernel32[9].nargs = 5;
+    BreakArrayKernel32[9].breakProc = OnScrollConsoleScreenBuffer;
     BreakArrayKernel32[9].dwFlags = BREAK_OUT;
 
-    BreakArrayKernel32[10].funcName = "SetConsoleCP";
-    BreakArrayKernel32[10].nargs = 1;
-    BreakArrayKernel32[10].breakProc = OnSetConsoleCP;
+    BreakArrayKernel32[10].funcName = "ScrollConsoleScreenBufferW";
+    BreakArrayKernel32[10].nargs = 5;
+    BreakArrayKernel32[10].breakProc = OnScrollConsoleScreenBuffer;
     BreakArrayKernel32[10].dwFlags = BREAK_OUT;
 
-    BreakArrayKernel32[11].funcName = "SetConsoleCursorInfo";
-    BreakArrayKernel32[11].nargs = 2;
-    BreakArrayKernel32[11].breakProc = OnSetConsoleCursorInfo;
+    BreakArrayKernel32[11].funcName = "SetConsoleActiveScreenBuffer";
+    BreakArrayKernel32[11].nargs = 1;
+    BreakArrayKernel32[11].breakProc = OnSetConsoleActiveScreenBuffer;
     BreakArrayKernel32[11].dwFlags = BREAK_OUT;
 
-    BreakArrayKernel32[12].funcName = "SetConsoleCursorPosition";
-    BreakArrayKernel32[12].nargs = 2;
-    BreakArrayKernel32[12].breakProc = OnSetConsoleCursorPosition;
+    BreakArrayKernel32[12].funcName = "SetConsoleCP";
+    BreakArrayKernel32[12].nargs = 1;
+    BreakArrayKernel32[12].breakProc = OnSetConsoleCP;
     BreakArrayKernel32[12].dwFlags = BREAK_OUT;
 
-    BreakArrayKernel32[13].funcName = "SetConsoleMode";
+    BreakArrayKernel32[13].funcName = "SetConsoleCursorInfo";
     BreakArrayKernel32[13].nargs = 2;
-    BreakArrayKernel32[13].breakProc = OnSetConsoleMode;
+    BreakArrayKernel32[13].breakProc = OnSetConsoleCursorInfo;
     BreakArrayKernel32[13].dwFlags = BREAK_OUT;
 
-    BreakArrayKernel32[14].funcName = "SetConsoleOutputCP";
-    BreakArrayKernel32[14].nargs = 1;
-    BreakArrayKernel32[14].breakProc = OnSetConsoleOutputCP;
+    BreakArrayKernel32[14].funcName = "SetConsoleCursorPosition";
+    BreakArrayKernel32[14].nargs = 2;
+    BreakArrayKernel32[14].breakProc = OnSetConsoleCursorPosition;
     BreakArrayKernel32[14].dwFlags = BREAK_OUT;
 
-    BreakArrayKernel32[15].funcName = "SetConsoleTextAttribute";
+    BreakArrayKernel32[15].funcName = "SetConsoleMode";
     BreakArrayKernel32[15].nargs = 2;
-    BreakArrayKernel32[15].breakProc = OnSetConsoleTextAttribute;
+    BreakArrayKernel32[15].breakProc = OnSetConsoleMode;
     BreakArrayKernel32[15].dwFlags = BREAK_OUT;
 
-    BreakArrayKernel32[16].funcName = "SetConsoleWindowInfo";
-    BreakArrayKernel32[16].nargs = 3;
-    BreakArrayKernel32[16].breakProc = OnSetConsoleWindowInfo;
+    BreakArrayKernel32[16].funcName = "SetConsoleOutputCP";
+    BreakArrayKernel32[16].nargs = 1;
+    BreakArrayKernel32[16].breakProc = OnSetConsoleOutputCP;
     BreakArrayKernel32[16].dwFlags = BREAK_OUT;
 
-    BreakArrayKernel32[17].funcName = "WriteConsoleA";
-    BreakArrayKernel32[17].nargs = 5;
-    BreakArrayKernel32[17].breakProc = OnWriteConsoleA;
+    BreakArrayKernel32[17].funcName = "SetConsoleTextAttribute";
+    BreakArrayKernel32[17].nargs = 2;
+    BreakArrayKernel32[17].breakProc = OnSetConsoleTextAttribute;
     BreakArrayKernel32[17].dwFlags = BREAK_OUT;
 
-    BreakArrayKernel32[18].funcName = "WriteConsoleW";
-    BreakArrayKernel32[18].nargs = 5;
-    BreakArrayKernel32[18].breakProc = OnWriteConsoleW;
+    BreakArrayKernel32[18].funcName = "SetConsoleWindowInfo";
+    BreakArrayKernel32[18].nargs = 3;
+    BreakArrayKernel32[18].breakProc = OnSetConsoleWindowInfo;
     BreakArrayKernel32[18].dwFlags = BREAK_OUT;
 
-    BreakArrayKernel32[19].funcName = "WriteConsoleOutputA";
+    BreakArrayKernel32[19].funcName = "WriteConsoleA";
     BreakArrayKernel32[19].nargs = 5;
-    BreakArrayKernel32[19].breakProc = OnWriteConsoleOutputA;
+    BreakArrayKernel32[19].breakProc = OnWriteConsoleA;
     BreakArrayKernel32[19].dwFlags = BREAK_OUT;
 
-    BreakArrayKernel32[20].funcName = "WriteConsoleOutputW";
+    BreakArrayKernel32[20].funcName = "WriteConsoleW";
     BreakArrayKernel32[20].nargs = 5;
-    BreakArrayKernel32[20].breakProc = OnWriteConsoleOutputW;
+    BreakArrayKernel32[20].breakProc = OnWriteConsoleW;
     BreakArrayKernel32[20].dwFlags = BREAK_OUT;
 
-    BreakArrayKernel32[21].funcName = "WriteConsoleOutputCharacterA";
+    BreakArrayKernel32[21].funcName = "WriteConsoleOutputA";
     BreakArrayKernel32[21].nargs = 5;
-    BreakArrayKernel32[21].breakProc = OnWriteConsoleOutputCharacterA;
+    BreakArrayKernel32[21].breakProc = OnWriteConsoleOutputA;
     BreakArrayKernel32[21].dwFlags = BREAK_OUT;
 
-    BreakArrayKernel32[22].funcName = "WriteConsoleOutputCharacterW";
+    BreakArrayKernel32[22].funcName = "WriteConsoleOutputW";
     BreakArrayKernel32[22].nargs = 5;
-    BreakArrayKernel32[22].breakProc = OnWriteConsoleOutputCharacterW;
+    BreakArrayKernel32[22].breakProc = OnWriteConsoleOutputW;
     BreakArrayKernel32[22].dwFlags = BREAK_OUT;
 
-    BreakArrayKernel32[23].funcName = "WriteFile";
+    BreakArrayKernel32[23].funcName = "WriteConsoleOutputCharacterA";
     BreakArrayKernel32[23].nargs = 5;
-    BreakArrayKernel32[23].breakProc = OnWriteFile;
+    BreakArrayKernel32[23].breakProc = OnWriteConsoleOutputCharacterA;
     BreakArrayKernel32[23].dwFlags = BREAK_OUT;
 
-    BreakArrayKernel32[24].funcName = 0L;
-    BreakArrayKernel32[24].nargs = 0;
-    BreakArrayKernel32[24].breakProc = 0L;
-    BreakArrayKernel32[24].dwFlags = 0;
+    BreakArrayKernel32[24].funcName = "WriteConsoleOutputCharacterW";
+    BreakArrayKernel32[24].nargs = 5;
+    BreakArrayKernel32[24].breakProc = OnWriteConsoleOutputCharacterW;
+    BreakArrayKernel32[24].dwFlags = BREAK_OUT;
+
+    BreakArrayKernel32[25].funcName = "WriteFile";
+    BreakArrayKernel32[25].nargs = 5;
+    BreakArrayKernel32[25].breakProc = OnWriteFile;
+    BreakArrayKernel32[25].dwFlags = BREAK_OUT;
+
+    BreakArrayKernel32[26].funcName = 0L;
+    BreakArrayKernel32[26].nargs = 0;
+    BreakArrayKernel32[26].breakProc = 0L;
+    BreakArrayKernel32[26].dwFlags = 0;
 
     BreakArrayUser32[0].funcName = "IsWindowVisible";
     BreakArrayUser32[0].nargs = 1;
@@ -282,7 +297,11 @@ ConsoleDebugger::ThreadHandlerProc(void)
 	    0L,		// Process handle will not be inheritable.
 	    0L,		// Thread handle will not be inheritable.
 	    FALSE,	// No handle inheritance.
-	    DEBUG_PROCESS|CREATE_NEW_CONSOLE|CREATE_DEFAULT_ERROR_MODE,
+	    DEBUG_PROCESS |
+	    CREATE_NEW_CONSOLE |
+	    CREATE_DEFAULT_ERROR_MODE |
+	    CREATE_SEPARATE_WOW_VDM |
+	    0,
 			// Creation flags.
 	    0L,		// Use parent's environment block.
 	    0L,		// Use parent's starting directory.
@@ -395,10 +414,14 @@ again:
 	    // we die here.
 	    return EXCEPTION_NONCONTINUABLE_EXCEPTION;
 
+	case STATUS_VDM_EVENT:
+	    OnXVDMException(proc, &debEvent);
+	    break;
+
 	default:
 	    if (!debEvent.u.Exception.dwFirstChance) {
 		// An exception was hit and it was not handled by the program.
-		// Now it is time to get a backtrace.
+		// Now it is time to get a backtrace before it's death.
 		//
 		OnXSecondChanceException(proc, &debEvent);
 	    }
@@ -632,6 +655,9 @@ ConsoleDebugger::OnXThirdBreakpoint(Process *proc, LPDEBUG_EVENT pDebEvent)
     // Fill the buffer with all breakpoint opcodes.
     //
     memset(retbuf, BRK_OPCODE, RETBUF_SIZE);
+
+    // Write it out to our buffer space in the other process.
+    //
     WriteSubprocessMemory(proc, proc->pSubprocessMemory, retbuf, RETBUF_SIZE);
 
     // Set all Console API breakpoints.
@@ -645,6 +671,86 @@ ConsoleDebugger::OnXThirdBreakpoint(Process *proc, LPDEBUG_EVENT pDebEvent)
 #   undef RETBUF_SIZE
     return;
 }
+
+/*
+ *----------------------------------------------------------------------
+ *
+ * ConsoleDebugger::SetBreakpoint --
+ *
+ *	Inserts a single breakpoint
+ *
+ * Results:
+ *	TRUE if successful, FALSE if unsuccessful.
+ *
+ *----------------------------------------------------------------------
+ */
+
+BOOL
+ConsoleDebugger::SetBreakpoint(Process *process, BreakInfo *info)
+{
+    PVOID funcPtr;
+
+    if (process->funcTable.Find(info->funcName, &funcPtr) == TCL_ERROR)
+    {
+//	PCHAR buffer;
+//	DWORD len;
+//
+//	buffer = new CHAR [128];
+//	len = wsprintf(buffer, "Unable to set breakpoint at %s", info->funcName);
+//	WriteMasterError(buffer, len);
+	return FALSE;
+    }
+
+    // Set a breakpoint at the function start in the subprocess and
+    // save the original code at the function start.
+    //
+    return SetBreakpointAtAddr(process, info, funcPtr);
+}
+
+/*
+ *----------------------------------------------------------------------
+ *
+ * ConsoleDebugger::SetBreakpointAtAddr --
+ *
+ *	Inserts a single breakpoint at the given address
+ *
+ * Results:
+ *	The new BreakPoint instance.
+ *
+ *----------------------------------------------------------------------
+ */
+
+BOOL
+ConsoleDebugger::SetBreakpointAtAddr(Process *proc, BreakInfo *info, PVOID funcPtr)
+{
+    Breakpoint *bpt, *lastBpt;
+    BYTE code;
+    BOOL ok;
+
+    bpt = new Breakpoint;
+    bpt->codePtr = funcPtr;
+    bpt->codeReturnPtr = (PVOID) (proc->offset + (DWORD) proc->pSubprocessMemory);
+    bpt->breakInfo = info;
+    proc->offset += 2;
+    bpt->nextPtr = lastBpt = proc->brkptList;
+    proc->brkptList = bpt;
+
+    if ((ok = ReadSubprocessMemory(proc, funcPtr, &bpt->code, sizeof(BYTE)))
+	    == TRUE) {
+	code = BRK_OPCODE;
+	ok = WriteSubprocessMemory(proc, funcPtr, &code, sizeof(BYTE));
+    }
+
+    if (!ok) {
+	// unsplice it.
+	proc->brkptList = lastBpt;
+	delete bpt;
+	bpt = 0L;
+    }
+
+    return ok;
+}
+
 /*
  *----------------------------------------------------------------------
  *
@@ -694,6 +800,7 @@ ConsoleDebugger::OnXSecondChanceException(Process *proc,
     PIMAGEHLP_SYMBOL pSymbol = (PIMAGEHLP_SYMBOL)symbolBuffer;
     char *s;
     int result;
+    unsigned int level = 0;
 
     for (tinfo = proc->threadList; tinfo != NULL; tinfo = tinfo->nextPtr) {
 	if (pDebEvent->dwThreadId == tinfo->dwThreadId) {
@@ -784,11 +891,14 @@ ConsoleDebugger::OnXSecondChanceException(Process *proc,
 
     {
 	DWORD len;
-	CHAR *buffer = new CHAR [MAX_PATH+54];
+	CHAR *buffer = new CHAR [MAX_PATH+600];
+	DWORD exCode = pDebEvent->u.Exception.ExceptionRecord.ExceptionCode;
 	len = wsprintf(buffer,
-		"\nA fatal exception has occured in \"%s\"\n"
-		"This is the backtrace\n"
-		"-------------------------------------\n", s);
+		"\nA fatal, second-chance exception has occured in \"%s\".\n"
+		"(0x%X) -- %s\n"
+		"This is the backtrace:\n"
+		"-------------------------------------\n", s, exCode,
+		GetExceptionCodeString(exCode));
 	WriteMasterError(buffer, len);
     }
 
@@ -810,6 +920,8 @@ ConsoleDebugger::OnXSecondChanceException(Process *proc,
 	if (b == FALSE || frame.AddrPC.Offset == 0) {
 	    break;
 	}
+
+	level++;
 	    
         if (SymGetSymFromAddr(proc->hProcess, frame.AddrPC.Offset,
 	    &displacement, pSymbol) )
@@ -827,7 +939,7 @@ ConsoleDebugger::OnXSecondChanceException(Process *proc,
 	    } else {
 		s = "";
 	    }
-	    len = wsprintf(buffer, "%.20s %08.8x\t%s+%X\n", s, frame.AddrPC.Offset,
+	    len = wsprintf(buffer, "%u) %.20s 0x%08.8x\t%s+%X\n", level, s, frame.AddrPC.Offset,
 		    pSymbol->Name, displacement);
 	    WriteMasterError(buffer, len);
 	} else {
@@ -842,6 +954,39 @@ ConsoleDebugger::OnXSecondChanceException(Process *proc,
 #else
 #  error Unsupported architecture	    
 #endif
+}
+
+/*
+ *----------------------------------------------------------------------
+ *
+ * ConsoleDebugger::GetExceptionCodeString --
+ *
+ *	Returns a string about the exception code.  Much more can
+ *	be added.
+ *
+ *----------------------------------------------------------------------
+ */
+
+PCSTR
+ConsoleDebugger::GetExceptionCodeString (DWORD exCode)
+{
+    switch (exCode)
+    {
+	case EXCEPTION_ACCESS_VIOLATION:
+	    return "Access Violation.";
+	case EXCEPTION_ARRAY_BOUNDS_EXCEEDED:
+	    return "Array access was out-of-bounds.";
+	case EXCEPTION_INT_DIVIDE_BY_ZERO:
+	case EXCEPTION_FLT_DIVIDE_BY_ZERO:
+	    return "Divide by zero.";
+	case EXCEPTION_ILLEGAL_INSTRUCTION:
+	case EXCEPTION_PRIV_INSTRUCTION:
+	    return "Illegal opcode.";
+	case EXCEPTION_STACK_OVERFLOW:
+	    return "Stack overflow.";
+	default:
+	    return "exception unknown.";
+    }
 }
 
 /*
@@ -1050,6 +1195,22 @@ ConsoleDebugger::OnXLoadDll(Process *proc, LPDEBUG_EVENT pDebEvent)
     ptr = (PVOID) (base + dw);
     ReadSubprocessStringA(proc, ptr, dllname, sizeof(dllname));
 
+    {
+	int len;
+	CHAR msg[256];
+
+	if (dllname[0] == '\0') {
+	    // image has no export section, so get the name another way.
+	    // TODO: How??
+
+	} else {
+	    strcpy(msg, dllname);
+	    strcat(msg, " has loaded.\n");
+	    len = strlen(msg);
+	}
+	WriteMasterWarning(strdup(msg), len);
+    }
+
     bFound = FALSE;
     for (n = 0; BreakPoints[n].dllName; n++) {
 	if (stricmp(dllname, BreakPoints[n].dllName) == 0) {
@@ -1167,8 +1328,166 @@ ConsoleDebugger::OnXDebugString(Process *proc, LPDEBUG_EVENT pDebEvent)
 		buffer, len);
     }
 
-    buffer[len] = '\0';  // Oops, Win9x forgets this.
-    WriteMasterWarning(buffer, len);
+//    buffer[len] = '\0';  // Oops, Win9x forgets this.
+    WriteMasterWarning(buffer, len-1);
+}
+
+/*
+ *----------------------------------------------------------------------
+ *
+ * ConsoleDebugger::OnXVDMException --
+ *
+ *	Exceptions raised by the NTVDM (Virtual Dos Machine).  We only
+ *	get here when a DOS or Win16 (not likely for us, though)
+ *	application is the slave or a child of the slave.
+ *
+ * Results:
+ *	None
+ *
+ * Side Effects:
+ *	.
+ *
+ *----------------------------------------------------------------------
+ */
+
+void
+ConsoleDebugger::OnXVDMException(Process *proc, LPDEBUG_EVENT pDebEvent)
+{
+    EXCEPTION_RECORD &exrec = pDebEvent->u.Exception.ExceptionRecord;
+    USHORT exCode = W1(exrec);
+    VDMProcessException(pDebEvent);
+
+    switch (exCode) {
+        case DBG_SEGLOAD:
+	    __asm nop;
+	    break;
+
+        case DBG_SEGMOVE:
+	    __asm nop;
+	    break;
+
+        case DBG_SEGFREE:
+	    __asm nop;
+	    break;
+
+        case DBG_MODFREE:
+        case DBG_MODLOAD:
+	    {
+		SEGMENT_NOTE segNote;
+		char *buffer;
+		DWORD len;
+		const char *verb;
+
+                switch (exCode)
+                {
+                    case DBG_MODLOAD:
+                        verb = "loaded into"; break;
+                    case DBG_MODFREE:
+                        verb = "unloaded from"; break;
+		}
+
+
+		ReadSubprocessMemory(proc, (PVOID)DW3(exrec), &segNote, sizeof(segNote));
+		len = strlen(segNote.FileName) + 25;
+		buffer = new char [len];
+		len = wsprintf(buffer, "%s %s the VDM.\n", segNote.FileName, verb);
+		WriteMasterWarning(buffer, len);
+	    }
+	    break;
+
+        case DBG_SINGLESTEP:
+	    __asm nop;
+	    break;
+
+        case DBG_BREAK:
+	    __asm nop;
+	    break;
+
+        case DBG_GPFAULT:
+	    __asm nop;
+	    break;
+
+        case DBG_DIVOVERFLOW:
+	    __asm nop;
+	    break;
+
+        case DBG_INSTRFAULT:
+	    __asm nop;
+	    break;
+
+        case DBG_TASKSTART:
+        case DBG_TASKSTOP:
+        case DBG_DLLSTART:
+        case DBG_DLLSTOP:
+	    {
+		IMAGE_NOTE imgNote;
+		char *buffer;
+		DWORD len;
+		const char *verb;
+
+                switch (exCode)
+                {
+                    case DBG_TASKSTART:
+                        verb = "started in"; break;
+                    case DBG_DLLSTART:
+                        verb = "started in"; break;
+                    case DBG_DLLSTOP:
+                        verb = "stopped in"; break;
+                    case DBG_TASKSTOP:
+                        verb = "stopped in"; break;
+                }
+
+		ReadSubprocessMemory(proc, (PVOID)DW3(exrec), &imgNote, sizeof(IMAGE_NOTE));
+		len = strlen(imgNote.FileName) + 25;
+		buffer = new char [len];
+		len = wsprintf(buffer, "%s %s the VDM.\n", imgNote.FileName, verb);
+		WriteMasterWarning(buffer, len);
+	    }
+	    break;
+
+        case DBG_ATTACH:
+	    __asm nop;
+	    break;
+
+	case DBG_TOOLHELP:
+	    __asm nop;
+	    break;
+
+	case DBG_STACKFAULT:
+	    __asm nop;
+	    break;
+
+	case DBG_WOWINIT:
+	    __asm nop;
+	    break;
+
+	case DBG_TEMPBP:
+	    __asm nop;
+	    break;
+
+	case DBG_MODMOVE:
+	    __asm nop;
+	    break;
+
+	case DBG_INIT:
+	    VDMSetDbgFlags(proc->hProcess,
+//		    VDMDBG_BREAK_DOSTASK |  // <- seems to cause a non-continueable exception on it's own.
+//		    VDMDBG_BREAK_WOWTASK |
+		    VDMDBG_BREAK_LOADDLL |
+		    VDMDBG_BREAK_EXCEPTIONS |
+		    VDMDBG_BREAK_DEBUGGER |
+//		    VDMDBG_TRACE_HISTORY |
+		    0);
+	    break;
+
+	case DBG_GPFAULT2:
+	    __asm nop;
+	    break;
+
+	default:
+	    __asm nop;
+	    break;
+    }
 }
 
 /*
@@ -1202,70 +1521,6 @@ ConsoleDebugger::OnXRip(Process *proc, LPDEBUG_EVENT pDebEvent)
 		GetSysMsg(pDebEvent->u.RipInfo.dwError));
 	WriteMasterWarning(errorMsg, len);
     }
-}
-
-/*
- *----------------------------------------------------------------------
- *
- * ConsoleDebugger::SetBreakpoint --
- *
- *	Inserts a single breakpoint
- *
- * Results:
- *	TRUE if successful, FALSE if unsuccessful.
- *
- *----------------------------------------------------------------------
- */
-
-BOOL
-ConsoleDebugger::SetBreakpoint(Process *proc, BreakInfo *info)
-{
-    PVOID funcPtr;
-
-    if (proc->funcTable.Find((void *)info->funcName, &funcPtr) == TCL_ERROR)
-    {
-//	EXP_LOG("Unable to set breakpoint at %s", info->funcName);
-	return FALSE;
-    }
-
-    // Set a breakpoint at the function start in the subprocess and
-    // save the original code at the function start.
-    //
-    SetBreakpointAtAddr(proc, info, funcPtr);
-    return TRUE;
-}
-
-/*
- *----------------------------------------------------------------------
- *
- * ConsoleDebugger::SetBreakpointAtAddr --
- *
- *	Inserts a single breakpoint at the given address
- *
- * Results:
- *	TRUE if successful, FALSE if unsuccessful.
- *
- *----------------------------------------------------------------------
- */
-
-ConsoleDebugger::Breakpoint *
-ConsoleDebugger::SetBreakpointAtAddr(Process *proc, BreakInfo *info, PVOID funcPtr)
-{
-    Breakpoint *bpt;
-    BYTE code;
-
-    bpt = new Breakpoint;
-    bpt->codePtr = funcPtr;
-    bpt->codeReturnPtr = (PVOID) (proc->offset + (DWORD) proc->pSubprocessMemory);
-    bpt->breakInfo = info;
-    proc->offset += 2;
-    bpt->nextPtr = proc->brkptList;
-    proc->brkptList = bpt;
-
-    ReadSubprocessMemory(proc, funcPtr, &bpt->code, sizeof(BYTE));
-    code = BRK_OPCODE;
-    WriteSubprocessMemory(proc, funcPtr, &code, sizeof(BYTE));
-    return bpt;
 }
 
 /*

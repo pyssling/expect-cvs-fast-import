@@ -22,14 +22,17 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinConsoleDebugger.hpp,v 1.1.2.28 2002/06/28 01:26:57 davygrvy Exp $
+ * RCS: @(#) $Id: expWinConsoleDebugger.hpp,v 1.1.2.29 2002/06/29 00:44:36 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
 #ifndef INC_expWinConsoleDebugger_hpp__
 #define INC_expWinConsoleDebugger_hpp__
 
-#include "expWinSlave.hpp"
+#include "CMcl.h"
+#include "slavedrvmc.h"
+#include "expWinUtils.hpp"
+#include "expWinMessage.hpp"
 #include "TclHash.hpp"	    // for the hash table template.
 #include <imagehlp.h>
 
@@ -160,70 +163,75 @@ private:
 	}
     };
 #   else
-#	error need correct stub loader opcodes for this hardware.
+#	error "need correct stub loader opcodes for this hardware."
 #   endif
 #   include <poppack.h>
 
     //  Direct debug event handlers.
     //
-    void OnXFirstBreakpoint	(Process *proc, LPDEBUG_EVENT);
-    void OnXSecondBreakpoint	(Process *proc, LPDEBUG_EVENT);
-    void OnXThirdBreakpoint	(Process *proc, LPDEBUG_EVENT);
-    void OnXBreakpoint		(Process *proc, LPDEBUG_EVENT);
-    void OnXCreateProcess	(Process *proc, LPDEBUG_EVENT);
-    void OnXCreateThread	(Process *proc, LPDEBUG_EVENT);
-    void OnXDeleteThread	(Process *proc, LPDEBUG_EVENT);
-    void OnXLoadDll		(Process *proc, LPDEBUG_EVENT);
-    void OnXUnloadDll		(Process *proc, LPDEBUG_EVENT);
-    void OnXDebugString		(Process *proc, LPDEBUG_EVENT);
-    void OnXRip			(Process *proc, LPDEBUG_EVENT);
-    void OnXSecondChanceException (Process *proc, LPDEBUG_EVENT);
-    void OnXSingleStep		(Process *proc, LPDEBUG_EVENT);
+    void OnXFirstBreakpoint	(Process *, LPDEBUG_EVENT);
+    void OnXSecondBreakpoint	(Process *, LPDEBUG_EVENT);
+    void OnXThirdBreakpoint	(Process *, LPDEBUG_EVENT);
+    void OnXBreakpoint		(Process *, LPDEBUG_EVENT);
+    void OnXCreateProcess	(Process *, LPDEBUG_EVENT);
+    void OnXCreateThread	(Process *, LPDEBUG_EVENT);
+    void OnXDeleteThread	(Process *, LPDEBUG_EVENT);
+    void OnXLoadDll		(Process *, LPDEBUG_EVENT);
+    void OnXUnloadDll		(Process *, LPDEBUG_EVENT);
+    void OnXDebugString		(Process *, LPDEBUG_EVENT);
+    void OnXRip			(Process *, LPDEBUG_EVENT);
+    void OnXVDMException	(Process *, LPDEBUG_EVENT);
+    void OnXSecondChanceException (Process *, LPDEBUG_EVENT);
+    void OnXSingleStep		(Process *, LPDEBUG_EVENT);
 
     //  Our breakpoint handlers (indirect).  Called from OnXBreakpoint().
     //
-    void OnAllocConsole		(Process *proc, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
-    void OnBeep			(Process *proc, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
-    void OnFillConsoleOutputCharacterA (Process *proc, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
-    void OnFillConsoleOutputCharacterW (Process *proc, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
-    void OnFreeConsole		(Process *proc, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
-    void OnGetStdHandle		(Process *proc, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
-    void OnIsWindowVisible	(Process *proc, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
-    void OnOpenConsoleW		(Process *proc, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
-    void OnSetConsoleActiveScreenBuffer	(Process *proc, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
-    void OnSetConsoleCP		(Process *proc, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
-    void OnSetConsoleCursorInfo (Process *proc, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
-    void OnSetConsoleCursorPosition (Process *proc, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
-    void OnSetConsoleMode	(Process *proc, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
-    void OnSetConsoleOutputCP	(Process *proc, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
-    void OnSetConsoleTextAttribute (Process *proc, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
-    void OnSetConsoleWindowInfo	(Process *proc, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
-    void OnScrollConsoleScreenBuffer (Process *proc, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
-    void OnWriteConsoleA	(Process *proc, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
-    void OnWriteConsoleW	(Process *proc, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
-    void OnWriteConsoleOutputA	(Process *proc, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
-    void OnWriteConsoleOutputW	(Process *proc, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
-    void OnWriteConsoleOutputCharacterA	(Process *proc, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
-    void OnWriteConsoleOutputCharacterW	(Process *proc, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
-    void OnWriteFile		(Process *proc, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnAllocConsole		(Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnBeep			(Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnCreateConsoleScreenBuffer (Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnFillConsoleOutputAttribute (Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnFillConsoleOutputCharacterA (Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnFillConsoleOutputCharacterW (Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnFreeConsole		(Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnGetStdHandle		(Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnIsWindowVisible	(Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnOpenConsoleW		(Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnSetConsoleActiveScreenBuffer	(Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnSetConsoleCP		(Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnSetConsoleCursorInfo (Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnSetConsoleCursorPosition (Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnSetConsoleMode	(Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnSetConsoleOutputCP	(Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnSetConsoleTextAttribute (Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnSetConsoleWindowInfo	(Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnScrollConsoleScreenBuffer (Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnWriteConsoleA	(Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnWriteConsoleW	(Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnWriteConsoleOutputA	(Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnWriteConsoleOutputW	(Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnWriteConsoleOutputCharacterA	(Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnWriteConsoleOutputCharacterW	(Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnWriteFile		(Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
 
     // Internal utilities
     //
     Process *ProcessNew		();
-    void ProcessFree		(Process *proc);
+    void ProcessFree		(Process *);
     DWORD CommonDebugger	();
-    BOOL SetBreakpoint		(Process *proc, BreakInfo *);
-    Breakpoint *SetBreakpointAtAddr (Process *proc, BreakInfo *, PVOID);
-    int LoadedModule		(Process *proc, HANDLE, LPVOID, int, LPVOID, DWORD);
-    BOOL ReadSubprocessMemory	(Process *proc, LPVOID, LPVOID, DWORD);
-    BOOL WriteSubprocessMemory	(Process *proc, LPVOID, LPVOID, DWORD);
-    void MakeSubprocessMemory   (Process *proc, SIZE_T, LPVOID *, DWORD = PAGE_READWRITE);
-    BOOL RemoveSubprocessMemory (Process *proc, LPVOID);
-    int ReadSubprocessStringA	(Process *proc, PVOID, PCHAR, int);
-    int ReadSubprocessStringW	(Process *proc, PVOID, PWCHAR, int);
-    void CreateVtSequence	(Process *proc, COORD, DWORD);
-    void OnFillCOC_Finish	(CHAR cCharacter, DWORD nLength, COORD dwWriteCoord);
+    BOOL SetBreakpoint		(Process *, BreakInfo *);
+    BOOL SetBreakpointAtAddr	(Process *, BreakInfo *, PVOID);
+    int LoadedModule		(Process *, HANDLE, LPVOID, int, LPVOID, DWORD);
+    BOOL ReadSubprocessMemory	(Process *, LPVOID, LPVOID, DWORD);
+    BOOL WriteSubprocessMemory	(Process *, LPVOID, LPVOID, DWORD);
+    void MakeSubprocessMemory   (Process *, SIZE_T, LPVOID *, DWORD = PAGE_READWRITE);
+    BOOL RemoveSubprocessMemory (Process *, LPVOID);
+    int ReadSubprocessStringA	(Process *, PVOID, PCHAR, int);
+    int ReadSubprocessStringW	(Process *, PVOID, PWCHAR, int);
+    void CreateVtSequence	(Process *, COORD, DWORD);
+    void OnFillCOC_Finish	(CHAR, DWORD, COORD);
     DWORD lastBeepDuration;
+    PCSTR GetExceptionCodeString (DWORD);
+
 //    void RefreshScreen		(void);
 
     // send info back to the parent
@@ -237,7 +245,7 @@ private:
 
     // The arrays of functions where we set breakpoints
     //
-    BreakInfo	BreakArrayKernel32[25];
+    BreakInfo	BreakArrayKernel32[27];
     BreakInfo	BreakArrayUser32[2];
     DllBreakpoints BreakPoints[3];
 

@@ -43,11 +43,11 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "EXPECT_EXPORTS" /YX /FD /c
-# ADD CPP /nologo /MD /W3 /GX /O2 /I "." /I "..\generic" /I "d:\tcl_workspace\tcl_head\generic" /D "NDEBUG" /D "WIN32" /D "BUILD_exp" /D TCL_THREADS=1 /D "USE_TCL_STUBS" /YX /FD /c
+# ADD CPP /nologo /MD /W3 /GX /O2 /I "." /I "..\generic" /I "d:\tcl_workspace\tcl_head_stock\generic" /I "$(IntDir)" /D "NDEBUG" /D "WIN32" /D "BUILD_exp" /D TCL_THREADS=1 /D "USE_TCL_STUBS" /YX /FD /c
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
-# ADD RSC /l 0x409 /i "..\generic" /i "d:\tcl_workspace\tcl_head\generic" /d "NDEBUG"
+# ADD RSC /l 0x409 /i "..\generic" /i "d:\tcl_workspace\tcl_head_stock\generic" /d "NDEBUG"
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
@@ -69,17 +69,17 @@ LINK32=link.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "EXPECT_EXPORTS" /YX /FD /GZ /c
-# ADD CPP /nologo /GB /MDd /W3 /Gm /GX /ZI /Od /I "." /I "..\generic" /I "d:\tcl_workspace\tcl_head\generic" /D "_DEBUG" /D "WIN32" /D "BUILD_exp" /D TCL_THREADS=1 /D "USE_TCL_STUBS" /FR /YX /FD /GZ /c
+# ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I "." /I "..\generic" /I "d:\tcl_workspace\tcl_head_stock\generic" /I "$(IntDir)" /D "_DEBUG" /D "WIN32" /D "BUILD_exp" /D TCL_THREADS=1 /D "USE_TCL_STUBS" /FR /YX /FD /GZ /c
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
-# ADD RSC /l 0x409 /i "..\generic" /i "d:\tcl_workspace\tcl_head\generic" /d "DEBUG"
+# ADD RSC /l 0x409 /i "..\generic" /i "d:\tcl_workspace\tcl_head_stock\generic" /d "DEBUG"
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /dll /debug /machine:I386 /pdbtype:sept
-# ADD LINK32 advapi32.lib user32.lib /nologo /dll /debug /machine:I386 /out:"Debug/expect60d.dll" /pdbtype:sept /libpath:"d:\tcl_workspace\tcl_head\win\Debug"
+# ADD LINK32 advapi32.lib user32.lib /nologo /dll /debug /machine:I386 /out:"Debug/expect60d.dll" /pdbtype:sept /libpath:"d:\tcl_workspace\tcl_head_stock\win\Debug"
 
 !ENDIF 
 
@@ -154,7 +154,7 @@ InputDir=\expect_wslive\expect_win32_take2\generic
 InputPath=..\generic\exp.decls
 
 BuildCmds= \
-	c:\progra~1\tcl\bin\tclsh84 d:/tcl_workspace/tcl_head/tools/genStubs.tcl $(InputDir) $(InputPath)
+	c:\progra~1\tcl\bin\tclsh84 d:/tcl_workspace/tcl_head_stock/tools/genStubs.tcl $(InputDir) $(InputPath)
 
 "$(InputDir)\expDecls.h" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
    $(BuildCmds)
@@ -244,7 +244,19 @@ SOURCE=..\generic\getopt.c
 # PROP Default_Filter ""
 # Begin Source File
 
+SOURCE=.\expWinConsoleDebugger.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\expWinInjectorIPC.hpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\expWinInt.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\expWinMessage.hpp
 # End Source File
 # Begin Source File
 
@@ -252,7 +264,7 @@ SOURCE=.\expWinPort.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\MsvcDbgControl.h
+SOURCE=.\expWinUtils.hpp
 # End Source File
 # End Group
 # Begin Source File
@@ -275,6 +287,14 @@ SOURCE=.\expWinCommand.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\expWinConsoleDebugger.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\expWinConsoleDebuggerBreakPoints.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\expWinInit.c
 # End Source File
 # Begin Source File
@@ -283,7 +303,7 @@ SOURCE=.\expWinLog.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\expWinProcess.c
+SOURCE=.\expWinMessage.cpp
 # End Source File
 # Begin Source File
 
@@ -295,13 +315,49 @@ SOURCE=.\expWinTty.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\MsvcDbgControl.cpp
+SOURCE=.\expWinUtils.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\slavedrvmc.mc
 
 !IF  "$(CFG)" == "expect - Win32 Release"
 
-# PROP Exclude_From_Build 1
+# Begin Custom Build - Compiling message catalog...
+IntDir=.\Release\expect
+InputPath=.\slavedrvmc.mc
+
+BuildCmds= \
+	mc -w -h "$(IntDir)" -r "$(IntDir)" $(InputPath)
+
+"$(IntDir)\slavedrvmc.rc" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+   $(BuildCmds)
+
+"$(IntDir)\slavedrvmc.h" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+   $(BuildCmds)
+
+"$(IntDir)\MSG00409.bin" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+   $(BuildCmds)
+# End Custom Build
 
 !ELSEIF  "$(CFG)" == "expect - Win32 Debug"
+
+# Begin Custom Build - Compiling message catalog...
+IntDir=.\Debug\expect
+InputPath=.\slavedrvmc.mc
+
+BuildCmds= \
+	mc -w -h "$(IntDir)" -r "$(IntDir)" $(InputPath)
+
+"$(IntDir)\slavedrvmc.rc" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+   $(BuildCmds)
+
+"$(IntDir)\slavedrvmc.h" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+   $(BuildCmds)
+
+"$(IntDir)\MSG00409.bin" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+   $(BuildCmds)
+# End Custom Build
 
 !ENDIF 
 

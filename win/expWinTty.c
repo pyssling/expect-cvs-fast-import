@@ -23,7 +23,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: exp.h,v 1.1.4.4 2002/02/10 10:17:04 davygrvy Exp $
+ * RCS: @(#) $Id: expWinTty.c,v 1.1.2.1.2.3 2002/02/10 12:03:30 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -231,7 +231,7 @@ Exp_SttyCmd(clientData, interp, argc, argv)
     ClientData clientData;
     Tcl_Interp *interp;
     int argc;
-    char **argv;
+    CONST char **argv;
 {
 #if 1
     /* redirection symbol is not counted as a stty arg in terms */
@@ -244,7 +244,7 @@ Exp_SttyCmd(clientData, interp, argc, argv)
     int cooked = FALSE;
     int was_raw, was_echo;
 
-    char **argv0 = argv;
+    CONST char **argv0 = argv;
 
     for (argv=argv0+1;*argv;argv++) {
 	if (argv[0][0] == '<') {
@@ -322,7 +322,7 @@ Exp_SystemCmd(clientData, interp, argc, argv)
     ClientData clientData;
     Tcl_Interp *interp;
     int argc;
-    char **argv;
+    CONST char **argv;
 {
     Tcl_AppendResult(interp, argv[0], ": not implemented", NULL);
     return TCL_ERROR;

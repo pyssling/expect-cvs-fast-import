@@ -23,7 +23,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinInjectorMain.cpp,v 1.1.2.13 2002/06/25 08:40:50 davygrvy Exp $
+ * RCS: @(#) $Id: expWinInjectorMain.cpp,v 1.1.2.14 2002/06/27 22:51:04 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -103,7 +103,6 @@ HANDLE console;
 BOOL WINAPI
 DllMain (HINSTANCE hInst, ULONG ulReason, LPVOID lpReserved)
 {
-
     switch (ulReason) {
     case DLL_PROCESS_ATTACH:
 	DisableThreadLibraryCalls(hInst);
@@ -118,8 +117,8 @@ DllMain (HINSTANCE hInst, ULONG ulReason, LPVOID lpReserved)
 	injectorThread->Wait(INFINITE);
 	CloseHandle(console);
 	delete interrupt;
-	delete inject;
 	delete injectorThread;
+	delete inject;
 	break;
     }
     return TRUE;
