@@ -2039,10 +2039,9 @@ Exp_LogFileCmd(clientData, interp, argc, argv)
 	    return TCL_ERROR;
 	}
     } else if (chanName) {
-	if (TCL_ERROR == expLogChannelSet(Tcl_GetChannel(interp,chanName,(int
-		*)0))) {
-	    return TCL_ERROR;
-	}
+	Tcl_Channel channel = Tcl_GetChannel(interp,chanName,(int *)0);
+	if (!channel) return TCL_ERROR;
+	expLogChannelSet(channel);
     } else {
 	expLogCloseChannel();
 	if (logAll) {

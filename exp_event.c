@@ -187,7 +187,7 @@ int mask;
 /*ARGSUSED*/
 int exp_get_next_event(interp,esPtrs,n,esPtrOut,timeout,key)
 Tcl_Interp *interp;
-ExpState (*esPtrs)[];
+ExpState *(esPtrs[]);
 int n;			/* # of esPtrs */
 ExpState **esPtrOut;	/* 1st ready esPtr, not set if none */
 int timeout;		/* seconds */

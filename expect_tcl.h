@@ -14,6 +14,14 @@ would appreciate credit if this program or parts of it are used.
 
 #include "expect_comm.h"
 
+/*
+ * This is a convenience macro used to initialize a thread local storage ptr.
+ * Stolen from tclInt.h
+ */
+#ifndef TCL_TSD_INIT
+#define TCL_TSD_INIT(keyPtr)	(ThreadSpecificData *)Tcl_GetThreadData((keyPtr), sizeof(ThreadSpecificData))
+#endif
+
 EXTERN int exp_cmdlinecmds;
 EXTERN int exp_interactive;
 EXTERN FILE *exp_cmdfile;

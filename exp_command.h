@@ -17,7 +17,7 @@ EXTERN int exp_default_rm_nulls;
 
 EXTERN int		exp_one_arg_braced _ANSI_ARGS_((Tcl_Obj *));
 EXTERN int		exp_eval_with_one_arg _ANSI_ARGS_((ClientData,
-				Tcl_Interp *,objv **));
+				Tcl_Interp *, struct Tcl_Obj * CONST objv[]));
 EXTERN void		exp_lowmemcpy _ANSI_ARGS_((char *,char *,int));
 
 EXTERN int exp_flageq_code _ANSI_ARGS_((char *,char *,int));

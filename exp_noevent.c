@@ -107,9 +107,9 @@ int key;
 
 /*ARGSUSED*/
 int
-exp_get_next_event_info(interp,fd,ready_mask)
+exp_get_next_event_info(interp,esPtr,ready_mask)
 Tcl_Interp *interp;
-int fd;
+ExpState *esPtr;
 int ready_mask;
 {
 }
