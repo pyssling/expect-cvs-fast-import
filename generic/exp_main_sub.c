@@ -177,8 +177,8 @@ ClientData clientData;
 }
 
 /* this stupidity because Tcl needs commands in writable space */
-static char prompt1[] = "::exp::prompt1";
-static char prompt2[] = "::exp::prompt2";
+static char prompt1[] = "prompt1";
+static char prompt2[] = "prompt2";
 
 static char *prompt2_default = "+> ";
 static char prompt1_default[] = "expect%d> ";
