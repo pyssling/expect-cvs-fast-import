@@ -1,8 +1,7 @@
 /* ----------------------------------------------------------------------------
- * expWinSlave.hpp --
+ * expWinConsoleDebugger.hpp --
  *
- *	Useful definitions used by the slave driver application but not
- *	useful for anybody else.
+ *	ConsoleDetour class declared here.
  *
  * ----------------------------------------------------------------------------
  *
@@ -23,28 +22,32 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinSlave.hpp,v 1.1.4.13 2002/06/27 04:37:51 davygrvy Exp $
+ * RCS: @(#) $Id: expWinConsoleDebugger.hpp,v 1.1.2.29 2002/06/29 00:44:36 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
-#ifndef INC_expWinSlave_hpp__
-#define INC_expWinSlave_hpp__
 
-#include <windows.h>
+#ifndef INC_expWinConsoleDetour_hpp__
+#define INC_expWinConsoleDetour_hpp__
 
-void DynloadTclStubs (void);
-void ShutdownTcl (void);
+#include "expWinSlave.hpp"
 
 
-#include "Mcl/include/CMcl.h"
-#include "slavedrvmc.h"
-#include "expWinUtils.hpp"
-#include "expWinMessage.hpp"
-#include "expWinTestClient.hpp"
-#include "expWinConsoleDebugger.hpp"
-#include "expWinConsoleDetour.hpp"
-#include "expWinSlaveTrap.hpp"
+class ConsoleDetour : public CMclThreadHandler, ArgMaker
+{
+public:
+    ConsoleDetour(int _argc, char * const *_argv, CMclQueue<Message *> &_mQ);
+    ~ConsoleDetour();
 
-void MapToKeys (Message *msg, CMclQueue<Message *> &mQ);
+    void WriteRecord (INPUT_RECORD *ir);
+    void EnterInteract (HANDLE OutConsole);
+    void ExitInteract (void);
 
+private:
+    virtual unsigned ThreadHandlerProc(void);
 
-#endif // INC_expWinSlave_hpp__
+    // Thread-safe message queue used for communication back to the parent.
+    //
+    CMclQueue<Message *> &mQ;
+};
+
+#endif  // #ifndef INC_expWinConsoleDetour_hpp__

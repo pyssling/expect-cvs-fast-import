@@ -106,6 +106,14 @@ SOURCE=.\expWinConsoleDebuggerBreakPoints.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\expWinConsoleDetour.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\expWinConsoleDetour.hpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\expWinConsoleKeyMap.cpp
 # End Source File
 # Begin Source File
@@ -135,6 +143,10 @@ SOURCE=.\expWinSlaveTrap.hpp
 # Begin Source File
 
 SOURCE=.\expWinSlaveTrapDbg.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\expWinSlaveTrapDetour.cpp
 # End Source File
 # Begin Source File
 

@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinSlaveMain.cpp,v 1.1.4.25 2002/06/27 04:37:51 davygrvy Exp $
+ * RCS: @(#) $Id: expWinSlaveMain.cpp,v 1.1.4.26 2002/06/28 01:26:57 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -140,6 +140,9 @@ SlaveOpenTrap(const char *method, int argc, char * const argv[],
 {
     if (!strcmp(method, "dbg")) {
 	return new SlaveTrapDbg(argc, argv, mQ);
+    }
+    else if (!strcmp(method, "detour")) {
+	return new SlaveTrapDetour(argc, argv, mQ);
     }
     else EXP_LOG1(MSG_IO_TRAPARGSBAD, method);
 
