@@ -18,7 +18,7 @@ would appreciate credit if this program or parts of it are used.
 # endif
 #endif
 
-#include "../unix/tclUnixPort.h"
+#include <tclPort.h>
 
 #define EXP_CHANNELNAMELEN (16 + TCL_INTEGER_SPACE)
 

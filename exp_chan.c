@@ -437,7 +437,7 @@ expWaitOnOne() {
     ExpState *esPtr;
     int pid;
     /* should really be recoded using the common wait code in command.c */
-    int status;
+    WAIT_STATUS_TYPE status;
 
     pid = wait(&status);
     for (esPtr = tsdPtr->firstExpPtr;esPtr;esPtr = esPtr->nextPtr) {
