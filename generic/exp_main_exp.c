@@ -7,20 +7,14 @@ dollars.  Therefore it is public domain.  However, the author and NIST
 would appreciate credit if this program or parts of it are used.
 */
 
-#ifdef __WIN32__
-/*
- * We are going to import a couple of data elements from expect52.dll
- * We need this defined here so that we import the data properly.
- */
-#define EXPECTIMP     __declspec(dllimport)
-#else
-#define EXPECTIMP
-#endif
+#define BUILD_clib
 
 #include "exp_port.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include "tcl.h"
+
+
 #include "expect_tcl.h"
 
 int

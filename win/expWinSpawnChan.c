@@ -14,6 +14,9 @@
 #include "exp_port.h"
 #include "tclInt.h"
 #include "tclPort.h"
+
+#define BUILD_expect
+
 #include "exp_command.h"
 #include "expWin.h"
 
@@ -52,8 +55,7 @@ ExpPlatformSpawnOutput(instanceData, bufPtr, toWrite, errorPtr)
 	lenbuf[3] = (toWrite & 0xff0000) >> 16;
 	lenbuf[4] = (toWrite & 0xff000000) >> 24;
 
-	n = (Tcl_GetChannelType(channelPtr)->outputProc)
-	    (Tcl_GetChannelInstanceData(channelPtr), lenbuf, 5, errorPtr);
+	n = Tcl_WriteRaw(channelPtr, lenbuf, 5);
 	if (n < 0) {
 	    return n;
 	}
@@ -63,8 +65,7 @@ ExpPlatformSpawnOutput(instanceData, bufPtr, toWrite, errorPtr)
 	ssPtr->toWrite = toWrite;
     }
 
-    n = (Tcl_GetChannelType(channelPtr)->outputProc)
-	(Tcl_GetChannelInstanceData(channelPtr), bufPtr, toWrite, errorPtr);
+    n = Tcl_WriteRaw(channelPtr, bufPtr, toWrite);
     if (n > 0) {
 	ssPtr->toWrite -= n;
     }

@@ -22,6 +22,7 @@ expensive.
 
 */
 
+#define BUILD_expect
 
 #include "tcl.h"
 #include "tclPort.h"

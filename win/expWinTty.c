@@ -13,6 +13,9 @@
 
 #include "tcl.h"
 #include "tclPort.h"
+
+#define BUILD_expect
+
 #include "expect_tcl.h"
 #include "exp_command.h"
 #include "exp_tty.h"
@@ -320,8 +323,8 @@ Exp_SystemCmd(clientData, interp, argc, argv)
 
 static struct exp_cmd_data
 cmd_data[]  = {
-{"stty",	Exp_SttyCmd,	0,	0},
-{"system",	Exp_SystemCmd,	0,	0},
+{"stty",	0, Exp_SttyCmd,	0,	0},
+{"system",	0, Exp_SystemCmd,	0,	0},
 {0}};
 
 /*

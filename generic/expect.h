@@ -71,45 +71,45 @@ enum exp_type {
 
 struct exp_case {		/* case for expect command */
 	char *pattern;
-	regexp *re;
+	Tcl_RegExp re;
 	enum exp_type type;
 	int value;		/* value to be returned upon match */
 };
 
-#if defined(__WIN32__) && !defined(__EXPECTLIB__)
-#define DLLIMP __declspec(dllimport)
+#undef TCL_STORAGE_CLASS
+#if !defined(__EXPECTLIB__)
+#   define TCL_STORAGE_CLASS DLLIMPORT
 #else
-#define DLLIMP
+#   define TCL_STORAGE_CLASS DLLEXPORT
 #endif
 
-EXTERN DLLIMP char *exp_buffer;		/* buffer of matchable chars */
-EXTERN DLLIMP char *exp_buffer_end;	/* one beyond end of matchable chars */
-EXTERN DLLIMP char *exp_match;		/* start of matched string */
-EXTERN DLLIMP char *exp_match_end;	/* one beyond end of matched string */
-EXTERN DLLIMP int exp_match_max;	/* bytes */
-EXTERN DLLIMP int exp_timeout;		/* seconds */
-EXTERN DLLIMP int exp_full_buffer;	/* if true, return on full buffer */
-EXTERN DLLIMP int exp_remove_nulls;	/* if true, remove nulls */
+EXTERN char *exp_buffer;		/* buffer of matchable chars */
+EXTERN char *exp_buffer_end;	/* one beyond end of matchable chars */
+EXTERN char *exp_match;		/* start of matched string */
+EXTERN char *exp_match_end;	/* one beyond end of matched string */
+EXTERN int exp_match_max;	/* bytes */
+EXTERN int exp_timeout;		/* seconds */
+EXTERN int exp_full_buffer;	/* if true, return on full buffer */
+EXTERN int exp_remove_nulls;	/* if true, remove nulls */
 
-EXTERN DLLIMP int exp_pty_timeout;	/* see Cray hooks in source */
-EXTERN DLLIMP int exp_pid;		/* process-id of spawned process */
-EXTERN DLLIMP int exp_autoallocpty;	/* if TRUE, we do allocation */
-EXTERN DLLIMP int exp_pty[2];		/* master is [0], slave is [1] */
-EXTERN DLLIMP char *exp_pty_slave_name;	/* name of pty slave device if we */
+EXTERN int exp_pty_timeout;	/* see Cray hooks in source */
+EXTERN int exp_pid;		/* process-id of spawned process */
+EXTERN int exp_autoallocpty;	/* if TRUE, we do allocation */
+EXTERN int exp_pty[2];		/* master is [0], slave is [1] */
+EXTERN char *exp_pty_slave_name;	/* name of pty slave device if we */
 					/* do allocation */
-EXTERN DLLIMP char *exp_stty_init;	/* initial stty args */
-EXTERN DLLIMP int exp_ttycopy;		/* copy tty parms from /dev/tty */
-EXTERN DLLIMP int exp_ttyinit;		/* set tty parms to sane state */
-EXTERN DLLIMP int exp_console;		/* redirect console */
+EXTERN char *exp_stty_init;	/* initial stty args */
+EXTERN int exp_ttycopy;		/* copy tty parms from /dev/tty */
+EXTERN int exp_ttyinit;		/* set tty parms to sane state */
+EXTERN int exp_console;		/* redirect console */
 
 #ifdef __WIN32__
-EXTERN DLLIMP int exp_nt_debug;		/* Expose subprocesses consoles */
+EXTERN int exp_nt_debug;		/* Expose subprocesses consoles */
 #endif
 
 EXTERN jmp_buf exp_readenv;		/* for interruptable read() */
-EXTERN DLLIMP int exp_reading;		/* whether we can longjmp or not */
+EXTERN int exp_reading;		/* whether we can longjmp or not */
 
-#undef DLLIMP
 
 #define EXP_ABORT	1		/* abort read */
 #define EXP_RESTART	2		/* restart read */

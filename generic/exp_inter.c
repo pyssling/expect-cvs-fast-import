@@ -14,7 +14,10 @@ would appreciate credit if this program or parts of it are used.
 #include <ctype.h>
 
 #include "tcl.h"
+#include "tclPort.h"
 #include "string.h"
+
+#define BUILD_expect
 
 #include "exp_tty.h"
 #include "exp_rename.h"
@@ -24,7 +27,7 @@ would appreciate credit if this program or parts of it are used.
 #include "exp_tstamp.h"	/* remove when timestamp stuff is gone */
 
 #include "tclRegexp.h"
-#include "exp_regexp.h"
+//#include "exp_regexp.h"
 
 #ifndef __WIN32__
 
@@ -479,10 +482,10 @@ static char interpreter_cmd[] = "interpreter";
 /*ARGSUSED*/
 int
 Exp_InteractCmd(clientData, interp, argc, argv)
-ClientData clientData;
-Tcl_Interp *interp;
-int argc;
-char **argv;
+    ClientData clientData;
+    Tcl_Interp *interp;
+    int argc;
+    char **argv;
 {
 	char *arg;	/* shorthand for current argv */
 #ifdef SIMPLE_EVENT
@@ -2245,7 +2248,7 @@ struct output *o;
 
 static struct exp_cmd_data cmd_data[]  = {
 #ifndef __WIN32__
-{"interact",	Exp_InteractCmd,	0,	0},
+{"interact",	0, Exp_InteractCmd,	0,	0},
 #endif
 {0}};
 

@@ -13,6 +13,13 @@
 #ifndef _EXP_COMMAND_H
 #define _EXP_COMMAND_H
 
+#undef TCL_STORAGE_CLASS
+#ifdef BUILD_expect
+#   define TCL_STORAGE_CLASS DLLEXPORT
+#else
+#   define TCL_STORAGE_CLASS DLLIMPORT
+#endif
+
 EXTERN struct exp_f *	exp_update_master _ANSI_ARGS_((Tcl_Interp *,int,int));
 EXTERN char *		exp_get_var _ANSI_ARGS_((Tcl_Interp *,char *));
 
@@ -20,9 +27,8 @@ EXTERN int exp_default_match_max;
 EXTERN int exp_default_parity;
 EXTERN int exp_default_rm_nulls;
 
-EXTERN int		exp_one_arg_braced _ANSI_ARGS_((char *));
-EXTERN int		exp_eval_with_one_arg _ANSI_ARGS_((ClientData,
-				Tcl_Interp *,char **));
+EXTERN int		exp_one_arg_braced _ANSI_ARGS_((Tcl_Obj *));
+EXTERN int		exp_eval_with_one_arg _ANSI_ARGS_((ClientData,Tcl_Interp *,Tcl_Obj *CONST objv[]) /* INTL */);
 EXTERN void		exp_lowmemcpy _ANSI_ARGS_((char *,char *,int));
 
 EXTERN int exp_flageq_code _ANSI_ARGS_((char *,char *,int));
@@ -296,6 +302,7 @@ EXTERN void		exp_i_update _ANSI_ARGS_((Tcl_Interp *,
 
 struct exp_cmd_data {
 	char		*name;
+	Tcl_ObjCmdProc	*objproc;
 	Tcl_CmdProc	*proc;
 	ClientData	data;
 	int 		flags;
@@ -345,9 +352,9 @@ EXTERN int		Exp_ExpInternalCmd _ANSI_ARGS_((ClientData clientData,
 EXTERN int		Exp_ExpPidCmd _ANSI_ARGS_((ClientData clientData,
 			    Tcl_Interp *interp, int argc, char **argv));
 EXTERN int		Exp_ExpectCmd _ANSI_ARGS_((ClientData clientData,
-			    Tcl_Interp *interp, int argc, char **argv));
+			    Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]));
 EXTERN int		Exp_ExpectGlobalCmd _ANSI_ARGS_((ClientData clientData,
-			    Tcl_Interp *interp, int argc, char **argv));
+			    Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]));
 EXTERN int		Exp_ExpVersionCmd _ANSI_ARGS_((ClientData clientData,
 			    Tcl_Interp *interp, int argc, char **argv));
 EXTERN int		Exp_ForkCmd _ANSI_ARGS_((ClientData clientData,

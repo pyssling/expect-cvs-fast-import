@@ -89,7 +89,7 @@ extern int     ExpDebug;
 
 extern void			ExpAddToWaitQueue(HANDLE handle);
 extern void			ExpKillProcessList();
-extern DWORD WINAPI		ExpSlaveDebugThread(LPVOID *arg);
+extern DWORD WINAPI		ExpSlaveDebugThread(LPVOID arg);
 extern DWORD WINAPI		ExpGetExecutablePathA(PSTR pathInOut);
 extern DWORD WINAPI		ExpGetExecutablePathW(PWSTR pathInOut);
 extern BOOL			ExpWriteMaster(int useSocket, HANDLE hFile,

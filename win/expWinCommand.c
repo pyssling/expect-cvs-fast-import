@@ -10,6 +10,7 @@
  *
  */
 
+#define BUILD_expect
 #include "exp_port.h"
 #include "tclInt.h"
 #include "tclPort.h"
@@ -22,6 +23,8 @@
 #include "exp_event.h"
 #include "exp_prog.h"
 #include "exp_tty.h"
+
+#include <winbase.h>
 
 #ifdef TCL_DEBUGGER
 #include "Dbg.h"
@@ -90,7 +93,7 @@ exp_f_free_platform(f)
 	__try {
 	    CloseHandle((HANDLE) f->tclPid);
 	}
-	__except (GetExceptionCode()) {};
+	__except (1) {};
     }
     if (f->over.hEvent) {
 	CloseHandle(f->over.hEvent);
@@ -169,7 +172,7 @@ exp_getpidproc()
 int
 Exp_SpawnCmd(ClientData clientData,Tcl_Interp *interp,int argc,char **argv)
 {
-    HANDLE hSlaveDrv = NULL;	/* Handle to communicate with slave driver */
+    HANDLE hSlaveDrv = INVALID_HANDLE_VALUE;	/* Handle to communicate with slave driver */
     Tcl_Pid slaveDrvPid;	/* Process id of the slave */
     BOOL bRet;
     DWORD dwRet;
@@ -338,7 +341,7 @@ Exp_SpawnCmd(ClientData clientData,Tcl_Interp *interp,int argc,char **argv)
      * If we cannot create the named pipe (or if we have been told to use
      * sockets for communications at this level), try opening a socket.
      */
-    if (hSlaveDrv == NULL) {
+    if (hSlaveDrv == INVALID_HANDLE_VALUE) {
 	channel2 = NULL;
 	for (i = 0; i < 50 && channel2 == NULL; i++) {
 	    channel2 = Tcl_OpenTcpServer(interp, 
@@ -352,7 +355,7 @@ Exp_SpawnCmd(ClientData clientData,Tcl_Interp *interp,int argc,char **argv)
 	useSocket = 1;
     }
 
-    if (channel2 == NULL && hSlaveDrv == NULL ) {
+    if (channel2 == NULL && hSlaveDrv == INVALID_HANDLE_VALUE ) {
 	debuglog("CreateNamedPipe failed: error=0x%08x\r\n", GetLastError());
 	debuglog("socket failed: error=0x%08x\r\n", GetLastError());
 	TclWinConvertError(GetLastError());
@@ -382,6 +385,7 @@ Exp_SpawnCmd(ClientData clientData,Tcl_Interp *interp,int argc,char **argv)
 
     nargv = (char **) ckalloc(sizeof(char *) * (argc+4));
     nargv[0] = execPath;
+
     if (!useSocket) {
 	nargv[1] = pipeName;
     } else {
@@ -398,26 +402,32 @@ Exp_SpawnCmd(ClientData clientData,Tcl_Interp *interp,int argc,char **argv)
     }
     argc = j;
 
-#if 0 /* For debugging purposes only */
-    if (1) {
+    /*
+     * When the Expect extension is running in a debugger,
+     * print the commandline to the output window.
+     */
+    if (IsDebuggerPresent()) {
 	int i;
-	for (i = -1; i < argc; i++) {
-	    printf("%s ", nargv[i]);
+	char buf[100];
+
+	OutputDebugString("spawndrv.exe commandline: ");
+	for (i = 0; i < argc; i++) {
+	    wsprintf(buf, "%s ", nargv[i]);
+	    OutputDebugString(buf);
 	}
-	printf("\n");
+	OutputDebugString("\n");
+	slaveDrvPid = 0;
+	globalPid = 1;
     }
-    slaveDrvPid = 0;
-    globalPid = 1;
-#else
 
     hide = !debug;
     dwRet = ExpCreateProcess(argc, nargv, NULL, NULL, NULL,
 			     TRUE, hide, FALSE, FALSE,
 			     &slaveDrvPid, &globalPid);
     if (dwRet != 0) {
-	TclWinConvertError(dwRet);
-	exp_error(interp, "couldn't execute \"%s\": %s",
-		  argv[0],Tcl_PosixError(interp));
+        TclWinConvertError(dwRet);
+        exp_error(interp, "couldn't execute \"%s\": %s",
+	      argv[0],Tcl_PosixError(interp));
 	goto end;
     }
 
@@ -425,7 +435,7 @@ Exp_SpawnCmd(ClientData clientData,Tcl_Interp *interp,int argc,char **argv)
      * Until we use the process handle for something, close it
      */
     CloseHandle((HANDLE) slaveDrvPid);
-#endif
+
     /*
      * Wait for connection with the slave driver
      */
@@ -438,14 +448,16 @@ Exp_SpawnCmd(ClientData clientData,Tcl_Interp *interp,int argc,char **argv)
 	    if (dwRet == ERROR_PIPE_CONNECTED) {
 		;
 	    } else if (dwRet == ERROR_IO_PENDING) {
-		dwRet = WaitForSingleObject(hEvent, 120000 /* XXX 30000*/);
+		dwRet = WaitForSingleObject(hEvent, 10000 /* XXX 30000*/);
 		if (dwRet != WAIT_OBJECT_0) {
+		    TclWinConvertError(dwRet);
 		    exp_error(interp, "%s did not connect to server pipe: %s",
 			      execPath, Tcl_PosixError(interp));
 		    goto end;
 		}
 		bRet = GetOverlappedResult(hSlaveDrv, &over, &count, FALSE);
 		if (bRet == FALSE) {
+		    TclWinConvertError(GetLastError());
 		    exp_error(interp, "%s did not connect to server pipe: %s",
 			      execPath, Tcl_PosixError(interp));
 		    goto end;
@@ -480,14 +492,16 @@ Exp_SpawnCmd(ClientData clientData,Tcl_Interp *interp,int argc,char **argv)
 	if (bRet == FALSE) {
 	    dwRet = GetLastError();
 	    if (dwRet == ERROR_IO_PENDING) {
-		dwRet = WaitForSingleObject(hEvent, 30000);
+		dwRet = WaitForSingleObject(hEvent, 50000);  /* 50 seconds */
 		if (dwRet != WAIT_OBJECT_0) {
+		    TclWinConvertError(dwRet);
 		    exp_error(interp, "%s did not synchronize with master: %s",
 			      execPath, Tcl_PosixError(interp));
 		    goto end;
 		}
 		bRet = GetOverlappedResult(hSlaveDrv, &over, &count, FALSE);
 		if (bRet == FALSE) {
+		    TclWinConvertError(GetLastError());
 		    exp_error(interp, "%s did not synchronize with master: %s",
 			      execPath, Tcl_PosixError(interp));
 		    goto end;
@@ -521,9 +535,20 @@ Exp_SpawnCmd(ClientData clientData,Tcl_Interp *interp,int argc,char **argv)
     globalPid = buf[4] | (buf[5] << 8) | (buf[6] << 16) | (buf[7] << 24);
 
     if (!useSocket) {
+	HANDLE dupe;
+
 	masterRFile = TclWinMakeFile(hSlaveDrv);
-	masterWFile = TclWinMakeFile(hSlaveDrv);
-	
+
+	/*
+	 *  We need to make a duplicate, because the handles are closed
+	 *  seperately by the core.
+	 */
+
+	DuplicateHandle(GetCurrentProcess(), hSlaveDrv,
+		GetCurrentProcess(), &dupe, 0, FALSE,
+		DUPLICATE_SAME_ACCESS);
+	masterWFile = TclWinMakeFile(dupe);
+
 	channel = TclpCreateCommandChannel(masterRFile, masterWFile, NULL, 0, NULL);
     }
 
@@ -692,3 +717,5 @@ ExpSockAcceptProc(callbackData, chan, address, port)
     *ptr = chan;
     return;
 }
+
+

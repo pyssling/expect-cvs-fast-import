@@ -12,20 +12,29 @@ would appreciate credit if this program or parts of it are used.
 #ifndef _EXPECT_TCL_H
 #define _EXPECT_TCL_H
 
+
+#undef TCL_STORAGE_CLASS
+#ifdef BUILD_clib
+#   define TCL_STORAGE_CLASS DLLIMPORT
+#else
+#   define TCL_STORAGE_CLASS DLLEXPORT
+#endif
+
+EXTERN int exp_interactive;
+EXTERN FILE *exp_cmdfile;
+EXTERN char *exp_cmdfilename;
+
+#undef TCL_STORAGE_CLASS
+#ifdef BUILD_expect
+#   define TCL_STORAGE_CLASS DLLEXPORT
+#else
+#   define TCL_STORAGE_CLASS DLLIMPORT
+#endif
+
 #include "expect_comm.h"
 
-#ifdef __WIN32__
-#ifndef EXPECTIMP
-#define EXPECTIMP __declspec(dllexport)
-#endif
-#else
-#define EXPECTIMP
-#endif
 
 EXTERN int exp_cmdlinecmds;
-EXTERN EXPECTIMP int exp_interactive;
-EXTERN EXPECTIMP FILE *exp_cmdfile;
-EXTERN EXPECTIMP char *exp_cmdfilename;
 EXTERN int exp_getpid;	/* pid of Expect itself */
 EXTERN int exp_buffer_command_input;
 

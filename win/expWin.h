@@ -11,6 +11,13 @@
  *
  */
 
+#undef TCL_STORAGE_CLASS
+#ifdef BUILD_expect
+#   define TCL_STORAGE_CLASS DLLEXPORT
+#else
+#   define TCL_STORAGE_CLASS DLLIMPORT
+#endif
+
 #define EXP_SLAVE_CREATE 'c'
 #define EXP_SLAVE_KEY    'k'
 #define EXP_SLAVE_MOUSE  'm'

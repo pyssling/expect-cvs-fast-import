@@ -18,6 +18,8 @@
  *
  */
 
+#define BUILD_expect
+
 #include <math.h>
 #include "exp_port.h"
 #include "tclInt.h"
@@ -2047,6 +2049,7 @@ Exp_ExitCmd(clientData, interp, argc, argv)
 
     exp_exit(interp,value);
     /*NOTREACHED*/
+    return TCL_OK;
 }
 
 /*
@@ -2117,15 +2120,15 @@ Exp_CloseCmd(clientData, interp, argc, argv)
 
 	Tcl_ResetResult(interp);
 	objv = (Tcl_Obj **) ckalloc((argc+1)*sizeof(Tcl_Obj *));
-	objv[0] = Tcl_NewStringObj("exp_tcl_close", -1);
+	objv[0] = Tcl_NewStringObj("close", -1);
 	for (i = 0; i < argc; i++) {
 	    objv[i+1] = Tcl_NewStringObj(argv[i], -1);
 	}
 
-	if (0 == Tcl_GetCommandInfo(interp,"exp_tcl_close",&info)) {
+	if (0 == Tcl_GetCommandInfo(interp,"close",&info)) {
 	    info.clientData = 0;
 	}
-	result = info.objProc(info.objClientData,interp,argc+1,objv);
+	result = Tcl_CloseObjCmd(info.objClientData,interp,argc+1,objv);
 	for (i = 0; i < argc+1; i++) {
 	    Tcl_DecrRefCount(objv[i]);
 	}
@@ -2652,70 +2655,58 @@ exp_create_commands(interp,c)
     Tcl_Interp *interp;
     struct exp_cmd_data *c;
 {
-    Interp *iPtr = (Interp *) interp;
-    char cmdnamebuf[80];
+    //Namespace *expNsPtr = (Namespace *) Tcl_FindNamespace(interp, "::exp", NULL, 0);
+    //char cmdnamebuf[80];
 
     for (;c->name;c++) {
-	int create = FALSE;
 	/* if already defined, don't redefine */
-	if (c->flags & EXP_REDEFINE) create = TRUE;
-	else if (!Tcl_FindHashEntry(&iPtr->globalNsPtr->cmdTable,c->name)) {
-	    create = TRUE;
-	}
-	if (create) {
-	    sprintf(cmdnamebuf, "rename %s exp_tcl_%s", c->name, c->name);
-	    Tcl_GlobalEval(interp, cmdnamebuf);
-	    Tcl_CreateCommand(interp,c->name,c->proc,
-			      c->data, (Tcl_CmdDeleteProc *) NULL);
-	}
-	if (!(c->name[0] == 'e' &&
-	      c->name[1] == 'x' &&
-	      c->name[2] == 'p')
-	    && !(c->flags & EXP_NOPREFIX))
-	{
-	    sprintf(cmdnamebuf,"exp_%s",c->name);
-	    Tcl_CreateCommand(interp,cmdnamebuf,c->proc,
-			      c->data, (Tcl_CmdDeleteProc *) NULL);
-	}
+	//if (!expNsPtr || !(Tcl_FindHashEntry(&expNsPtr->cmdTable,c->name))) {
+	    //sprintf(cmdnamebuf, "::exp::%s",c->name); 
+	    if (c->objproc) {
+		Tcl_CreateObjCommand(interp,c->name,c->objproc,c->data,NULL);
+	    } else {
+		Tcl_CreateCommand(interp,c->name,c->proc,c->data,NULL);
+	    }
+	//}
     }
 }
 
 static struct exp_cmd_data cmd_data[]  = {
-{"close",	Exp_CloseCmd,	0,	EXP_REDEFINE},
+{"exp_close",	0, Exp_CloseCmd,	0,	0},
 #ifdef TCL_DEBUGGER
-{"debug",	Exp_DebugCmd,	0,	0},
+{"debug",	0, Exp_DebugCmd,	0,	0},
 #endif
-{"exp_internal",Exp_ExpInternalCmd,	0,	0},
+{"internal", 0, Exp_ExpInternalCmd,	0,	0},
 #ifdef XXX
-{"disconnect",	Exp_DisconnectCmd,	0,	0},
+{"disconnect",	0, Exp_DisconnectCmd,	0,	0},
 #endif
-{"exit",	Exp_ExitCmd,	0,	EXP_REDEFINE},
-{"continue",	Exp_ExpContinueDeprecatedCmd,0,EXP_NOPREFIX|EXP_REDEFINE},
-{"exp_continue",Exp_ExpContinueCmd,0,	0},
+{"exp_exit",	0, Exp_ExitCmd,	0,	0},
+/*{"exp::_continue",	0, Exp_ExpContinueDeprecatedCmd,0,0},*/
+{"exp_continue",0,Exp_ExpContinueCmd,0,	0},
 #ifdef XXX
-{"fork",	Exp_ForkCmd,	0,	0},
+{"fork",	0, Exp_ForkCmd,	0,	0},
 #endif
-{"exp_pid",	Exp_ExpPidCmd,	0,	0},
-{"getpid",	Exp_GetpidDeprecatedCmd,0,	0},
-{"interpreter",	Exp_InterpreterCmd,	0,	0},
-{"kill",	Exp_KillCmd,	0,	0},
-{"log_file",	Exp_LogFileCmd,	0,	0},
-{"log_user",	Exp_LogUserCmd,	0,	0},
-{"exp_open",	Exp_OpenCmd,	0,	0},
+{"exp_pid",	0, Exp_ExpPidCmd,	0,	0},
+{"getpid",	0, Exp_GetpidDeprecatedCmd,0,	0},
+{"interpreter",	0, Exp_InterpreterCmd,	0,	0},
+{"kill",	0, Exp_KillCmd,	0,	0},
+{"log_file",	0, Exp_LogFileCmd,	0,	0},
+{"log_user",	0, Exp_LogUserCmd,	0,	0},
+{"exp_open",	0, Exp_OpenCmd,	0,	0},
 #ifdef XXX
-{"overlay",	Exp_OverlayCmd,	0,	0},
+{"overlay",	0, Exp_OverlayCmd,	0,	0},
 #endif
-{"inter_return",Exp_InterReturnCmd,	0,	0},
-{"send",	Exp_SendCmd,	(ClientData)NULL,	0},
-{"send_spawn",	Exp_SendCmd,	(ClientData)NULL,	0},/*deprecat*/
-{"send_error",	Exp_SendCmd,	(ClientData)"stderr",	0},
-{"send_log",	Exp_SendLogCmd,	0,	0},
-{"send_tty",	Exp_SendCmd,	(ClientData)"exp_tty",	0},
-{"send_user",	Exp_SendCmd,	(ClientData)"exp_user",	0},
-{"sleep",	Exp_SleepCmd,	0,	0},
-{"spawn",	Exp_SpawnCmd,	0,	0},
-{"strace",	Exp_StraceCmd,	0,	0},
-{"wait",	Exp_WaitCmd,	0,	0},
+{"inter_return",0, Exp_InterReturnCmd,	0,	0},
+{"send",	0, Exp_SendCmd,	(ClientData)NULL,	0},
+/*{"exp::send_spawn",	0, Exp_SendCmd,	(ClientData)NULL,	0},deprecat*/
+{"send_error",	0, Exp_SendCmd,	(ClientData)"stderr",	0},
+{"send_log",	0, Exp_SendLogCmd,	0,	0},
+{"send_tty",	0, Exp_SendCmd,	(ClientData)"exp_tty",	0},
+{"send_user",	0, Exp_SendCmd,	(ClientData)"exp_user",	0},
+{"sleep",	0, Exp_SleepCmd,	0,	0},
+{"spawn",	0, Exp_SpawnCmd,	0,	0},
+{"strace",	0, Exp_StraceCmd,	0,	0},
+{"wait",	0, Exp_WaitCmd,	0,	0},
 {0}};
 
 /*

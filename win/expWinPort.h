@@ -14,7 +14,7 @@
 #ifndef _EXPWINPORT_H
 #define _EXPWINPORT_H
 
-#include <windows.h>
+/*#include <windows.h>*/
 #include <time.h>
 
 #define HAVE_SV_TIMEZONE 1

@@ -15,32 +15,28 @@
 #include "exp_port.h"
 #include "tclInt.h"
 #include "tclPort.h"
+
+#define BUILD_expect
+
 #include "exp_command.h"
 
 static void	ExpPairInputCloseHandler _ANSI_ARGS_((ClientData clientData));
 static void	ExpPairOutputCloseHandler _ANSI_ARGS_((ClientData clientData));
-static int	ExpPairBlock _ANSI_ARGS_((ClientData instanceData,
-		    int mode));
-static int	ExpPairInput _ANSI_ARGS_((ClientData instanceData,
-		    char *bufPtr, int bufSize, int *errorPtr));
-static int	ExpPairOutput _ANSI_ARGS_((ClientData instanceData,
-		    char *bufPtr, int toWrite, int *errorPtr));
-static int	ExpPairClose _ANSI_ARGS_((ClientData instanceData,
-		    Tcl_Interp *interp));
-static int	ExpPairSetOption _ANSI_ARGS_((ClientData instanceData,
-		    Tcl_Interp *interp, char *nameStr, char *val));
-static int	ExpPairGetOption _ANSI_ARGS_((ClientData instanceData,
-		    Tcl_Interp *interp, char *nameStr, Tcl_DString *dsPtr));
-static int	ExpPairGetHandle _ANSI_ARGS_((ClientData instanceData,
-		    int direction, ClientData *handlePtr));
-static void	ExpPairWatch _ANSI_ARGS_((ClientData instanceData,
-		    int mask));
+
+static Tcl_DriverCloseProc ExpPairClose;
+static Tcl_DriverInputProc ExpPairInput;
+static Tcl_DriverOutputProc ExpPairOutput;
+static Tcl_DriverSetOptionProc ExpPairSetOption;
+static Tcl_DriverGetOptionProc ExpPairGetOption;
+static Tcl_DriverWatchProc ExpPairWatch;
+static Tcl_DriverGetHandleProc ExpPairGetHandle;
+static Tcl_DriverBlockModeProc	ExpPairBlock;
 static void	ExpPairReadable _ANSI_ARGS_((ClientData clientData, int mask));
 static void	ExpPairWritable _ANSI_ARGS_((ClientData clientData, int mask));
 
 static Tcl_ChannelType ExpPairChannelType = {
     "exp_pair",
-    ExpPairBlock,
+    TCL_CHANNEL_VERSION_2,
     ExpPairClose,
     ExpPairInput,
     ExpPairOutput,
@@ -48,7 +44,11 @@ static Tcl_ChannelType ExpPairChannelType = {
     ExpPairSetOption,
     ExpPairGetOption,
     ExpPairWatch,
-    ExpPairGetHandle
+    ExpPairGetHandle,
+    0,
+    ExpPairBlock,
+    0,
+    0
 };
 
 typedef struct {

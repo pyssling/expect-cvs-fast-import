@@ -16,6 +16,9 @@ would appreciate credit if this program or parts of it are used.
 #include "exp_port.h"
 #include "tclInt.h"
 #include "tclPort.h"
+
+#define BUILD_expect
+
 #include "exp_rename.h"
 #include "exp_prog.h"
 #include "exp_command.h"
@@ -500,12 +503,12 @@ eval_trap_action(interp,sig,trap,oldcode)
 	eip = Tcl_GetVar(interp,"errorInfo",TCL_GLOBAL_ONLY);
 	if (eip) {
 	    Tcl_DStringInit(&ei);
-	    eip = Tcl_DStringAppend(&ei,eip,-1);
+	    eip = (char *) Tcl_DStringAppend(&ei,eip,-1);
 	}
 	ecp = Tcl_GetVar(interp,"errorCode",TCL_GLOBAL_ONLY);
 	if (ecp) {
 	    Tcl_DStringInit(&ec);
-	    ecp = Tcl_DStringAppend(&ec,ecp,-1);
+	    ecp = (char *) Tcl_DStringAppend(&ec,ecp,-1);
 	}
 	/* I assume interp->result is always non-zero, right? */
 	Tcl_DStringInit(&ir);
@@ -584,7 +587,7 @@ eval_trap_action(interp,sig,trap,oldcode)
 
 static struct exp_cmd_data
 cmd_data[]  = {
-    {"trap",	Exp_TrapCmd,	NULL,	0},
+    {"trap",	0, Exp_TrapCmd,	NULL,	0},
     {0}
 };
 

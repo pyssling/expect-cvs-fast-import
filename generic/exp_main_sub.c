@@ -22,6 +22,10 @@
 
 #include "tcl.h"
 #include "tclInt.h"
+#include "tclPort.h"
+
+#define BUILD_expect
+
 #include "exp_tty.h"
 #include "exp_rename.h"
 #include "exp_prog.h"
@@ -173,8 +177,8 @@ ClientData clientData;
 }
 
 /* this stupidity because Tcl needs commands in writable space */
-static char prompt1[] = "prompt1";
-static char prompt2[] = "prompt2";
+static char prompt1[] = "::exp::prompt1";
+static char prompt2[] = "::exp::prompt2";
 
 static char *prompt2_default = "+> ";
 static char prompt1_default[] = "expect%d> ";
@@ -430,7 +434,7 @@ char **argv;
 		return(TCL_OK);
 	}
 	if (argc > 3) {
-		exp_error(interp,"usage: expect_version [[-exit] version]");
+		exp_error(interp,"usage: exp_version [[-exit] version]");
 		return(TCL_ERROR);
 	}
 
@@ -463,7 +467,9 @@ char **argv;
 	errorlog("%s: requires Expect version %s (but using %s)\r\n",
 		exp_argv0,user_version,exp_version);
 	exp_exit(interp,1);
+
 	/*NOTREACHED*/
+	return TCL_OK;
 }
 
 /*
@@ -475,7 +481,7 @@ char **argv;
 
 static char initScript[] =
 "proc expectInit {} {\n\
-    global exp_library env\n\
+    global exp_library auto_path env\n\
     rename expectInit {}\n\
     set version [exp_version]\n\
     set dirs [list [file join .. examples] [file join . examples]]\n\
@@ -491,8 +497,6 @@ static char initScript[] =
     lappend dirs [file join $parentDir library]\n\
     foreach i $dirs {\n\
 	set exp_library $i\n\
-	set expect_library $i\n\
-	set exp_exec_library $i\n\
 	if [file isfile [file join $i expect.rc]] {\n\
 	    lappend auto_path $exp_library\n\
 	    return\n\
@@ -500,17 +504,11 @@ static char initScript[] =
     }\n\
     foreach i $dirs {\n\
 	set exp_library $i\n\
-	set expect_library $i\n\
-	set exp_exec_library $i\n\
 	if [file isfile [file join $i beer.exp]] {\n\
 	    lappend auto_path $exp_library\n\
 	    return\n\
 	}\n\
     }\n\
-    set msg \"Can't find expect.rc or beer.exp in the following directories: \n\"\n\
-    append msg \"    $dirs\n\"\n\
-    append msg \"This probably means that Expect wasn't installed properly.\n\"\n\
-    #error $msg\n\
 }\n\
 expectInit";
 
@@ -851,7 +849,7 @@ FILE *fp;
 			if (newcmd) break;
 			eof = TRUE;
 		}
-		ccmd = Tcl_DStringAppend(&dstring,line,-1);
+		ccmd = (char *) Tcl_DStringAppend(&dstring,line,-1);
 		if (!Tcl_CommandComplete(ccmd) && !eof) {
 			newcmd = FALSE;
 			continue;	/* continue collecting command */
@@ -952,10 +950,9 @@ int max;
 #endif /*SHARE_CMD_BUFFER*/
 
 static struct exp_cmd_data cmd_data[]  = {
-{"expect_version",Exp_ExpVersionCmd,	0,	0},	/* deprecated */
-{"exp_version",	Exp_ExpVersionCmd,	0,	0},
-{"prompt1",	Exp_Prompt1Cmd,		0,	EXP_NOPREFIX},
-{"prompt2",	Exp_Prompt2Cmd,		0,	EXP_NOPREFIX},
+{"exp_version",	0, Exp_ExpVersionCmd,	0,	0},
+{"prompt1",	0, Exp_Prompt1Cmd,		0,	0},
+{"prompt2",	0, Exp_Prompt2Cmd,		0,	0},
 {0}};
 
 void

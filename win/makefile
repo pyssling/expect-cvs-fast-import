@@ -27,21 +27,27 @@ ROOT		= ..
 TMPDIR		= .
 
 !IFNDEF TOOLS32
-TOOLS32		= c:\msdev
+TOOLS32		= 
 !ENDIF
 
 !IFNDEF TCL_ROOT_DIR
-TCL_ROOT_DIR	= ..\..\tcl8.0
+TCL_ROOT_DIR	= d:\tcl_workspace\tcl_head
 !ENDIF
 
 !IFNDEF TCL_GENERIC_DIR
 TCL_GENERIC_DIR	= $(TCL_ROOT_DIR)\generic
 !ENDIF
 
-DEBUG_INFO=1
-!IFNDEF DEBUG_INFO
-NODEBUG=1
-!ENDIF
+
+!IFNDEF DEBUG
+DEBUG = 0
+!endif
+
+!IF !$(DEBUG)
+DBGX	=
+!else
+DBGX	= d
+!endif
 
 # Set this to the appropriate value of /MACHINE: for your platform
 MACHINE	= IX86
@@ -57,9 +63,9 @@ MACHINE	= IX86
 # Do not modify below this line
 ######################################################################
 
-EXPECTLIB	= expect52.lib
-EXPECTDLL	= expect52.dll
-EXPECT		= expect.exe
+EXPECTLIB	= expect52$(DBGX).lib
+EXPECTDLL	= expect52$(DBGX).dll
+EXPECT		= expect$(DBGX).exe
 EXPECTTEST	= expecttest.exe
 SLAVEDRV	= slavedrv.exe
 DUMPEXTS	= dumpexts.exe
@@ -77,8 +83,8 @@ TESTWSTATION	= testwstation.exe
 TESTWPROG	= testwprog.exe
 TESTCRASH	= testcrash.exe
 DEBUGGER	= debugger.exe
-LIBEXPECT	= expectlib52.lib
-LIBEXPECTDLL	= expectlib52.dll
+LIBEXPECT	= expectlib52$(DBGX).lib
+LIBEXPECTDLL	= expectlib52$(DBGX).dll
 
 TEST_APPS = $(TESTCALC) $(TESTCONSOUT) $(TESTSIG) $(TESTCLIB) \
 	$(TESTCLIB2) $(TESTA2) $(TESTMODEM) $(TESTCRASH)
@@ -99,9 +105,9 @@ EXP_DLL_OBJS = \
 	$(TMPDIR)\expWinTty.obj \
 	$(TMPDIR)\exp_log.obj \
 	$(TMPDIR)\exp_glob.obj \
-	$(TMPDIR)\Dbg.obj \
+#	$(TMPDIR)\Dbg.obj \
 	$(TMPDIR)\exp_closetcl.obj \
-	$(TMPDIR)\exp_regexp.obj \
+#	$(TMPDIR)\exp_regexp.obj \
 	$(TMPDIR)\exp_printify.obj \
 	$(TMPDIR)\getopt.obj \
 	$(TMPDIR)\exp_main_sub.obj \
@@ -139,10 +145,10 @@ SLAVE_OBJS = \
 	$(TMPDIR)\expWinSlaveDbgW.obj \
 	$(TMPDIR)\expWinProcess.obj \
 	$(TMPDIR)\expWinLog.obj \
-	$(TMPDIR)\expDString.obj \
-	$(TMPDIR)\expAlloc.obj \
-	$(TMPDIR)\tclHash.obj \
-	$(TMPDIR)\panic.obj
+#	$(TMPDIR)\expDString.obj \
+#	$(TMPDIR)\expAlloc.obj \
+#	$(TMPDIR)\tclHash.obj \
+#	$(TMPDIR)\panic.obj
 
 TELNET_OBJS = \
 	$(TELNETDIR)\commands.obj \
@@ -163,19 +169,23 @@ DEBUGGER_OBJS = \
 	$(TMPDIR)\debugger.obj \
 	$(TMPDIR)\expWinProcess.obj \
 	$(TMPDIR)\expWinLog.obj \
-	$(TMPDIR)\expDString.obj \
-	$(TMPDIR)\expAlloc.obj \
+#	$(TMPDIR)\expDString.obj \
+#	$(TMPDIR)\expAlloc.obj \
 
-cc32		= $(TOOLS32)\bin\cl.exe
-link32		= $(TOOLS32)\bin\link.exe
-rc32		= $(TOOLS32)\bin\rc.exe
-include32	= -I$(TOOLS32)\include
+cc32		= cl.exe
+link32		= link.exe
+rc32		= rc.exe
+include32	= 
 
 WINDIR          = $(ROOT)\win
 GENERICDIR	= $(ROOT)\generic
 
 TCL_INCLUDES	= -I$(TCL_ROOT_DIR)\win -I$(TCL_ROOT_DIR)\generic
-TCL_LIBS	= $(TCL_ROOT_DIR)\win\tcl80.lib
+!IF !$(DEBUG)
+TCL_LIBS	= $(TCL_ROOT_DIR)\win\release\tcl84.lib
+!ELSE
+TCL_LIBS	= $(TCL_ROOT_DIR)\win\debug\tcl84d.lib
+!ENDIF
 EXPECT_INCLUDES	= -I$(WINDIR) -I$(GENERICDIR) $(TCL_INCLUDES)
 EXPECT_DEFINES	= -D__WIN32__ -DUSE_TCLALLOC=1 $(DEBUGDEFINES)
 
@@ -196,7 +206,7 @@ DLL16_CFLAGS	= $(cdebug) $(cflags) $(include16) -ALw
 # Link flags
 ######################################################################
 
-!IFDEF NODEBUG
+!IF !$(DEBUG)
 ldebug = /RELEASE
 !ELSE
 ldebug = -debug:full -debugtype:cv
@@ -208,7 +218,7 @@ lcommon = /NODEFAULTLIB /RELEASE /NOLOGO
 # declarations for use on Intel i386, i486, and Pentium systems
 !IF "$(MACHINE)" == "IX86"
 DLLENTRY = @12
-lflags   = $(lcommon) -align:0x1000 /MACHINE:$(MACHINE)
+lflags   = $(lcommon) /MACHINE:$(MACHINE)
 !ELSE
 lflags   = $(lcommon) /MACHINE:$(MACHINE)
 !ENDIF
@@ -223,7 +233,7 @@ libc = libc.lib
 libcdll = crtdll.lib
 !ELSE
 libc = libc.lib oldnames.lib
-!IFDEF NODEBUG
+!IF !$(DEBUG)
 libcdll = msvcrt.lib oldnames.lib
 !ELSE
 #libcdll = msvcrtd.lib oldnames.lib
@@ -244,7 +254,7 @@ conlibsdll = $(libcdll) $(baselibs)
 # Compile flags
 ######################################################################
 
-!IFDEF NODEBUG
+!IF !$(DEBUG)
 cdebug = -Ox
 !ELSE
 cdebug = -Z7 -Od -WX
@@ -269,16 +279,20 @@ cflags = $(ccommon) -D_ALPHA_=1
 !ENDIF
 !ENDIF
 
-cvars      = -DWIN32 -D_WIN32
-cvarsmt    = $(cvars) -D_MT
-cvarsdll   = $(cvarsmt) -D_DLL
+!IF !$(DEBUG)
+cvarsmt    = -MT
+cvarsdll   = -MD
+!ELSE
+cvarsmt    = -MTd
+cvarsdll   = -MDd
+!ENDIF
 
 ######################################################################
 # Project specific targets
 ######################################################################
 
 all:	release $(TEST_APPS)
-release: $(DUMPEXTS) $(TELNET) $(SLAVEDRV) $(DEBUGGER) \
+release: $(TELNET) $(SLAVEDRV) $(DEBUGGER) \
 	$(EXPECTDLL) $(LIBEXPECTDLL) $(EXPECT)
 test:	all $(EXPECTTEST)
 	$(EXPECTTEST) <<
@@ -286,110 +300,92 @@ test:	all $(EXPECTTEST)
 		source all
 <<
 
-$(DUMPEXTS): $(WINDIR)\winDumpExts.c
-	$(cc32) $(CON_CFLAGS) -Fo$(TMPDIR)\ $?
-	set LIB=$(TOOLS32)\lib
-	$(link32) $(ldebug) $(conlflags) $(guilibs) -out:$@ \
-		$(TMPDIR)\winDumpExts.obj 
+#$(DUMPEXTS): $(WINDIR)\winDumpExts.c
+#	$(cc32) $(CON_CFLAGS) -Fo$(TMPDIR)\ $?
+#	$(link32) $(ldebug) $(conlflags) $(guilibs) -out:$@ \
+#		$(TMPDIR)\winDumpExts.obj 
 
 $(DEBUGGER): $(DEBUGGER_OBJS)
-	set LIB=$(TOOLS32)\lib
 	$(link32) $(ldebug) $(conlflags) \
-		$(conlibsdll) $(guilibsdll) -out:$@ $(DEBUGGER_OBJS)
+		$(conlibsdll) $(guilibsdll) $(TCL_LIBS) -out:$@ $(DEBUGGER_OBJS)
 
 $(TELNET): $(TELNET_OBJS)
-	set LIB=$(TOOLS32)\lib
 	$(link32) $(ldebug) $(conlflags) $(guilibs) wsock32.lib -out:$@ \
 		$(TELNET_OBJS)
 
 specialconlflags = $(lflags) -subsystem:console -entry:specialCRTStartup
 $(TESTCAT): $(WINDIR)\testcat.c
 	$(cc32) $(CON_CFLAGS) -Fo$(TMPDIR)\ $?
-	set LIB=$(TOOLS32)\lib
 	$(link32) $(ldebug) $(specialconlflags) $(guilibs) -out:$@ \
 		$(TMPDIR)\testcat.obj 
 
 $(TESTSIG): $(WINDIR)\testsig.c
 	$(cc32) $(CON_CFLAGS) -Fo$(TMPDIR)\ $?
-	set LIB=$(TOOLS32)\lib
 	$(link32) $(ldebug) $(conlflags) $(conlibsdll) -out:$@ \
 		$(TMPDIR)\testsig.obj 
 
 $(TESTCALC): $(WINDIR)\testcalc.c
 	$(cc32) $(EXPECT_CFLAGS) -Fo$(TMPDIR)\ $?
-	set LIB=$(TOOLS32)\lib
 	$(link32) $(ldebug) $(conlflags) $(conlibsdll) -out:$@ \
 		$(TMPDIR)\testcalc.obj 
 
 specialconlflags = $(lflags) -subsystem:console -entry:specialCRTStartup
 $(TESTCONSOUT): $(WINDIR)\testconsout.c
 	$(cc32) $(CON_CFLAGS) -Fo$(TMPDIR)\ $?
-	set LIB=$(TOOLS32)\lib
 	$(link32) $(ldebug) $(specialconlflags) $(guilibs) -out:$@ \
 		$(TMPDIR)\testconsout.obj 
 
 $(TESTA1): $(WINDIR)\testa1.c
 	$(cc32) $(EXPECT_CFLAGS) -Fo$(TMPDIR)\ $?
-	set LIB=$(TOOLS32)\lib
 	$(link32) $(ldebug) $(conlflags) $(conlibsdll) -out:$@ \
 		$(TMPDIR)\testa1.obj 
 
 $(TESTA2): $(WINDIR)\testa2.c
 	$(cc32) $(EXPECT_CFLAGS) -Fo$(TMPDIR)\ $?
-	set LIB=$(TOOLS32)\lib
 	$(link32) $(ldebug) $(conlflags) $(conlibsdll) -out:$@ \
 		$(TMPDIR)\testa2.obj 
 
 $(TESTMODEM): $(WINDIR)\testmodem.c
 	$(cc32) $(EXPECT_CFLAGS) -Fo$(TMPDIR)\ $?
-	set LIB=$(TOOLS32)\lib
 	$(link32) $(ldebug) $(conlflags) $(conlibsdll) -out:$@ \
 		$(TMPDIR)\testmodem.obj 
 
 $(TESTWSTATION): $(WINDIR)\testwstation.c
 	$(cc32) $(EXPECT_CFLAGS) -Fo$(TMPDIR)\ $?
-	set LIB=$(TOOLS32)\lib
 	$(link32) $(ldebug) $(conlflags) $(conlibsdll) $(guilibs) -out:$@ \
 		$(TMPDIR)\testwstation.obj 
 
 $(TESTWPROG): $(WINDIR)\testwprog.c
 	$(cc32) $(EXPECT_CFLAGS) -Fo$(TMPDIR)\ $?
-	set LIB=$(TOOLS32)\lib
 	$(link32) $(ldebug) $(guilflags) $(guilibsdll) -out:$@ \
 		$(TMPDIR)\testwprog.obj 
 
 $(TESTCRASH): $(TESTCRASH_OBJS)
-	set LIB=$(TOOLS32)\lib
 	$(link32) $(ldebug) $(conlflags) -out:$@ $(conlibsdll) \
 		$(guilibsdll) $(TESTCRASH_OBJS)
 
 $(TESTCLIB): $(WINDIR)\testclib.c
 	$(cc32) $(CON_CFLAGS) $(EXPECT_INCLUDES) -Fo$(TMPDIR)\ $?
-	set LIB=$(TOOLS32)\lib
 	$(link32) $(ldebug) $(LIBEXPECT) $(guilibs) \
 		-out:$@ $(TMPDIR)\testclib.obj 
 
 $(TESTCLIB2): $(WINDIR)\testclib2.c
 	$(cc32) $(CON_CFLAGS) $(EXPECT_INCLUDES) -Fo$(TMPDIR)\ $?
-	set LIB=$(TOOLS32)\lib
 	$(link32) $(ldebug) $(LIBEXPECT) $(guilibs) \
 		-out:$@ $(TMPDIR)\testclib2.obj 
 
 $(SLAVEDRV): $(SLAVE_OBJS)
-	set LIB=$(TOOLS32)\lib
 	$(link32) $(ldebug) $(conlflags) -out:$@ $(conlibsdll) \
-		$(guilibsdll) imagehlp.lib $(SLAVE_OBJS)
+		$(guilibsdll) imagehlp.lib $(TCL_LIBS) $(SLAVE_OBJS)
 #	$(link32) $(ldebug) $(conlflags) $(guilibs) -out:$@ $(SLAVE_OBJS)
 
-$(EXPECTDLL): $(EXP_DLL_OBJS) $(TMPDIR)\expect.def $(TMPDIR)\expect.res
-	set LIB=$(TOOLS32)\lib
-	$(link32) $(ldebug) $(dlllflags) $(TCL_LIBS) -def:$(TMPDIR)\expect.def \
+$(EXPECTDLL): $(EXP_DLL_OBJS) $(TMPDIR)\expect.res
+	$(link32) $(ldebug) $(dlllflags) $(TCL_LIBS) \
 		-out:$@ $(TMPDIR)\expect.res $(guilibsdll) @<<
 $(EXP_DLL_OBJS)
 <<
 
 $(LIBEXPECTDLL): $(LIBEXPECT_OBJS) $(TMPDIR)\expectlib.def $(TMPDIR)\expectlib.res
-	set LIB=$(TOOLS32)\lib
 	$(link32) $(ldebug) $(dlllflags) $(EXPECTLIB) $(TCL_LIBS) \
 		-def:$(TMPDIR)\expectlib.def \
 		-out:$@ $(TMPDIR)\expectlib.res $(guilibsdll) @<<
@@ -397,27 +393,25 @@ $(LIBEXPECT_OBJS)
 <<
 
 $(EXPECT): $(EXPECTOBJS) $(EXPECTLIB) $(TMPDIR)\expect.res
-	set LIB=$(TOOLS32)\lib
 	$(link32) $(ldebug) $(conlflags) $(TMPDIR)\expect.res \
 		-out:$@ $(conlibsdll) $(TCL_LIBS) $(EXPECTLIB) $(EXPECTOBJS)
 
 $(EXPECTTEST): $(EXPECTTESTOBJS) $(EXPECTLIB) $(TMPDIR)\expect.res
-	set LIB=$(TOOLS32)\lib
 	$(link32) $(ldebug) $(conlflags) $(TMPDIR)\expect.res -stack:1572864 \
 		 -out:$@ $(conlibsdll) $(EXPECTLIB) $(EXPECTTESTOBJS)
 
-$(TMPDIR)\expect.def: $(DUMPEXTS) $(EXP_DLL_OBJS)
-	$(DUMPEXTS) -o $@ $(EXPECTDLL) @<<
-$(EXP_DLL_OBJS)
-<<
-	echo exp_cmdfilename >> $@
-	echo exp_cmdfile >> $@
-	echo exp_debugfile >> $@
-	echo exp_interactive >> $@
-	echo exp_logfile >> $@
-	echo exp_logfile_all >> $@
-	echo exp_loguser >> $@
-	echo exp_is_debugging >> $@
+#$(TMPDIR)\expect.def: $(DUMPEXTS) $(EXP_DLL_OBJS)
+#	$(DUMPEXTS) -o $@ $(EXPECTDLL) @<<
+#$(EXP_DLL_OBJS)
+#<<
+#	echo exp_cmdfilename >> $@
+#	echo exp_cmdfile >> $@
+#	echo exp_debugfile >> $@
+#	echo exp_interactive >> $@
+#	echo exp_logfile >> $@
+#	echo exp_logfile_all >> $@
+#	echo exp_loguser >> $@
+#	echo exp_is_debugging >> $@
 
 $(TMPDIR)\expWinSlaveDbgW.obj: $(WINDIR)\expWinSlaveDbg.c
 	$(cc32) $(EXPECT_CFLAGS) -DUNICODE -D_UNICODE -Fo$@ $?

@@ -27,10 +27,10 @@ extern void exp_nferrorlog _ANSI_ARGS_((char *buf, int force_stdout));
 #define DLLIMP
 #endif
 
-EXTERN DLLIMP Tcl_Channel exp_debugfile;
-EXTERN DLLIMP Tcl_Channel exp_logfile;
-EXTERN DLLIMP int exp_logfile_all;
-EXTERN DLLIMP int exp_loguser;
-EXTERN DLLIMP int exp_is_debugging; /* useful to know for avoid debug calls */
+extern DLLIMP Tcl_Channel exp_debugfile;
+extern DLLIMP Tcl_Channel exp_logfile;
+extern DLLIMP int exp_logfile_all;
+extern DLLIMP int exp_loguser;
+extern DLLIMP int exp_is_debugging; /* useful to know for avoid debug calls */
 
 #undef DLLIMP

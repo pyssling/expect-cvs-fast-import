@@ -16,42 +16,50 @@
 #include "exp_port.h"
 #include "tclInt.h"
 #include "tclPort.h"
-#include "exp_command.h"
-#include "expWin.h"
 
-static int	ExpSpawnBlock _ANSI_ARGS_((ClientData instanceData,
-		    int mode));
-static int	ExpSpawnInput _ANSI_ARGS_((ClientData instanceData,
-		    char *bufPtr, int bufSize, int *errorPtr));
-static int	ExpSpawnOutput _ANSI_ARGS_((ClientData instanceData,
-		    char *bufPtr, int toWrite, int *errorPtr));
-static int	ExpSpawnClose _ANSI_ARGS_((ClientData instanceData,
-		    Tcl_Interp *interp));
-static int	ExpSpawnSetOption _ANSI_ARGS_((ClientData instanceData,
-		    Tcl_Interp *interp, char *nameStr, char *val));
-static int	ExpSpawnGetOption _ANSI_ARGS_((ClientData instanceData,
-		    Tcl_Interp *interp, char *nameStr, Tcl_DString *dsPtr));
-static int	ExpSpawnGetHandle _ANSI_ARGS_((ClientData instanceData,
-		    int direction, ClientData *handlePtr));
-static void	ExpSpawnWatch _ANSI_ARGS_((ClientData instanceData,
-		    int mask));
+#define BUILD_expect
+
+#include "exp_command.h"
+
+#ifdef __WIN32__
+#include "expWin.h"
+#endif
+
+static Tcl_DriverCloseProc ExpSpawnClose;
+static Tcl_DriverInputProc ExpSpawnInput;
+static Tcl_DriverOutputProc ExpSpawnOutput;
+/*static Tcl_DriverSeekProc ExpSpawnSeek;*/
+static Tcl_DriverSetOptionProc ExpSpawnSetOption;
+static Tcl_DriverGetOptionProc ExpSpawnGetOption;
+static Tcl_DriverWatchProc ExpSpawnWatch;
+static Tcl_DriverGetHandleProc ExpSpawnGetHandle;
+static Tcl_DriverBlockModeProc ExpSpawnBlock;
+/*static Tcl_DriverFlushProc ExpSpawnFlush;*/
+/*static Tcl_DriverHandlerProc ExpSpawnHandler;*/
 
 static Tcl_ChannelType ExpSpawnChannelType = {
     "exp_spawn",
-    ExpSpawnBlock,
+    TCL_CHANNEL_VERSION_2,
     ExpSpawnClose,
     ExpSpawnInput,
     ExpSpawnOutput,
-    NULL,         		/* Can't seek! */
+    NULL,         		/* no seek! */
     ExpSpawnSetOption,
     ExpSpawnGetOption,
     ExpSpawnWatch,
-    ExpSpawnGetHandle
+    ExpSpawnGetHandle,
+    NULL,			/* no close2 */
+    ExpSpawnBlock,
+    NULL,			/* no flush */
+    NULL			/* no handler */
 };
 
-static int expSpawnCount = 0;
+typedef struct ThreadSpecificData {
+    int expSpawnCount;
+} ThreadSpecificData;
 
-
+static Tcl_ThreadDataKey dataKey;
+
 /*
  *----------------------------------------------------------------------
  *
@@ -73,55 +81,67 @@ ExpCreateSpawnChannel(interp, chan)
     Tcl_Interp *interp;
     Tcl_Channel chan;
 {
+//    char channelNameStr[20];
+//    Tcl_Channel chan2;
+    Tcl_Channel chan3;
     ExpSpawnState *ssPtr;
-    char channelNameStr[20];
+    ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
 
     ssPtr = (ExpSpawnState *) ckalloc(sizeof(ExpSpawnState));
     ssPtr->channelPtr = chan;
     ssPtr->toWrite = 0;
 
+//    sprintf(channelNameStr, "exp_spawn%d", tsdPtr->expSpawnCount++);
+
+//    chan2 = Tcl_CreateChannel(&ExpSpawnChannelType, channelNameStr,
+//			     (ClientData) NULL, TCL_READABLE|TCL_WRITABLE);
+
+    chan3 = Tcl_StackChannel(interp, &ExpSpawnChannelType,
+	    (ClientData) ssPtr, TCL_READABLE|TCL_WRITABLE, chan);
+
     /*
      * Setup the expect channel to always flush immediately
      */
 
-    sprintf(channelNameStr, "exp_spawn%d", expSpawnCount++);
+    Tcl_SetChannelOption(interp, chan3, "-buffering",  "none");
+    Tcl_SetChannelOption(interp, chan3, "-blocking",   "0");
+    Tcl_SetChannelOption(interp, chan3, "-translation","binary");
 
-    chan = Tcl_CreateChannel(&ExpSpawnChannelType, channelNameStr,
-			     (ClientData) ssPtr, TCL_READABLE|TCL_WRITABLE);
-    Tcl_SetChannelOption(interp, chan, "-blocking", "0");
-    Tcl_SetChannelOption(interp, chan, "-buffering", "none");
-    Tcl_SetChannelOption(interp, chan, "-translation","binary");
-    return chan;
+    return chan3;
 }
-
+
 /*
  *----------------------------------------------------------------------
  *
- * ExpSpawnBlock --
+ * ExpSpawnClose --
  *
- *	Generic routine to set I/O to blocking or non-blocking.
+ *	Generic routine to close the expect spawn channel and child.
  *
  * Results:
- *	TCL_OK or TCL_ERROR.
+ *      0 if successful or a POSIX errorcode with
+ *      interp updated.
  *    
  * Side Effects:
- *	None.
+ *	Channel is deleted.
  *
  *----------------------------------------------------------------------
  */
 
 static int
-ExpSpawnBlock(instanceData, mode)
+ExpSpawnClose(instanceData, interp)
     ClientData instanceData;
-    int mode;			/* (in) Block or not */
+    Tcl_Interp *interp;
 {
-    Tcl_Channel channelPtr = ((ExpSpawnState *)instanceData)->channelPtr;
+    ExpSpawnState *ssPtr = (ExpSpawnState *) instanceData;
+    //Tcl_Channel channelPtr = ssPtr->channelPtr;
+    //int ret;
 
-    return (Tcl_GetChannelType(channelPtr)->blockModeProc)
-	(Tcl_GetChannelInstanceData(channelPtr), mode);
+    //ret = Tcl_UnStackChannel(interp, channelPtr);
+    ckfree((char *)ssPtr);
+
+    return TCL_OK;
 }
 
-
 /*
  *----------------------------------------------------------------------
  *
@@ -151,7 +171,6 @@ ExpSpawnInput(instanceData, bufPtr, bufSize, errorPtr)
 	(Tcl_GetChannelInstanceData(channelPtr), bufPtr, bufSize, errorPtr);
 }
 
-
 /*
  *----------------------------------------------------------------------
  *
@@ -177,41 +196,7 @@ ExpSpawnOutput(instanceData, bufPtr, toWrite, errorPtr)
 {
     return ExpPlatformSpawnOutput(instanceData, bufPtr, toWrite, errorPtr);
 }
-
-/*
- *----------------------------------------------------------------------
- *
- * ExpSpawnClose --
- *
- *	Generic routine to close the expect console
- *
- * Results:
- *      0 if successful or a POSIX errorcode with
- *      interp updated.
- *    
- * Side Effects:
- *	Channel is deleted.
- *
- *----------------------------------------------------------------------
- */
 
-static int
-ExpSpawnClose(instanceData, interp)
-    ClientData instanceData;
-    Tcl_Interp *interp;
-{
-    ExpSpawnState *ssPtr = (ExpSpawnState *) instanceData;
-    Tcl_Channel channelPtr = ssPtr->channelPtr;
-    int ret;
-
-    ret = Tcl_Close(interp, channelPtr);
-
-    ckfree((char *)ssPtr);
-
-    return ret;
-}
-
-
 /*
  *----------------------------------------------------------------------
  *
@@ -236,9 +221,16 @@ ExpSpawnSetOption(instanceData, interp, nameStr, valStr)
     char *valStr;		/* (in) New value of option */
 {
     Tcl_Channel channelPtr = ((ExpSpawnState *)instanceData)->channelPtr;
+    Tcl_DriverSetOptionProc *setOpt;
 
-    return (Tcl_GetChannelType(channelPtr)->setOptionProc)
-	(Tcl_GetChannelInstanceData(channelPtr), interp, nameStr, valStr);
+    setOpt = Tcl_GetChannelType(channelPtr)->setOptionProc;
+
+    if (setOpt) {
+	return (setOpt)(Tcl_GetChannelInstanceData(channelPtr), interp,
+		nameStr, valStr);
+    } else {
+	return Tcl_BadChannelOption(interp, nameStr, "");
+    }
 }
 
 /*
@@ -266,41 +258,18 @@ ExpSpawnGetOption(instanceData, interp, nameStr, dsPtr)
     Tcl_DString *dsPtr;		/* (in) String to place value */
 {
     Tcl_Channel channelPtr = ((ExpSpawnState *)instanceData)->channelPtr;
+    Tcl_DriverGetOptionProc *getOpt;
 
-    return (Tcl_GetChannelType(channelPtr)->getOptionProc)
-	(Tcl_GetChannelInstanceData(channelPtr), interp, nameStr, dsPtr);
+    getOpt = Tcl_GetChannelType(channelPtr)->getOptionProc;
+    if (getOpt) {
+	return (getOpt)(Tcl_GetChannelInstanceData(channelPtr), interp,
+		nameStr, dsPtr);
+    } else if (nameStr != NULL) {
+	return Tcl_BadChannelOption(interp, nameStr, "");
+    } else {
+	return TCL_OK;
+    }
 }
-
-/*
- *----------------------------------------------------------------------
- *
- * ExpSpawnGetHandle --
- *
- *	Get the Tcl_File for the appropriate direction in from the
- *	Tcl_Channel.
- *
- * Results:
- *	NULL because ExpSpawn ids are handled through other channel
- *	types.
- *
- * Side Effects
- *	None.
- *
- *----------------------------------------------------------------------
- */
-
-int
-ExpSpawnGetHandle(instanceData, direction, handlePtr)
-    ClientData instanceData;
-    int direction;
-    ClientData *handlePtr;
-{
-    Tcl_Channel channelPtr = ((ExpSpawnState *)instanceData)->channelPtr;
-
-    return (Tcl_GetChannelType(channelPtr)->getHandleProc)
-	(Tcl_GetChannelInstanceData(channelPtr), direction, handlePtr);
-}
-
 /*
  *----------------------------------------------------------------------
  *
@@ -328,4 +297,60 @@ ExpSpawnWatch(instanceData, mask)
     (Tcl_GetChannelType(channelPtr)->watchProc)
 	(Tcl_GetChannelInstanceData(channelPtr), mask);
     return;
+}
+
+/*
+ *----------------------------------------------------------------------
+ *
+ * ExpSpawnGetHandle --
+ *
+ *	Get the Tcl_File for the appropriate direction in from the
+ *	Tcl_Channel.
+ *
+ * Results:
+ *	NULL because ExpSpawn ids are handled through other channel
+ *	types.
+ *
+ * Side Effects
+ *	None.
+ *
+ *----------------------------------------------------------------------
+ */
+
+int
+ExpSpawnGetHandle(instanceData, direction, handlePtr)
+    ClientData instanceData;
+    int direction;
+    ClientData *handlePtr;
+{
+    Tcl_Channel channelPtr = ((ExpSpawnState *)instanceData)->channelPtr;
+
+    return Tcl_GetChannelHandle(channelPtr, direction, handlePtr);
+}
+
+/*
+ *----------------------------------------------------------------------
+ *
+ * ExpSpawnBlock --
+ *
+ *	Generic routine to set I/O to blocking or non-blocking.
+ *
+ * Results:
+ *	TCL_OK or TCL_ERROR.
+ *    
+ * Side Effects:
+ *	None.
+ *
+ *----------------------------------------------------------------------
+ */
+
+static int
+ExpSpawnBlock(instanceData, mode)
+    ClientData instanceData;
+    int mode;			/* (in) Block or not */
+{
+    Tcl_Channel channelPtr = ((ExpSpawnState *)instanceData)->channelPtr;
+
+    return (Tcl_GetChannelType(channelPtr)->blockModeProc)
+	(Tcl_GetChannelInstanceData(channelPtr), mode);
 }

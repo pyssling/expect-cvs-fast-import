@@ -361,6 +361,9 @@ main(argc, argv)
     }
 
     bRet = PipeRespondToMaster(useSocket, hMaster, debugInfo.result, debugInfo.globalPid);
+
+    DebugBreak();
+
     if (bRet == FALSE) {
 	ExitProcess(255);
     }
@@ -750,6 +753,8 @@ ExpReadMaster(int useSocket, HANDLE hFile, void *buf, DWORD n,
     DWORD flags;
 
     *pError = 0;
+    //ResetEvent(over->hEvent);
+
     if (! useSocket) {
 	bRet = ReadFile(hFile, buf, n, pCount, over);
 	if (!bRet) {
@@ -771,17 +776,17 @@ ExpReadMaster(int useSocket, HANDLE hFile, void *buf, DWORD n,
 	    hnd[0] = hShutdown;
 	    hnd[1] = over->hEvent;
 	    bRet = WaitForMultipleObjects(2, hnd, FALSE, INFINITE);
-	    if( bRet == WAIT_OBJECT_0 )
+	    if( bRet != WAIT_OBJECT_0 + 1 )
 	    {
 		/*
-		 * We have been instructed to shut down.
+		 * We have been instructed to shut down or some other error.
 		 */
 		*pCount = 0;
 		bRet = TRUE;
 	    }
 	    else
 	    {
-		bRet = GetOverlappedResult(hFile, over, pCount, TRUE);
+		bRet = GetOverlappedResult(hFile, over, pCount, FALSE);
 		if (bRet == FALSE) {
 		    dwResult = GetLastError();
 		}
@@ -1417,3 +1422,4 @@ SetArgv(char *cmdLine, int *argcPtr, char ***argvPtr)
     *argcPtr = argc;
     *argvPtr = argv;
 }
+

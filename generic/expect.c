@@ -31,6 +31,9 @@
 #include "tclInt.h"
 #include "tclPort.h"
 #include "tclRegexp.h"
+
+#define BUILD_expect
+
 #include "exp_rename.h"
 #include "exp_prog.h"
 #include "exp_command.h"
@@ -81,7 +84,7 @@ struct ecase {	/* case for expect command */
 #define CASE_NORM	1
 #define CASE_LOWER	2
     int Case;	/* convert case before doing match? */
-    regexp *re;	/* if this is 0, then pattern match via glob */
+    Tcl_RegExp *re;	/* if this is 0, then pattern match via glob */
 };
 
 /* descriptions of the pattern types, used for debugging */
@@ -304,22 +307,23 @@ save_str(lhs,rhs,nosave)
  *----------------------------------------------------------------------
  */
 int 
-exp_one_arg_braced(p)
-    char *p;
+exp_one_arg_braced(objPtr)	/* INTL */
+    Tcl_Obj *objPtr;
 {
-    int seen_nl = FALSE;
+	int seen_nl = FALSE;
+	char *p = Tcl_GetString(objPtr);
 
-    for (;*p;p++) {
-	if (*p == '\n') {
-	    seen_nl = TRUE;
-	    continue;
-	}
+	for (;*p;p++) {
+		if (*p == '\n') {
+			seen_nl = TRUE;
+			continue;
+		}
 
-	if (!isspace(*p)) {
-	    return(seen_nl);
+		if (!isspace(*p)) { /* INTL: ISO space */
+			return(seen_nl);
+		}
 	}
-    }
-    return FALSE;
+	return FALSE;
 }
 
 /*
@@ -338,41 +342,110 @@ exp_one_arg_braced(p)
  */
 
 /*ARGSUSED*/
+/* called to execute a command of only one argument - a hack to commands */
+/* to be called with all args surrounded by an outer set of braces */
+/* returns TCL_whatever */
+/*ARGSUSED*/
 int
-exp_eval_with_one_arg(clientData,interp,argv)
+exp_eval_with_one_arg(clientData,interp,objv) /* INTL */
     ClientData clientData;
     Tcl_Interp *interp;
-    char **argv;
+    Tcl_Obj *CONST objv[];		/* Argument objects. */
 {
-    char *buf;
+#define NUM_STATIC_OBJS 20
+    Tcl_Obj *staticObjArray[NUM_STATIC_OBJS];
+    int maxobjs = NUM_STATIC_OBJS;
+    Tcl_Token *tokenPtr;
+    char *p, *next;
     int rc;
-    char *a;
-
-    /* + 11 is for " -nobrace " and null at end */
-    buf = ckalloc(strlen(argv[0]) + strlen(argv[1]) + 11);
-    /* recreate statement (with -nobrace to prevent recursion) */
-    sprintf(buf,"%s -nobrace %s",argv[0],argv[1]);
+    Tcl_Obj **objs = staticObjArray;
+    int objc, bytesLeft, numWords, i;
+    Tcl_Parse parse;
 
     /*
-     * replace top-level newlines with blanks
+     * Prepend the command name and the -nobrace switch so we can
+     * reinvoke without recursing.
+     */
+    objc = 2;
+    objs[0] = objv[0];
+    objs[1] = Tcl_NewStringObj("-nobrace", -1);
+    Tcl_IncrRefCount(objs[0]);
+    Tcl_IncrRefCount(objs[1]);
+
+    p = Tcl_GetStringFromObj(objv[1], &bytesLeft);
+
+    /*
+     * Treat the pattern/action block like a series of Tcl commands.
+     * For each command, parse the command words, perform substititions
+     * on each word, and add the words to an array of values.  We don't
+     * actually evaluate the individual commands, just the substitutions.
      */
 
-    /* Should only be necessary to run over argv[1] and then sprintf */
-    /* that into the buffer, but the ICEM guys insist that writing */
-    /* back over the original arguments makes their Tcl compiler very */
-    /* unhappy. */
-    for (a=buf;*a;) {
-	for (;isspace(*a);a++) {
-	    if (*a == '\n') *a = ' ';
+    do {
+	if (Tcl_ParseCommand(interp, p, bytesLeft, 0, &parse)
+	        != TCL_OK) {
+	    rc = TCL_ERROR;
+	    goto done;
 	}
-	a = TclWordEnd(a,a+strlen(a),0,(int *)0)+1;
+	numWords = parse.numWords;
+ 	if (numWords > 0) {
+	    /*
+	     * Generate an array of objects for the words of the command.
+	     */
+    
+	    if (objc + numWords > maxobjs) {
+		Tcl_Obj ** newobjs;
+		maxobjs = (objc + numWords) * 2;
+		newobjs = (Tcl_Obj **)ckalloc(maxobjs * sizeof (Tcl_Obj *));
+		memcpy(newobjs, objs, objc*sizeof(Tcl_Obj *));
+		if (objs != staticObjArray) {
+		    ckfree((char*)objs);
+		}
+		objs = newobjs;   
+	    }
+
+	    /*
+	     * For each word, perform substitutions then store the
+	     * result in the objs array.
+	     */
+	    
+	    for (tokenPtr = parse.tokenPtr; numWords > 0;
+		 numWords--, tokenPtr += (tokenPtr->numComponents + 1)) {
+		objs[objc] = Tcl_EvalTokens(interp, tokenPtr+1,
+			tokenPtr->numComponents);
+		if (objs[objc] == NULL) {
+		    rc = TCL_ERROR;
+		    goto done;
+		}
+		objc++;
+	    }
+	}
+
+	/*
+	 * Advance to the next command in the script.
+	 */
+	next = parse.commandStart + parse.commandSize;
+	bytesLeft -= next - p;
+	p = next;
+	Tcl_FreeParse(&parse);
+    } while (bytesLeft > 0);
+
+    /*
+     * Now evaluate the entire command with no further substitutions.
+     */
+
+    rc = Tcl_EvalObjv(interp, objc, objs, 0);
+ done:
+    for (i = 0; i < objc; i++) {
+	Tcl_DecrRefCount(objs[i]);
     }
-
-    rc = Tcl_Eval(interp,buf);
-
-    ckfree(buf);
+    if (objs != staticObjArray) {
+	ckfree((char *) objs);
+    }
     return(rc);
+#undef NUM_STATIC_OBJS
 }
+
 
 static void
 ecase_clear(ec)
@@ -435,21 +508,17 @@ ecase_new()
  */
 
 static int
-parse_expect_args(interp,eg,default_spawn_id,argc,argv,argv0)
+parse_expect_args(interp,eg,default_spawn_id,objc,objv)
     Tcl_Interp *interp;
     struct exp_cmd_descriptor *eg;
     struct exp_f *default_spawn_id; /* suggested master if called as
 				     * expect_user or _tty */
-    int argc;
-    char **argv;
-    char *argv0;
+    int objc;
+    Tcl_Obj *CONST objv[];		/* Argument objects. */
 {
     int i;
-    char *arg;
+    char *string;
     struct ecase ec;		/* temporary to collect args */
-
-    argv++;
-    argc--;
 
     eg->timeout_specified_by_flag = FALSE;
 
@@ -459,135 +528,201 @@ parse_expect_args(interp,eg,default_spawn_id,argc,argv,argv0)
     /* cases.  This will often be too large (i.e., if there are flags) */
     /* but won't affect anything. */
 
-    eg->ecd.cases = (struct ecase **)
-	ckalloc(sizeof(struct ecase *) * (1+(argc/2)));
+    eg->ecd.cases = (struct ecase **)ckalloc(sizeof(struct ecase *) * (1+(objc/2)));
 
     eg->ecd.count = 0;
 
-    for (i = 0;i<argc;i++) {
-	arg = argv[i];
-	
-	if (exp_flageq("timeout",arg,7)) {
-	    ec.use = PAT_TIMEOUT;
-	} else if (exp_flageq("eof",arg,3)) {
-	    ec.use = PAT_EOF;
-	} else if (exp_flageq("full_buffer",arg,11)) {
-	    ec.use = PAT_FULLBUFFER;
-	} else if (exp_flageq("default",arg,7)) {
-	    ec.use = PAT_DEFAULT;
-	} else if (exp_flageq("null",arg,4)) {
-	    ec.use = PAT_NULL;
-	} else if (arg[0] == '-') {
-	    arg++;
-	    if (exp_flageq1('-',arg) /* "--" is deprecated */
-		|| exp_flageq("glob",arg,2)) {
+    for (i = 1;i<objc;i++) {
+	int index;
+	string = Tcl_GetString(objv[i]);
+	if (string[0] == '-') {
+	    static char *flags[] = {
+		"-glob", "-regexp", "-exact", "-notransfer", "-nocase",
+		"-i", "-indices", "-iread", "-timestamp", "-timeout",
+		"-nobrace", "--", (char *)0
+	    };
+	    enum flags {
+		EXP_ARG_GLOB, EXP_ARG_REGEXP, EXP_ARG_EXACT,
+		EXP_ARG_NOTRANSFER, EXP_ARG_NOCASE, EXP_ARG_SPAWN_ID,
+		EXP_ARG_INDICES, EXP_ARG_IREAD, EXP_ARG_TIMESTAMP,
+		EXP_ARG_DASH_TIMEOUT, EXP_ARG_NOBRACE, EXP_ARG_DASH
+	    };
+
+	    /*
+	     * Allow abbreviations of switches and report an error if we
+	     * get an invalid switch.
+	     */
+
+	    if (Tcl_GetIndexFromObj(interp, objv[i], flags, "flag", 0,
+		    &index) != TCL_OK) {
+		return TCL_ERROR;
+	    }
+	    switch ((enum flags) index) {
+	    case EXP_ARG_GLOB:
+	    case EXP_ARG_DASH:
 		i++;
 		/* assignment here is not actually necessary */
 		/* since cases are initialized this way above */
 		/* ec.use = PAT_GLOB; */
-	    } else if (exp_flageq("regexp",arg,2)) {
+		if (i >= objc) {
+		    Tcl_WrongNumArgs(interp, 1, objv,"-glob pattern");
+		    return TCL_ERROR;
+		}
+		goto pattern;
+	    case EXP_ARG_REGEXP:
 		i++;
+		if (i >= objc) {
+		    Tcl_WrongNumArgs(interp, 1, objv,"-regexp regexp");
+		    return TCL_ERROR;
+		}
 		ec.use = PAT_RE;
-		TclRegError((char *)0);
-		if (!(ec.re = TclRegComp(argv[i]))) {
-		    exp_error(interp,"bad regular expression: %s",
-			      TclGetRegError());
-		    goto error;
-		}
-	    } else if (exp_flageq("exact",arg,2)) {
-		i++;
-		ec.use = PAT_EXACT;
-	    } else if (exp_flageq("notransfer",arg,1)) {
-		ec.transfer = 0;
-		continue;
-	    } else if (exp_flageq("nocase",arg,3)) {
-		ec.Case = CASE_LOWER;
-		continue;
-	    } else if (exp_flageq1('i',arg)) {
-		i++;
-		if (i>=argc) {
-		    exp_error(interp,"-i requires following spawn_id");
-		    goto error;
-		}
 
-		ec.i_list = exp_new_i_complex(interp,argv[i],
-					      eg->duration,exp_indirect_update2,
-					      argv0);
-		if (ec.i_list == NULL) {
+		/*
+		 * Try compiling the expression so we can report
+		 * any errors now rather then when we first try to
+		 * use it.
+		 */
+
+		if (!(Tcl_GetRegExpFromObj(interp, objv[i],
+					   TCL_REG_ADVANCED))) {
 		    goto error;
 		}
+		goto pattern;
+	    case EXP_ARG_EXACT:
+		i++;
+		if (i >= objc) {
+		    Tcl_WrongNumArgs(interp, 1, objv, "-exact string");
+		    return TCL_ERROR;
+		}
+		ec.use = PAT_EXACT;
+		goto pattern;
+	    case EXP_ARG_NOTRANSFER:
+		ec.transfer = 0;
+		break;
+	    case EXP_ARG_NOCASE:
+		ec.Case = CASE_LOWER;
+		break;
+	    case EXP_ARG_SPAWN_ID:
+		i++;
+		if (i>=objc) {
+		    Tcl_WrongNumArgs(interp, 1, objv, "-i spawn_id");
+		    goto error;
+		}
+		ec.i_list = exp_new_i_complex(interp,
+				      Tcl_GetString(objv[i]),
+				      eg->duration, exp_indirect_update2,Tcl_GetString(objv[0]));
 		ec.i_list->cmdtype = eg->cmdtype;
 
 		/* link new i_list to head of list */
 		ec.i_list->next = eg->i_list;
 		eg->i_list = ec.i_list;
-
-		continue;
-	    } else if (exp_flageq("indices",arg,2)) {
+		break;
+	    case EXP_ARG_INDICES:
 		ec.indices = TRUE;
-		continue;
-	    } else if (exp_flageq("iwrite",arg,2)) {
-		/*				ec.iwrite = TRUE;*/
-		continue;
-	    } else if (exp_flageq("iread",arg,2)) {
+		break;
+	    case EXP_ARG_IREAD:
 		ec.iread = TRUE;
-		continue;
-	    } else if (exp_flageq("timestamp",arg,2)) {
+		break;
+	    case EXP_ARG_TIMESTAMP:
 		ec.timestamp = TRUE;
-		continue;
-	    } else if (exp_flageq("timeout",arg,2)) {
+		break;
+	    case EXP_ARG_DASH_TIMEOUT:
 		i++;
-		if (i>=argc) {
-		    exp_error(interp,"-timeout requires following # of seconds");
+		if (i>=objc) {
+		    Tcl_WrongNumArgs(interp, 1, objv, "-timeout seconds");
 		    goto error;
 		}
-
-		eg->timeout = atoi(argv[i]);
+		if (Tcl_GetIntFromObj(interp, objv[i],
+				      &eg->timeout) != TCL_OK) {
+		    goto error;
+		}
 		eg->timeout_specified_by_flag = TRUE;
-		continue;
-	    } else if (exp_flageq("nobrace",arg,7)) {
+		break;
+	    case EXP_ARG_NOBRACE:
 		/* nobrace does nothing but take up space */
 		/* on the command line which prevents */
 		/* us from re-expanding any command lines */
 		/* of one argument that looks like it should */
 		/* be expanded to multiple arguments. */
-		continue;
-	    } else {
-		exp_error(interp,"usage: unrecognized flag <%s>",arg);
-		goto error;
+		break;
 	    }
-	}
+	    /*
+	     * Keep processing arguments, we aren't ready for the
+	     * pattern yet.
+	     */
+	    continue;
+	} else {
+	    /*
+	     * We have a pattern or keyword.
+	     */
 
-	/* if no -i, use previous one */
-	if (!ec.i_list) {
-	    /* if no -i flag has occurred yet, use default */
-	    if (!eg->i_list) {
-		if (default_spawn_id != NULL) {
-		    eg->i_list = exp_new_i_simple(default_spawn_id,eg->duration);
-		} else {
-		    /* it'll be checked later, if used */
-		    default_spawn_id = exp_update_master(interp,0,0);
-		    eg->i_list = exp_new_i_simple(default_spawn_id,eg->duration);
+	    static char *keywords[] = {
+		"timeout", "eof", "full_buffer", "default", "null",
+		(char *)NULL
+	    };
+	    enum keywords {
+		EXP_ARG_TIMEOUT, EXP_ARG_EOF, EXP_ARG_FULL_BUFFER,
+		EXP_ARG_DEFAULT, EXP_ARG_NULL
+	    };
+
+	    /*
+	     * Match keywords exactly, otherwise they are patterns.
+	     */
+
+	    if (Tcl_GetIndexFromObj(interp, objv[i], keywords, "keyword",
+		    1 /* exact */, &index) != TCL_OK) {
+		Tcl_ResetResult(interp);
+		goto pattern;
+	    }
+	    switch ((enum keywords) index) {
+	    case EXP_ARG_TIMEOUT:
+		ec.use = PAT_TIMEOUT;
+		break;
+	    case EXP_ARG_EOF:
+		ec.use = PAT_EOF;
+		break;
+	    case EXP_ARG_FULL_BUFFER:
+		ec.use = PAT_FULLBUFFER;
+		break;
+	    case EXP_ARG_DEFAULT:
+		ec.use = PAT_DEFAULT;
+		break;
+	    case EXP_ARG_NULL:
+		ec.use = PAT_NULL;
+		break;
+	    }
+pattern:
+	    /* if no -i, use previous one */
+	    if (!ec.i_list) {
+		/* if no -i flag has occurred yet, use default */
+		if (!eg->i_list) {
+		    if (default_spawn_id != NULL) {
+			eg->i_list = exp_new_i_simple(default_spawn_id,eg->duration);
+		    } else {
+			/* it'll be checked later, if used */
+			default_spawn_id = exp_update_master(interp,0,0);
+			eg->i_list = exp_new_i_simple(default_spawn_id,eg->duration);
+		    }
 		}
+		ec.i_list = eg->i_list;
 	    }
-	    ec.i_list = eg->i_list;
+	    ec.i_list->ecount++;
+
+	    /* save original pattern spec */
+	    /* keywords such as "-timeout" are saved as patterns here */
+	    /* useful for debugging but not otherwise used */
+	    save_str(&ec.pat,Tcl_GetString(objv[i]),eg->duration == EXP_TEMPORARY);
+	    save_str(&ec.body,Tcl_GetString(objv[i+1]),eg->duration == EXP_TEMPORARY);
+			    
+	    i++;
+
+	    *(eg->ecd.cases[eg->ecd.count] = ecase_new()) = ec;
+
+	    /* clear out for next set */
+	    ecase_clear(&ec);
+
+	    eg->ecd.count++;
 	}
-	ec.i_list->ecount++;
-
-	/* save original pattern spec */
-	/* keywords such as "-timeout" are saved as patterns here */
-	/* useful for debugging but not otherwise used */
-	save_str(&ec.pat,argv[i],eg->duration == EXP_TEMPORARY);
-	save_str(&ec.body,argv[i+1],eg->duration == EXP_TEMPORARY);
-			
-	i++;
-
-	*(eg->ecd.cases[eg->ecd.count] = ecase_new()) = ec;
-
-	/* clear out for next set */
-	ecase_clear(&ec);
-
-	eg->ecd.count++;
     }
 
     /* if no patterns at all have appeared force the current */
@@ -624,6 +759,7 @@ parse_expect_args(interp,eg,default_spawn_id,argc,argv,argv0)
 	exp_free_i(interp,eg->i_list,exp_indirect_update2);
     return(TCL_ERROR);
 }
+
 
 #define EXP_IS_DEFAULT(x)	((x) == EXP_TIMEOUT || (x) == EXP_EOF)
 
@@ -666,7 +802,8 @@ eval_case_string(interp,e,f,o,last_f,last_case,suffix)
     char *suffix;
 {
     char *buffer;
-    
+    Tcl_RegExpInfo info;
+
     /* if -nocase, use the lowerized buffer */
     buffer = ((e->Case == CASE_NORM)?f->buffer:f->lower);
     
@@ -680,20 +817,21 @@ eval_case_string(interp,e,f,o,last_f,last_case,suffix)
     
     if (e->use == PAT_RE) {
 	debuglog("\"%s\"? ",dprintify(e->pat));
-	TclRegError((char *)0);
-	if (buffer && TclRegExec(e->re,buffer,buffer)) {
+	//TclRegError((char *)0);
+	if (buffer && Tcl_RegExpExec(interp,*e->re,buffer,buffer)) {
 	    o->e = e;
-	    o->match = e->re->endp[0]-buffer;
+	    Tcl_RegExpGetInfo(*e->re, &info);
+	    o->match = Tcl_UtfAtIndex(buffer, info.matches[0].end)-buffer;
 	    o->buffer = buffer;
 	    o->f = f;
 	    debuglog(yes);
 	    return(EXP_MATCH);
 	} else {
 	    debuglog(no);
-	    if (TclGetRegError()) {
-		exp_error(interp,"-re failed: %s",TclGetRegError());
+	    //if (TclGetRegError()) {
+	//	exp_error(interp,"-re failed: %s",TclGetRegError());
 		return(EXP_TCLERROR);
-	    }
+	  //  }
 	}
     } else if (e->use == PAT_GLOB) {
 	int match;		/* # of chars that matched */
@@ -1150,40 +1288,40 @@ expect_info(interp,ecmd,argc,argv)
 /* Exp_ExpectGlobalCmd is invoked to process expect_before/after */
 /*ARGSUSED*/
 int
-Exp_ExpectGlobalCmd(clientData, interp, argc, argv)
+Exp_ExpectGlobalCmd(clientData, interp, objc, objv)
     ClientData clientData;
     Tcl_Interp *interp;
-    int argc;
-    char **argv;
+    int objc;
+    Tcl_Obj *CONST objv[];
 {
     int result = TCL_OK;
     struct exp_i *exp_i, **eip;
     struct exp_fs_list *fsl;	/* temp for interating over fs_list */
     struct exp_cmd_descriptor eg;
     int count;
-    char *argv0;
+    //char *argv0;
 
     struct exp_cmd_descriptor *ecmd = (struct exp_cmd_descriptor *) clientData;
 
-    if ((argc == 2) && exp_one_arg_braced(argv[1])) {
-	return(exp_eval_with_one_arg(clientData,interp,argv));
-    } else if ((argc == 3) && streq(argv[1],"-brace")) {
-	char *new_argv[2];
-	new_argv[0] = argv[0];
-	new_argv[1] = argv[2];
-	return(exp_eval_with_one_arg(clientData,interp,new_argv));
+    if ((objc == 2) && exp_one_arg_braced(objv[1])) {
+	return(exp_eval_with_one_arg(clientData,interp,objv));
+    } else if ((objc == 3) && streq(Tcl_GetString(objv[1]),"-brace")) {
+	Tcl_Obj *new_objv[2];
+	new_objv[0] = objv[0];
+	new_objv[1] = objv[2];
+	return(exp_eval_with_one_arg(clientData,interp,new_objv));
     }
 
-    if (argc > 1 && (argv[1][0] == '-')) {
-	if (exp_flageq("info",&argv[1][1],4)) {
-	    return(expect_info(interp,ecmd,argc-2,argv+2));
+    if (objc > 1 && (Tcl_GetString(objv[1])[0] == '-')) {
+	if (exp_flageq("info",Tcl_GetString(objv[1])+1,4)) {
+	    return(expect_info(interp,ecmd,objc,objv));
 	} 
     }
 
-    argv0 = argv[0];
     exp_cmd_init(&eg,ecmd->cmdtype,EXP_PERMANENT);
 
-    if (TCL_ERROR == parse_expect_args(interp,&eg,NULL,argc,argv,argv0)) {
+    if (TCL_ERROR == parse_expect_args(interp,&eg,EXP_SPAWN_ID_BAD,
+	    objc,objv)) {
 	return TCL_ERROR;
     }
 
@@ -1202,7 +1340,7 @@ Exp_ExpectGlobalCmd(clientData, interp, argc, argv)
 
 	    /* validate all input descriptors */
 	    if (f != exp_f_any) {
-		if (!exp_fcheck(interp,f,1,1,argv0)) {
+		if (!exp_fcheck(interp,f,1,1,Tcl_GetString(objv[0]))) {
 		    result = TCL_ERROR;
 		    goto cleanup;
 		}
@@ -1618,6 +1756,7 @@ exp_tcl2_returnvalue(x)
     case EXP_CONTINUE_TIMER:	return EXP_TCLCNTTIMER;
     case EXP_TCL_RETURN:		return EXP_TCLRETTCL;
     }
+    return -1;
 }
 
 /* map from EXP_ style return value to TCL_ style return values */
@@ -1634,6 +1773,7 @@ exp_2tcl_returnvalue(x)
     case EXP_TCLCNTTIMER:		return EXP_CONTINUE_TIMER;
     case EXP_TCLRETTCL:		return EXP_TCL_RETURN;
     }
+    return -1;
 }
 
 /*
@@ -1776,9 +1916,9 @@ exp_cmdtype_printable(cmdtype)
     case EXP_CMD_BEFORE: return("expect_before");
     case EXP_CMD_AFTER: return("expect_after");
     }
-#ifdef LINT
+//#ifdef LINT
     return("unknown expect command");
-#endif
+//#endif
 }
 
 /*
@@ -2068,40 +2208,34 @@ exp_background_filehandler(clientData,mask)
 	 char name[20], value[20];
 
 	 if (e && e->use == PAT_RE) {
-	     regexp *re = e->re;
+	     Tcl_RegExpInfo info;
+	     Tcl_RegExpGetInfo(*e->re, &info);
 
-	     for (i=0;i<NSUBEXP;i++) {
-		 int offset;
-
-		 if (re->startp[i] == 0) continue;
+	     for (i=0;i<info.nsubs;i++) {
+		 int start, end;
+		 Tcl_Obj *val;
+		 
+		 start = info.matches[i].start;
+		 end = info.matches[i].end-1;
+		 if (start == -1) continue;
 
 		 if (e->indices) {
-		     /* start index */
-		     sprintf(name,"%d,start",i);
-		     offset = re->startp[i]-buffer;
-		     sprintf(value,"%d",offset);
-		     out(name,value);
+		    /* start index */
+		    sprintf(name,"%d,start",i);
+		    sprintf(value,"%d",start);
+		    out(name,value);
 
-		     /* end index */
-		     sprintf(name,"%d,end",i);
-		     sprintf(value,"%d",
-			     re->endp[i]-buffer-1);
-		     out(name,value);
+		    /* end index */
+		    sprintf(name,"%d,end",i);
+		    sprintf(value,"%d",end);
+		    out(name,value);
 		 }
 
 		 /* string itself */
 		 sprintf(name,"%d,string",i);
-
-		 /* temporarily null-terminate in */
-		 /* middle */
-		 match_char = *re->endp[i];
-		 *re->endp[i] = 0;
-		 out(name,re->startp[i]);
-		 *re->endp[i] = match_char;
+		 val = Tcl_GetRange(Tcl_NewStringObj(buffer,-1), start, end);
+		 out(name,Tcl_GetString(val));
 	     }
-	     /* redefine length of string that */
-	     /* matched for later extraction */
-	     match = re->endp[0]-buffer;
 	 } else if (e && (e->use == PAT_GLOB || e->use == PAT_EXACT)) {
 	     char *str;
 
@@ -2230,11 +2364,11 @@ exp_background_filehandler(clientData,mask)
 
 /*ARGSUSED*/
 int
-Exp_ExpectCmd(clientData, interp, argc, argv)
+Exp_ExpectCmd(clientData, interp, objc, objv)
     ClientData clientData;
     Tcl_Interp *interp;
-    int argc;
-    char **argv;
+    int objc;
+    Tcl_Obj *CONST objv[];	/* Argument objects. */
 {
     int cc;			/* number of chars returned in a single read
 				 * or negative EXP_whatever */
@@ -2269,18 +2403,16 @@ Exp_ExpectCmd(clientData, interp, argc, argv)
     int timeout;		/* seconds */
     int remtime;		/* remaining time in timeout */
     int reset_timer;		/* should timer be reset after continue? */
-    char *argv0;		/* Command name */
 
-    if ((argc == 2) && exp_one_arg_braced(argv[1])) {
-	return(exp_eval_with_one_arg(clientData,interp,argv));
-    } else if ((argc == 3) && streq(argv[1],"-brace")) {
-	char *new_argv[2];
-	new_argv[0] = argv[0];
-	new_argv[1] = argv[2];
-	return(exp_eval_with_one_arg(clientData,interp,new_argv));
+    if ((objc == 2) && exp_one_arg_braced(objv[1])) {
+	return(exp_eval_with_one_arg(clientData,interp,objv));
+    } else if ((objc == 3) && streq(Tcl_GetString(objv[1]),"-brace")) {
+	Tcl_Obj *new_objv[2];
+	new_objv[0] = objv[0];
+	new_objv[1] = objv[2];
+	return(exp_eval_with_one_arg(clientData,interp,new_objv));
     }
 
-    argv0 = argv[0];
     time(&start_time_total);
     start_time = start_time_total;
     reset_timer = TRUE;
@@ -2292,14 +2424,14 @@ Exp_ExpectCmd(clientData, interp, argc, argv)
     fs_list = NULL;
     masters = NULL;
     if (clientData) {
-	f = exp_chan2f(interp,(char *) clientData,1,0,argv0);
+	f = exp_chan2f(interp,(char *) clientData,1,0,Tcl_GetString(objv[0]));
 	if (f == NULL) {
 	    return TCL_ERROR;
 	}
     } else {
 	f = NULL;
     }
-    if (TCL_ERROR == parse_expect_args(interp,&eg,f,argc,argv,argv0))
+    if (TCL_ERROR == parse_expect_args(interp,&eg,f,objc,objv,Tcl_GetString(objv[0])))
 	return TCL_ERROR;
 
  restart_with_update:
@@ -2321,7 +2453,7 @@ Exp_ExpectCmd(clientData, interp, argc, argv)
     for (fsl=fs_list;fsl;fsl=fsl->next) {
 	mcount++;
 	/* validate all input descriptors */
-	if (!exp_fcheck(interp,fsl->f,1,1,argv0)) {
+	if (!exp_fcheck(interp,fsl->f,1,1,Tcl_GetString(objv[0]))) {
 	    result = TCL_ERROR;
 	    goto cleanup;
 	}
@@ -2477,40 +2609,34 @@ Exp_ExpectCmd(clientData, interp, argc, argv)
 	    char name[20], value[20];
 
 	    if (e && e->use == PAT_RE) {
-		regexp *re = e->re;
+	     Tcl_RegExpInfo info;
+	     Tcl_RegExpGetInfo(*e->re, &info);
 
-		for (i=0;i<NSUBEXP;i++) {
-		    int offset;
+	     for (i=0;i<info.nsubs;i++) {
+		 int start, end;
+		 Tcl_Obj *val;
+		 
+		 start = info.matches[i].start;
+		 end = info.matches[i].end-1;
+		 if (start == -1) continue;
 
-		    if (re->startp[i] == 0) continue;
+		 if (e->indices) {
+		    /* start index */
+		    sprintf(name,"%d,start",i);
+		    sprintf(value,"%d",start);
+		    out(name,value);
 
-		    if (e->indices) {
-			/* start index */
-			sprintf(name,"%d,start",i);
-			offset = re->startp[i]-buffer;
-			sprintf(value,"%d",offset);
-			out(name,value);
+		    /* end index */
+		    sprintf(name,"%d,end",i);
+		    sprintf(value,"%d",end);
+		    out(name,value);
+		 }
 
-			/* end index */
-			sprintf(name,"%d,end",i);
-			sprintf(value,"%d",
-				re->endp[i]-buffer-1);
-			out(name,value);
-		    }
-
-		    /* string itself */
-		    sprintf(name,"%d,string",i);
-
-		    /* temporarily null-terminate in */
-		    /* middle */
-		    match_char = *re->endp[i];
-		    *re->endp[i] = 0;
-		    out(name,re->startp[i]);
-		    *re->endp[i] = match_char;
-		}
-		/* redefine length of string that */
-		/* matched for later extraction */
-		match = re->endp[0]-buffer;
+		 /* string itself */
+		 sprintf(name,"%d,string",i);
+		 val = Tcl_GetRange(Tcl_NewStringObj(buffer,-1), start, end);
+		 out(name,Tcl_GetString(val));
+	     }
 	    } else if (e && (e->use == PAT_GLOB || e->use == PAT_EXACT)) {
 		char *str;
 
@@ -3033,16 +3159,16 @@ cmdX(clientData, interp, argc, argv)
 
 static struct exp_cmd_data
 cmd_data[]  = {
-{"expect",	Exp_ExpectCmd,	(ClientData) NULL,	0},
-{"expect_after",Exp_ExpectGlobalCmd,(ClientData)&exp_cmds[EXP_CMD_AFTER],0},
-{"expect_before",Exp_ExpectGlobalCmd,(ClientData)&exp_cmds[EXP_CMD_BEFORE],0},
-{"expect_user",	Exp_ExpectCmd,	(ClientData)"exp_user",	0},
-{"expect_tty",	Exp_ExpectCmd,	(ClientData)"exp_tty",	0},
-{"expect_background",Exp_ExpectGlobalCmd,(ClientData)&exp_cmds[EXP_CMD_BG],0},
-{"match_max",	Exp_MatchMaxCmd,	0,	0},
-{"remove_nulls",Exp_RemoveNullsCmd,	0,	0},
-{"parity",	Exp_ParityCmd,		0,	0},
-{"timestamp",	Exp_TimestampCmd,	0,	0},
+{"expect",	Exp_ExpectCmd,	0, (ClientData) NULL,	0},
+{"expect_after",Exp_ExpectGlobalCmd, 0, (ClientData)&exp_cmds[EXP_CMD_AFTER],0},
+{"expect_before",Exp_ExpectGlobalCmd, 0, (ClientData)&exp_cmds[EXP_CMD_BEFORE],0},
+{"expect_user",	Exp_ExpectCmd,	0, (ClientData)"exp_user",	0},
+{"expect_tty",	Exp_ExpectCmd,	0, (ClientData)"exp_tty",	0},
+{"expect_background",Exp_ExpectGlobalCmd, 0, (ClientData)&exp_cmds[EXP_CMD_BG],0},
+{"match_max",	0, Exp_MatchMaxCmd,	0,	0},
+{"remove_nulls",0, Exp_RemoveNullsCmd,	0,	0},
+{"parity",	0, Exp_ParityCmd,		0,	0},
+{"timestamp",	0, Exp_TimestampCmd,	0,	0},
 {0}};
 
 /*
