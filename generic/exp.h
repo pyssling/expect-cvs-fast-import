@@ -11,7 +11,7 @@
  * 
  * Modified in October, 2001 by David Gravereaux for windows.
  *
- * RCS: @(#) $Id: exp.h,v 1.1.2.2 2001/10/28 01:46:31 davygrvy Exp $
+ * RCS: @(#) $Id: exp.h,v 1.1.2.3 2001/10/28 08:56:51 davygrvy Exp $
  */
 
 #ifndef _EXP
@@ -28,7 +28,7 @@
 #define EXP_MAJOR_VERSION   6
 #define EXP_MINOR_VERSION   0
 #define EXP_RELEASE_LEVEL   TCL_ALPHA_RELEASE
-#define EXP_RELEASE_SERIAL  1
+#define EXP_RELEASE_SERIAL  0
 
 #define EXP_VERSION	   STRINGIFY(JOIN(EXP_MAJOR_VERSION,JOIN(.,EXP_MINOR_VERSION)))
 
@@ -112,6 +112,9 @@
 #   endif
 #endif
 
+#define SCRIPTDIR	"example/"
+#define EXECSCRIPTDIR	"example/"
+
 
 /* common return codes for Expect functions */
 /* The library actually only uses TIMEOUT and EOF */
@@ -154,26 +157,10 @@
 					/* inter_return into */
 					/* TCL_RETURN*/
 
-
-/* Protos for exp_win.c, not yet move to the Stubs table. */
-TCL_EXTERN(int)	    exp_window_size_set	    _ANSI_ARGS_((int fd));
-TCL_EXTERN(int)	    exp_window_size_get	    _ANSI_ARGS_((int fd));
-TCL_EXTERN(void)    exp_win_rows_set	    _ANSI_ARGS_((char *rows));
-TCL_EXTERN(void)    exp_win_rows_get	    _ANSI_ARGS_((char *rows));
-TCL_EXTERN(void)    exp_win_columns_set	    _ANSI_ARGS_((char *columns));
-TCL_EXTERN(void)    exp_win_columns_get	    _ANSI_ARGS_((char *columns));
-TCL_EXTERN(int)	    exp_win2_size_get	    _ANSI_ARGS_((int fd));
-TCL_EXTERN(int)	    exp_win2_size_set	    _ANSI_ARGS_((int fd));
-TCL_EXTERN(void)    exp_win2_rows_set	    _ANSI_ARGS_((int fd, char *rows));
-TCL_EXTERN(void)    exp_win2_rows_get	    _ANSI_ARGS_((int fd, char *rows));
-TCL_EXTERN(void)    exp_win2_columns_set    _ANSI_ARGS_((int fd, char *columns));
-TCL_EXTERN(void)    exp_win2_columns_get    _ANSI_ARGS_((int fd, char *columns));
-
 /* from expect_tcl.h */
-TCL_EXTERN(int)	Expect_Init _ANSI_ARGS_((Tcl_Interp *));	/* for Tcl_AppInit apps */
 TCL_EXTERN(void)	exp_parse_argv _ANSI_ARGS_((Tcl_Interp *,int argc,char **argv));
 TCL_EXTERN(int)	exp_interpreter _ANSI_ARGS_((Tcl_Interp *,Tcl_Obj *));
-TCL_EXTERN(int)	exp_interpret_cmdfile _ANSI_ARGS_((Tcl_Interp *,FILE *));
+TCL_EXTERN(int)	exp_interpret_cmdfile _ANSI_ARGS_((Tcl_Interp *,Tcl_Channel));
 TCL_EXTERN(int)	exp_interpret_cmdfilename _ANSI_ARGS_((Tcl_Interp *,char *));
 TCL_EXTERN(void)	exp_interpret_rcfiles _ANSI_ARGS_((Tcl_Interp *,int my_rc,int sys_rc));
 
@@ -182,7 +169,7 @@ TCL_EXTERN(void)	expCloseOnExec _ANSI_ARGS_((int));
 
 			/* app-specific exit handler */
 //TCL_EXTERN(void)	*exp_app_exit _ANSI_ARGS_((Tcl_Interp *));
-//TCL_EXTERN(void)	exp_exit_handlers _ANSI_ARGS_((ClientData));
+TCL_EXTERN(void)	exp_exit_handlers _ANSI_ARGS_((ClientData));
 TCL_EXTERN(void)	exp_error _ANSI_ARGS_(TCL_VARARGS(Tcl_Interp *,interp));
 TCL_EXTERN(int)		exp_getpidproc _ANSI_ARGS_((void));
 
