@@ -78,7 +78,7 @@ would appreciate credit if this program or parts of it are used.
  * See the file "license.terms" for information on usage and redistribution
  * of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  *
- * RCS: @(#) $Id: exp_clib.c,v 5.30 2002/03/23 04:55:04 libes Exp $
+ * RCS: @(#) $Id: exp_clib.c,v 5.31 2003/05/08 16:54:34 andreas_kupries Exp $
  */
 
 #ifndef _STDLIB
@@ -166,7 +166,7 @@ extern unsigned long	strtoul _ANSI_ARGS_((CONST char *string,
  * *** 2. This in addition to changes to TclRegError makes the   ***
  * ***    code multi-thread safe.                                ***
  *
- * RCS: @(#) $Id: exp_clib.c,v 5.30 2002/03/23 04:55:04 libes Exp $
+ * RCS: @(#) $Id: exp_clib.c,v 5.31 2003/05/08 16:54:34 andreas_kupries Exp $
  */
 
 #if 0
@@ -3009,6 +3009,7 @@ struct exp_case *ecases;
  		 * we should timeout if either
  		 *   1) exp_timeout > remtime <= 0 (normal)
  		 *   2) exp_timeout == 0 and we have polled at least once
+		 * 
 		 */
 		if (((exp_timeout > remtime) && (remtime <= 0)) ||
  		    ((exp_timeout == 0) && polled)) {
