@@ -43,17 +43,17 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "EXPECT_EXPORTS" /YX /FD /c
-# ADD CPP /nologo /MD /W3 /GX /O2 /I "." /I "..\generic" /I "d:\tcl_workspace\tcl_head\generic" /I "d:\tcl_workspace\tcl_head\win" /D "NDEBUG" /D "WIN32" /D TCL_THREADS=1 /D _WIN32_WINNT=0x0400 /YX /FD /c
+# ADD CPP /nologo /MD /W3 /GX /O2 /I "." /I "..\generic" /I "d:\tcl_workspace\tcl_head\generic" /D "NDEBUG" /D "WIN32" /D "BUILD_exp" /D TCL_THREADS=1 /YX /FD /c
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
-# ADD RSC /l 0x409 /d "NDEBUG"
+# ADD RSC /l 0x409 /i "..\generic" /i "d:\tcl_workspace\tcl_head\generic" /d "NDEBUG"
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /dll /machine:I386
-# ADD LINK32 advapi32.lib user32.lib /nologo /dll /machine:I386 /out:"Release/expect52.dll" /libpath:"d:\tcl_workspace\tcl_head\win\Release"
+# ADD LINK32 advapi32.lib user32.lib /nologo /dll /machine:I386 /out:"Release/expect60.dll" /libpath:"d:\tcl_workspace\tcl_head\win\Release"
 
 !ELSEIF  "$(CFG)" == "expect - Win32 Debug"
 
@@ -69,7 +69,7 @@ LINK32=link.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "EXPECT_EXPORTS" /YX /FD /GZ /c
-# ADD CPP /nologo /G5 /MDd /W3 /Gm /GX /ZI /Od /I "..\win" /I "..\generic" /I "d:\tcl_workspace\tcl_head\generic" /I "d:\tcl_workspace\tcl_head\win" /D "_DEBUG" /D "WIN32" /D "BUILD_exp" /D TCL_THREADS=1 /FR /YX /FD /GZ /c
+# ADD CPP /nologo /GB /MDd /W3 /Gm /GX /ZI /Od /I "." /I "..\generic" /I "d:\tcl_workspace\tcl_head\generic" /D "_DEBUG" /D "WIN32" /D "BUILD_exp" /D TCL_THREADS=1 /FR /YX /FD /GZ /c
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
@@ -123,6 +123,29 @@ SOURCE=..\generic\expPlatDecls.h
 SOURCE=..\generic\exp.decls
 
 !IF  "$(CFG)" == "expect - Win32 Release"
+
+# Begin Custom Build - Rebuilding the Stubs table...
+InputDir=\expect_wslive\expect_win32_take2\generic
+InputPath=..\generic\exp.decls
+
+BuildCmds= \
+	c:\progra~1\tcl\bin\tclsh84 d:/tcl_workspace/tcl_head/tools/genStubs.tcl $(InputDir) $(InputPath)
+
+"$(InputDir)\expDecls.h" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+   $(BuildCmds)
+
+"$(InputDir)\expPlatDecls.h" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+   $(BuildCmds)
+
+"$(InputDir)\expIntDecls.h" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+   $(BuildCmds)
+
+"$(InputDir)\expIntPlatDecls.h" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+   $(BuildCmds)
+
+"$(InputDir)\expStubInit.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+   $(BuildCmds)
+# End Custom Build
 
 !ELSEIF  "$(CFG)" == "expect - Win32 Debug"
 
@@ -238,8 +261,6 @@ SOURCE=.\expect.rc
 
 !IF  "$(CFG)" == "expect - Win32 Release"
 
-# PROP Exclude_From_Build 1
-
 !ELSEIF  "$(CFG)" == "expect - Win32 Debug"
 
 # ADD BASE RSC /l 0x409
@@ -275,6 +296,15 @@ SOURCE=.\expWinTty.c
 # Begin Source File
 
 SOURCE=.\MsvcDbgControl.cpp
+
+!IF  "$(CFG)" == "expect - Win32 Release"
+
+# PROP Exclude_From_Build 1
+
+!ELSEIF  "$(CFG)" == "expect - Win32 Debug"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
