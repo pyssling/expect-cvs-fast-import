@@ -1,31 +1,36 @@
-/* exp_trap.c - Expect's trap command
+/* ----------------------------------------------------------------------------
+ * exp_trap.c --
+ *
+ *	Expect's trap command.
+ *
+ * ----------------------------------------------------------------------------
+ *
+ * Written by: Don Libes, libes@cme.nist.gov, NIST, 12/3/90
+ * 
+ * Design and implementation of this program was paid for by U.S. tax
+ * dollars.  Therefore it is public domain.  However, the author and NIST
+ * would appreciate credit if this program or parts of it are used.
+ * 
+ * Copyright (c) 1997 Mitel Corporation
+ *	work by Gordon Chaffee <chaffee@bmrc.berkeley.edu> for the WinNT port.
+ *
+ * Copyright (c) 2001-2002 Telindustrie, LLC
+ *	work by David Gravereaux <davygrvy@pobox.com> for any Win32 OS.
+ *
+ * ----------------------------------------------------------------------------
+ * URLs:    http://expect.nist.gov/
+ *	    http://expect.sf.net/
+ *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
+ * ----------------------------------------------------------------------------
+ * RCS: @(#) $Id: exp.h,v 1.1.4.4 2002/02/10 10:17:04 davygrvy Exp $
+ * ----------------------------------------------------------------------------
+ */
 
-Written by: Don Libes, NIST, 9/1/93
-
-Design and implementation of this program was paid for by U.S. tax
-dollars.  Therefore it is public domain.  However, the author and NIST
-would appreciate credit if this program or parts of it are used.
-
-*/
-
+#include "expInt.h"
 #include <signal.h>
 #if defined(SIGCLD) && !defined(SIGCHLD)
 #define SIGCHLD SIGCLD
 #endif
-/*
-#include "exp_port.h"
-#include "tclInt.h"
-#include "tclPort.h"
-
-#define BUILD_expect
-
-#include "exp_rename.h"
-#include "exp_prog.h"
-#include "exp_command.h"
-#include "exp_log.h"
-*/
-
-#include "expInt.h"
 
 #ifdef TCL_DEBUGGER
 #include "Dbg.h"

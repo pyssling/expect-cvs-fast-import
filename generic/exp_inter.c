@@ -1,34 +1,33 @@
-/* interact (using select) - give user keyboard control
-
-Written by: Don Libes, NIST, 2/6/90
-
-Design and implementation of this program was paid for by U.S. tax
-dollars.  Therefore it is public domain.  However, the author and NIST
-would appreciate credit if this program or parts of it are used.
-
-*/
-
-/*
-#include "exp_port.h"
-#include <stdio.h>
-#include <sys/types.h>
-#include <ctype.h>
-
-#include "tcl.h"
-#include "tclPort.h"
-#include "string.h"
-
-#define BUILD_expect
-
-#include "exp_tty.h"
-#include "exp_rename.h"
-#include "exp_prog.h"
-#include "exp_command.h"
-#include "exp_log.h"
-#include "exp_tstamp.h"	*//* remove when timestamp stuff is gone */
-
-/*#include "tclRegexp.h"
-#include "exp_regexp.h"*/
+/* ----------------------------------------------------------------------------
+ * exp_inter.c --
+ *
+ *	interact (using select) - give user keyboard control.
+ *
+ * Notes:
+ *	Has no working implimentation (yet) on windows.
+ * 
+ * ----------------------------------------------------------------------------
+ *
+ * Written by: Don Libes, libes@cme.nist.gov, NIST, 12/3/90
+ * 
+ * Design and implementation of this program was paid for by U.S. tax
+ * dollars.  Therefore it is public domain.  However, the author and NIST
+ * would appreciate credit if this program or parts of it are used.
+ * 
+ * Copyright (c) 1997 Mitel Corporation
+ *	work by Gordon Chaffee <chaffee@bmrc.berkeley.edu> for the WinNT port.
+ *
+ * Copyright (c) 2001-2002 Telindustrie, LLC
+ *	work by David Gravereaux <davygrvy@pobox.com> for any Win32 OS.
+ *
+ * ----------------------------------------------------------------------------
+ * URLs:    http://expect.nist.gov/
+ *	    http://expect.sf.net/
+ *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
+ * ----------------------------------------------------------------------------
+ * RCS: @(#) $Id: exp.h,v 1.1.4.4 2002/02/10 10:17:04 davygrvy Exp $
+ * ----------------------------------------------------------------------------
+ */
 
 #include "expInt.h"
 

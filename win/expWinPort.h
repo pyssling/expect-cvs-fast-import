@@ -15,7 +15,7 @@
  * Copyright (c) 1997 Mitel Corporation
  *	work by Gordon Chaffee <chaffee@bmrc.berkeley.edu> for the WinNT port.
  *
- * Copyright (c) 2001 Telindustrie, LLC
+ * Copyright (c) 2001-2002 Telindustrie, LLC
  *	work by David Gravereaux <davygrvy@pobox.com> for any Win32 OS.
  *
  * ----------------------------------------------------------------------------
@@ -23,7 +23,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinPort.h,v 1.1.2.4 2001/11/07 10:04:57 davygrvy Exp $
+ * RCS: @(#) $Id: expWinPort.h,v 1.1.2.1.2.2 2002/02/10 02:59:46 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 

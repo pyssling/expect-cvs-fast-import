@@ -1,26 +1,42 @@
-/* exp_event.c - event interface for Expect
-
-Written by: Don Libes, NIST, 2/6/90
-
-Design and implementation of this program was paid for by U.S. tax
-dollars.  Therefore it is public domain.  However, the author and NIST
-would appreciate credit if this program or parts of it are used.
-
-*/
-
-/* Notes:
-I'm only a little worried because Tk does not check for errno == EBADF
-after calling select.  I imagine that if the user passes in a bad file
-descriptor, we'll never get called back, and thus, we'll hang forever
-- it would be better to at least issue a diagnostic to the user.
-
-Another possible problem: Tk does not do file callbacks round-robin.
-
-Another possible problem: Calling Create/DeleteChannelHandler
-before/after every Tcl_Eval... in expect/interact could be very
-expensive.
-
-*/
+/* ----------------------------------------------------------------------------
+ * exp_event.c --
+ *
+ *	event interface for Expect.
+ *
+ * Notes:
+ *	I'm only a little worried because Tk does not check for errno == EBADF
+ *	after calling select.  I imagine that if the user passes in a bad file
+ *	descriptor, we'll never get called back, and thus, we'll hang forever
+ *	- it would be better to at least issue a diagnostic to the user.
+ *
+ *	Another possible problem: Tk does not do file callbacks round-robin.
+ *
+ *	Another possible problem: Calling Create/DeleteChannelHandler
+ *	before/after every Tcl_Eval... in expect/interact could be very
+ *	expensive.
+ * 
+ * ----------------------------------------------------------------------------
+ *
+ * Written by: Don Libes, libes@cme.nist.gov, NIST, 12/3/90
+ * 
+ * Design and implementation of this program was paid for by U.S. tax
+ * dollars.  Therefore it is public domain.  However, the author and NIST
+ * would appreciate credit if this program or parts of it are used.
+ * 
+ * Copyright (c) 1997 Mitel Corporation
+ *	work by Gordon Chaffee <chaffee@bmrc.berkeley.edu> for the WinNT port.
+ *
+ * Copyright (c) 2001-2002 Telindustrie, LLC
+ *	work by David Gravereaux <davygrvy@pobox.com> for any Win32 OS.
+ *
+ * ----------------------------------------------------------------------------
+ * URLs:    http://expect.nist.gov/
+ *	    http://expect.sf.net/
+ *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
+ * ----------------------------------------------------------------------------
+ * RCS: @(#) $Id: exp.h,v 1.1.4.4 2002/02/10 10:17:04 davygrvy Exp $
+ * ----------------------------------------------------------------------------
+ */
 
 #include "expInt.h"
 
@@ -41,10 +57,10 @@ void (*exp_event_exit) _ANSI_ARGS_((Tcl_Interp *interp));
  * Declarations for functions used only in this file.
  */
 
-static void		exp_timehandler _ANSI_ARGS_ ((ClientData clientData));
-static void		exp_filehandler _ANSI_ARGS_ ((ClientData clientData,
-			    int mask));
-static void		exp_event_exit_real _ANSI_ARGS_ ((Tcl_Interp *interp));
+static void	exp_timehandler _ANSI_ARGS_ ((ClientData clientData));
+static void	exp_filehandler _ANSI_ARGS_ ((ClientData clientData,
+		    int mask));
+static void	exp_event_exit_real _ANSI_ARGS_ ((Tcl_Interp *interp));
 
 
 /*

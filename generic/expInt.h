@@ -14,7 +14,7 @@
  * Copyright (c) 1997 Mitel Corporation
  *	work by Gordon Chaffee <chaffee@bmrc.berkeley.edu> for the WinNT port.
  *
- * Copyright (c) 2002 Telindustrie, LLC
+ * Copyright (c) 2001-2002 Telindustrie, LLC
  *	work by David Gravereaux <davygrvy@pobox.com> for any Win32 OS.
  *
  * ----------------------------------------------------------------------------
@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expInt.h,v 1.1.4.1 2002/02/10 02:58:52 davygrvy Exp $
+ * RCS: @(#) $Id: expInt.h,v 1.1.4.2 2002/02/10 10:17:04 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -288,7 +288,6 @@ TCL_EXTERN(int)		    expect_key;
 //TCL_EXTERN(void)		exp_close_all _ANSI_ARGS_((Tcl_Interp *));
 //TCL_EXTERN(void)		exp_trap_on _ANSI_ARGS_((int));
 //TCL_EXTERN(int)		exp_trap_off _ANSI_ARGS_((char *));
-//TCL_EXTERN(void)		exp_strftime();
 /*EXTERN(void)		exp_init_expect _ANSI_ARGS_((Tcl_Interp *));*/
 //TCL_EXTERN(int)		exp_tcl2_returnvalue _ANSI_ARGS_((int));
 //TCL_EXTERN(int)		exp_2tcl_returnvalue _ANSI_ARGS_((int));
