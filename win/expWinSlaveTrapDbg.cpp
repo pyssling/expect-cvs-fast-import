@@ -29,7 +29,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinSlaveTrapDbg.cpp,v 1.1.4.2 2002/03/09 03:10:31 davygrvy Exp $
+ * RCS: @(#) $Id: expWinSlaveTrapDbg.cpp,v 1.1.4.3 2002/03/09 22:56:23 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -43,8 +43,9 @@
 #endif
 
 
-ExpSlaveTrapDbg::ExpSlaveTrapDbg(int argc, char * const argv[], CMclQueue<Message> &mQ)
+ExpSlaveTrapDbg::ExpSlaveTrapDbg(int argc, char * const argv[], CMclQueue<Message> &_mQ)
+    : mQ(_mQ)
 {
-    debuggerThread = new CMclThread(new ConsoleDebugger(argc, argv, mQ));
+    debuggerThread = new CMclThread(new ConsoleDebugger(argc, argv, _mQ));
 }
 

@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinSlaveMain.cpp,v 1.1.4.4 2002/03/09 05:48:51 davygrvy Exp $
+ * RCS: @(#) $Id: expWinSlaveMain.cpp,v 1.1.4.5 2002/03/09 22:56:23 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -47,7 +47,8 @@
 
 
 // local protos
-static ExpSpawnClientTransport *ExpWinSpawnOpenClientTransport(const char *name);
+static ExpSpawnClientTransport *ExpWinSpawnOpenClientTransport(const char *name,
+	CMclQueue<Message> &mQ);
 static ExpSlaveTrap *ExpWinSlaveOpenTrap(const char *meth, int argc,
 	char * const argv[], CMclQueue<Message> &mQ);
 static int ExpWinMasterDoEvents(ExpSpawnClientTransport *transport,
@@ -58,11 +59,11 @@ static void SetArgv(int *argcPtr, char ***argvPtr);
 int
 main (void)
 {
-    int argc;				// Number of command-line arguments.
-    char **argv;			// Values of command-line arguments.
-    ExpSpawnClientTransport *tclient;	// class pointer of transport client.
-    ExpSlaveTrap *slaveCtrl;		// trap method class pointer.
-    CMclQueue<Message> messageQ;	// Our message Queue we hand off.
+    int argc;			    // Number of command-line arguments.
+    char **argv;		    // Values of command-line arguments.
+    ExpSpawnClientTransport *tclient;// class pointer of transport client.
+    ExpSlaveTrap *slaveCtrl;	    // trap method class pointer.
+    CMclQueue<Message> messageQ;    // Our message Queue we hand off to everyone.
 
     //  We use a few APIs from Tcl, dynamically load it now.
     //
@@ -84,17 +85,16 @@ main (void)
     //  Open the client side of our IPC transport that connects us back
     //  to Expect.
     //
-    tclient = ExpWinSpawnOpenClientTransport(argv[1]);
+    tclient = ExpWinSpawnOpenClientTransport(argv[1], messageQ);
+    if (tclient == 0L) EXP_LOG1(MSG_IO_TRANSPRTARGSBAD, argv[1]);
 
     //  Create the process to be intercepted within the trap method requested
     //  on the commandline.
     //
     slaveCtrl = ExpWinSlaveOpenTrap(argv[2], argc-3, &argv[3], messageQ);
+    if (slaveCtrl == 0L) EXP_LOG1(MSG_IO_TRAPARGSBAD, argv[2]);
 
-    //  Process events until the slave closes.
-    //
-    //  We block on input/events coming from the slave and
-    //  input from the IPC coming from expect.
+    //  Process messages.
     //
     return ExpWinMasterDoEvents(tclient, slaveCtrl, messageQ);
 }
@@ -113,12 +113,12 @@ main (void)
  */
 
 ExpSpawnClientTransport *
-ExpWinSpawnOpenClientTransport(const char *name)
+ExpWinSpawnOpenClientTransport(const char *name, CMclQueue<Message> &mQ)
 {
     // If the first 2 chars are 'm' and 'b', then it's a mailbox.
     //
     if (name[0] == 'm' && name[1] == 'b') {
-	return new ExpSpawnMailboxClient(name);
+	return new ExpSpawnMailboxClient(name, mQ);
     }
     /* 'sk' is a socket transport.  This is a no-op for now.
     else if (name[0] == 's' && name[1] == 'k') {
@@ -218,18 +218,17 @@ SetArgv(
     Tcl_DStringInit(&cmdLine);
 
 #ifdef _DEBUG
-    if (IsDebuggerPresent()) {
+//    if (IsDebuggerPresent()) {
 #   ifdef _MSC_VER
-
 	//  There will be a unicode loss here.  I don't feel it's a bad
 	//  trade-off when running in a debugger.
 	//  cp1251 != utf-8, though.
 	//
-	Tcl_DStringAppend(&cmdLine, MsvcDbg_GetCommandLine(), -1);
+//	Tcl_DStringAppend(&cmdLine, MsvcDbg_GetCommandLine(), -1);
 #   else
 #	error "Need Debugger control for this IDE"
 #   endif
-    } else {
+//    } else {
 #endif
 	// Always get the unicode commandline because *ALL* Win32 platforms
 	// support it.
@@ -241,14 +240,12 @@ SetArgv(
 	WideCharToMultiByte(CP_UTF8, 0, cmdLineUni, -1,
 		Tcl_DStringValue(&cmdLine), size, 0L, 0L);
 #ifdef _DEBUG
-    }
+//    }
 #endif
 
-    /*
-     * Precompute an overly pessimistic guess at the number of arguments
-     * in the command line by counting non-space spans.
-     */
-
+    // Precompute an overly pessimistic guess at the number of arguments
+    // in the command line by counting non-space spans.
+    //
     size = 2;
     for (p = Tcl_DStringValue(&cmdLine); *p != '\0'; p++) {
 	if ((*p == ' ') || (*p == '\t')) {	/* INTL: ISO space. */

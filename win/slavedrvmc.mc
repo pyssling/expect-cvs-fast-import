@@ -22,7 +22,7 @@
 ; *	    http://expect.sf.net/
 ; *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
 ; * ----------------------------------------------------------------------------
-; * RCS: @(#) $Id: slavedrv.mc,v 1.1.2.3 2002/03/09 00:00:00 davygrvy Exp $
+; * RCS: @(#) $Id: slavedrvmc.mc,v 1.1.2.1 2002/03/09 01:42:00 davygrvy Exp $
 ; * ----------------------------------------------------------------------------
 ; */
 
@@ -131,6 +131,22 @@ Facility=Io
 SymbolicName=MSG_IO_UNEXPECTED
 Language=English
 %1 : %2 (%3,%4): Unexpected error: %5
+.
+
+MessageId=0x3
+Severity=Fatal
+Facility=Io
+SymbolicName=MSG_IO_TRANSPRTARGSBAD
+Language=English
+%1 : %2 (%3,%4): Transport protocol bad: %5
+.
+
+MessageId=0x4
+Severity=Fatal
+Facility=Io
+SymbolicName=MSG_IO_TRAPARGSBAD
+Language=English
+%1 : %2 (%3,%4): Trap method bad: %5
 .
 
 

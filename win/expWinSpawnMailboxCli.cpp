@@ -27,15 +27,15 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinSpawnMailboxCli.cpp,v 1.1.4.1 2002/03/06 01:51:53 davygrvy Exp $
+ * RCS: @(#) $Id: expWinSpawnMailboxCli.cpp,v 1.1.4.2 2002/03/09 01:17:29 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
 #include "expWinInt.h"
 
 
-ExpSpawnMailboxClient::ExpSpawnMailboxClient(const char *name)
-    : MasterToExpect(0L), MasterFromExpect(0L)
+ExpSpawnMailboxClient::ExpSpawnMailboxClient(const char *name, CMclQueue<Message> &_mQ)
+    : MasterToExpect(0L), MasterFromExpect(0L), mQ(_mQ)
 {
     TCHAR boxName[24];
     DWORD err;
@@ -49,10 +49,10 @@ ExpSpawnMailboxClient::ExpSpawnMailboxClient(const char *name)
     if (err == NO_ERROR) {
 	// Not allowed to be the creator.
 	delete MasterToExpect;
-//	EXP_LOG1(MSG_MB_CANTOPENCLIENT1, name);
+	EXP_LOG1(MSG_MB_CANTOPENCLIENT1, name);
     } else if (err != ERROR_ALREADY_EXISTS) {
 	delete MasterToExpect;
-//	EXP_LOG2(MSG_MB_CANTOPENCLIENT2, name, ExpSyslogGetSysMsg(err));
+	EXP_LOG2(MSG_MB_CANTOPENCLIENT2, name, ExpSyslogGetSysMsg(err));
     }
 
     // Connect to the in-coming.
@@ -64,10 +64,10 @@ ExpSpawnMailboxClient::ExpSpawnMailboxClient(const char *name)
     if (err == NO_ERROR) {
 	// Not allowed to be the creator.
 	delete MasterToExpect;
-//	EXP_LOG1(MSG_MB_CANTOPENCLIENT1, name);
+	EXP_LOG1(MSG_MB_CANTOPENCLIENT1, name);
     } else if (err != ERROR_ALREADY_EXISTS) {
 	delete MasterToExpect;
-//	EXP_LOG2(MSG_MB_CANTOPENCLIENT2, name, ExpSyslogGetSysMsg(err));
+	EXP_LOG2(MSG_MB_CANTOPENCLIENT2, name, ExpSyslogGetSysMsg(err));
     }
 }
 
