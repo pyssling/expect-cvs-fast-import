@@ -592,7 +592,7 @@ fi
 found=no
 echo $ac_n "checking configure up to date""... $ac_c" 1>&6
 echo "configure:595: checking configure up to date" >&5
-for i in `(cd ${srcdir} ; ls -tr configure configure.in Makefile.in)` ; do
+for i in `cd ${srcdir} ; ls -tr configure configure.in Makefile.in` ; do
   newest=$i
 done
 if test "configure" = "$newest" ; then
