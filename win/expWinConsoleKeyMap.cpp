@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinConsoleDebugger.cpp,v 1.1.2.22 2002/06/22 05:54:32 davygrvy Exp $
+ * RCS: @(#) $Id: expWinConsoleKeyMap.cpp,v 1.1.2.1 2002/06/22 14:01:16 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -34,14 +34,14 @@ struct KEY_MATRIX {
     DWORD dwControlKeyState;
 };
 
-const KEY_MATRIX ModifierKeyArray[4] = {
+static const KEY_MATRIX ModifierKeyArray[] = {
 /* Control */ { 17,  29, 0},
 /* LShift */  { 16,  42, 0},
 /* RShift */  { 16,  54, 0},
 /* Alt */     { 18,  56, 0},
 };
 
-const KEY_MATRIX AsciiToKeyArray[256] = {
+static const KEY_MATRIX AsciiToKeyArray[] = {
 /*   0 */ { 50,   3, RIGHT_CTRL_PRESSED|SHIFT_PRESSED},
 /*   1 */ { 65,  30, RIGHT_CTRL_PRESSED},
 /*   2 */ { 66,  48, RIGHT_CTRL_PRESSED},
@@ -176,38 +176,38 @@ const KEY_MATRIX AsciiToKeyArray[256] = {
 #endif
 };
 
-const KEY_MATRIX FunctionToKeyArray[31] = {
-/* Cursor Up */	    { VK_UP,      72,	0},
-/* Cursor Down */   { VK_DOWN,    80,	0},
-/* Cursor Right */  { VK_RIGHT,   77,	0},
-/* Cursor Left */   { VK_LEFT,    75,	0},
-/* End */	    { VK_END,     79,	0},
-/* Home */	    { VK_HOME,    71,	0},
-/* PageUp */	    { VK_PRIOR,   73,	0},
-/* PageDown */	    { VK_NEXT,    81,	0},
-/* Insert */	    { VK_INSERT,  82,	0},
-/* Delete */	    { VK_DELETE,  83,	0},
-/* Select */	    { VK_SELECT,   0,	0},
-/* F1 */	    { VK_F1,      59,	0},
-/* F2 */	    { VK_F2,      60,	0},
-/* F3 */	    { VK_F3,      61,	0},
-/* F4 */	    { VK_F4,      62,	0},
-/* F5 */	    { VK_F5,      63,	0},
-/* F6 */	    { VK_F6,      64,	0},
-/* F7 */	    { VK_F7,      65,	0},
-/* F8 */	    { VK_F8,      66,	0},
-/* F9 */	    { VK_F9,      67,	0},
-/* F10 */	    { VK_F10,     68,	0},
-/* F11 */	    { VK_F11,     87,	0},
-/* F12 */	    { VK_F12,     88,	0},
-/* F13 */	    { VK_F13,      0,	0},
-/* F14 */	    { VK_F14,      0,	0},
-/* F15 */	    { VK_F15,      0,	0},
-/* F16 */	    { VK_F16,      0,	0},
-/* F17 */	    { VK_F17,      0,	0},
-/* F18 */	    { VK_F18,      0,	0},
-/* F19 */	    { VK_F19,      0,	0},
-/* F20 */	    { VK_F20,      0,	0},
+static const KEY_MATRIX FunctionToKeyArray[] = {
+/* Cursor Up */	    {VK_UP,      72,	0},
+/* Cursor Down */   {VK_DOWN,    80,	0},
+/* Cursor Right */  {VK_RIGHT,   77,	0},
+/* Cursor Left */   {VK_LEFT,    75,	0},
+/* End */	    {VK_END,     79,	0},
+/* Home */	    {VK_HOME,    71,	0},
+/* PageUp */	    {VK_PRIOR,   73,	0},
+/* PageDown */	    {VK_NEXT,    81,	0},
+/* Insert */	    {VK_INSERT,  82,	0},
+/* Delete */	    {VK_DELETE,  83,	0},
+/* Select */	    {VK_SELECT,   0,	0},
+/* F1 */	    {VK_F1,      59,	0},
+/* F2 */	    {VK_F2,      60,	0},
+/* F3 */	    {VK_F3,      61,	0},
+/* F4 */	    {VK_F4,      62,	0},
+/* F5 */	    {VK_F5,      63,	0},
+/* F6 */	    {VK_F6,      64,	0},
+/* F7 */	    {VK_F7,      65,	0},
+/* F8 */	    {VK_F8,      66,	0},
+/* F9 */	    {VK_F9,      67,	0},
+/* F10 */	    {VK_F10,     68,	0},
+/* F11 */	    {VK_F11,     87,	0},
+/* F12 */	    {VK_F12,     88,	0},
+/* F13 */	    {VK_F13,      0,	0},
+/* F14 */	    {VK_F14,      0,	0},
+/* F15 */	    {VK_F15,      0,	0},
+/* F16 */	    {VK_F16,      0,	0},
+/* F17 */	    {VK_F17,      0,	0},
+/* F18 */	    {VK_F18,      0,	0},
+/* F19 */	    {VK_F19,      0,	0},
+/* F20 */	    {VK_F20,      0,	0},
 };
 
 const DWORD KEY_CONTROL	    = 0;
@@ -216,7 +216,7 @@ const DWORD KEY_LSHIFT	    = 1;
 const DWORD KEY_RSHIFT	    = 2;
 const DWORD KEY_ALT	    = 3;
 
-void
+static void
 SendIR(INPUT_RECORD *ir, CMclQueue<Message *> &mQ)
 {
     Message *msg = new Message;
@@ -226,13 +226,12 @@ SendIR(INPUT_RECORD *ir, CMclQueue<Message *> &mQ)
     mQ.Put(msg);
 }
 
-void
+static void
 MapCharToIRs (UCHAR c, CMclQueue<Message *> &mQ)
 {
     UCHAR lc;
     DWORD mods;
     INPUT_RECORD *ir;
-
 
     lc = c < 128 ? c : c - 128;
     mods = AsciiToKeyArray[lc].dwControlKeyState;
@@ -245,9 +244,9 @@ MapCharToIRs (UCHAR c, CMclQueue<Message *> &mQ)
 	ir->Event.KeyEvent.bKeyDown = TRUE;
 	ir->Event.KeyEvent.wRepeatCount = 1;
 	ir->Event.KeyEvent.wVirtualKeyCode =
-	    ModifierKeyArray[KEY_CONTROL].wVirtualKeyCode;
+		ModifierKeyArray[KEY_CONTROL].wVirtualKeyCode;
 	ir->Event.KeyEvent.wVirtualScanCode =
-	    ModifierKeyArray[KEY_CONTROL].wVirtualScanCode;
+		ModifierKeyArray[KEY_CONTROL].wVirtualScanCode;
 	ir->Event.KeyEvent.uChar.AsciiChar = 0;
 	ir->Event.KeyEvent.dwControlKeyState = RIGHT_CTRL_PRESSED;
 	SendIR(ir, mQ);
@@ -258,9 +257,9 @@ MapCharToIRs (UCHAR c, CMclQueue<Message *> &mQ)
 	ir->EventType = KEY_EVENT;
 	ir->Event.KeyEvent.bKeyDown = TRUE;
 	ir->Event.KeyEvent.wVirtualKeyCode =
-	    ModifierKeyArray[KEY_SHIFT].wVirtualKeyCode;
+		ModifierKeyArray[KEY_SHIFT].wVirtualKeyCode;
 	ir->Event.KeyEvent.wVirtualScanCode =
-	    ModifierKeyArray[KEY_SHIFT].wVirtualScanCode;
+		ModifierKeyArray[KEY_SHIFT].wVirtualScanCode;
 	ir->Event.KeyEvent.uChar.AsciiChar = 0;
 	ir->Event.KeyEvent.dwControlKeyState = mods;
 	injectorIPC->Post(&ir);
@@ -271,9 +270,12 @@ MapCharToIRs (UCHAR c, CMclQueue<Message *> &mQ)
     ir->EventType = KEY_EVENT;
     ir->Event.KeyEvent.bKeyDown = TRUE;
     ir->Event.KeyEvent.wRepeatCount = 1;
-    ir->Event.KeyEvent.wVirtualKeyCode = AsciiToKeyArray[lc].wVirtualKeyCode;
-    ir->Event.KeyEvent.wVirtualScanCode = AsciiToKeyArray[lc].wVirtualScanCode;
-    ir->Event.KeyEvent.dwControlKeyState = AsciiToKeyArray[lc].dwControlKeyState;
+    ir->Event.KeyEvent.wVirtualKeyCode =
+	    AsciiToKeyArray[lc].wVirtualKeyCode;
+    ir->Event.KeyEvent.wVirtualScanCode =
+	    AsciiToKeyArray[lc].wVirtualScanCode;
+    ir->Event.KeyEvent.dwControlKeyState =
+	    AsciiToKeyArray[lc].dwControlKeyState;
     ir->Event.KeyEvent.uChar.AsciiChar = c;
     SendIR(ir, mQ);
 
@@ -281,9 +283,12 @@ MapCharToIRs (UCHAR c, CMclQueue<Message *> &mQ)
     ir->EventType = KEY_EVENT;
     ir->Event.KeyEvent.bKeyDown = FALSE;
     ir->Event.KeyEvent.wRepeatCount = 1;
-    ir->Event.KeyEvent.wVirtualKeyCode = AsciiToKeyArray[lc].wVirtualKeyCode;
-    ir->Event.KeyEvent.wVirtualScanCode = AsciiToKeyArray[lc].wVirtualScanCode;
-    ir->Event.KeyEvent.dwControlKeyState = AsciiToKeyArray[lc].dwControlKeyState;
+    ir->Event.KeyEvent.wVirtualKeyCode =
+	    AsciiToKeyArray[lc].wVirtualKeyCode;
+    ir->Event.KeyEvent.wVirtualScanCode =
+	    AsciiToKeyArray[lc].wVirtualScanCode;
+    ir->Event.KeyEvent.dwControlKeyState =
+	    AsciiToKeyArray[lc].dwControlKeyState;
     ir->Event.KeyEvent.uChar.AsciiChar = c;
     SendIR(ir, mQ);
 
@@ -294,9 +299,9 @@ MapCharToIRs (UCHAR c, CMclQueue<Message *> &mQ)
 	ir->EventType = KEY_EVENT;
 	ir->Event.KeyEvent.bKeyDown = FALSE;
 	ir->Event.KeyEvent.wVirtualKeyCode =
-	    ModifierKeyArray[KEY_SHIFT].wVirtualKeyCode;
+		ModifierKeyArray[KEY_SHIFT].wVirtualKeyCode;
 	ir->Event.KeyEvent.wVirtualScanCode =
-	    ModifierKeyArray[KEY_SHIFT].wVirtualScanCode;
+		ModifierKeyArray[KEY_SHIFT].wVirtualScanCode;
 	ir->Event.KeyEvent.uChar.AsciiChar = 0;
 	ir->Event.KeyEvent.dwControlKeyState = mods & ~SHIFT_PRESSED;
 	SendIR(ir, mQ);
@@ -307,14 +312,24 @@ MapCharToIRs (UCHAR c, CMclQueue<Message *> &mQ)
 	ir->EventType = KEY_EVENT;
 	ir->Event.KeyEvent.bKeyDown = FALSE;
 	ir->Event.KeyEvent.wVirtualKeyCode =
-	    ModifierKeyArray[KEY_CONTROL].wVirtualKeyCode;
+		ModifierKeyArray[KEY_CONTROL].wVirtualKeyCode;
 	ir->Event.KeyEvent.wVirtualScanCode =
-	    ModifierKeyArray[KEY_CONTROL].wVirtualScanCode;
+		ModifierKeyArray[KEY_CONTROL].wVirtualScanCode;
 	ir->Event.KeyEvent.uChar.AsciiChar = 0;
 	ir->Event.KeyEvent.dwControlKeyState = 0;
 	SendIR(ir, mQ);
     }
 #endif
+}
+
+void
+MapToKeys (Message *msg, CMclQueue<Message *> &mQ)
+{
+    size_t i;
+    for (i = 0; i < msg->length; i++) {
+	MapCharToIRs(((PUCHAR)msg->bytes)[i], mQ);
+    }
+    delete msg;
 }
 
 void
@@ -326,9 +341,12 @@ MapFKeyToIRs(DWORD fk, CMclQueue<Message *> &mQ)
     ir->EventType = KEY_EVENT;
     ir->Event.KeyEvent.bKeyDown = TRUE;
     ir->Event.KeyEvent.wRepeatCount = 1;
-    ir->Event.KeyEvent.wVirtualKeyCode = FunctionToKeyArray[fk].wVirtualKeyCode;
-    ir->Event.KeyEvent.wVirtualScanCode = FunctionToKeyArray[fk].wVirtualScanCode;
-    ir->Event.KeyEvent.dwControlKeyState = FunctionToKeyArray[fk].dwControlKeyState;
+    ir->Event.KeyEvent.wVirtualKeyCode =
+	    FunctionToKeyArray[fk].wVirtualKeyCode;
+    ir->Event.KeyEvent.wVirtualScanCode =
+	    FunctionToKeyArray[fk].wVirtualScanCode;
+    ir->Event.KeyEvent.dwControlKeyState =
+	    FunctionToKeyArray[fk].dwControlKeyState;
     ir->Event.KeyEvent.uChar.AsciiChar = 0;
     SendIR(ir, mQ);
 
@@ -336,9 +354,12 @@ MapFKeyToIRs(DWORD fk, CMclQueue<Message *> &mQ)
     ir->EventType = KEY_EVENT;
     ir->Event.KeyEvent.bKeyDown = FALSE;
     ir->Event.KeyEvent.wRepeatCount = 1;
-    ir->Event.KeyEvent.wVirtualKeyCode = FunctionToKeyArray[fk].wVirtualKeyCode;
-    ir->Event.KeyEvent.wVirtualScanCode = FunctionToKeyArray[fk].wVirtualScanCode;
-    ir->Event.KeyEvent.dwControlKeyState = FunctionToKeyArray[fk].dwControlKeyState;
+    ir->Event.KeyEvent.wVirtualKeyCode =
+	    FunctionToKeyArray[fk].wVirtualKeyCode;
+    ir->Event.KeyEvent.wVirtualScanCode =
+	    FunctionToKeyArray[fk].wVirtualScanCode;
+    ir->Event.KeyEvent.dwControlKeyState =
+	    FunctionToKeyArray[fk].dwControlKeyState;
     ir->Event.KeyEvent.uChar.AsciiChar = 0;
     SendIR(ir, mQ);
 }
