@@ -1,47 +1,53 @@
-;========================================================================
-;  spawndrvmc.mc --
-;
-;	This file contains the message catalog for use with Win32 error
-;	reporting through ReportEvent() and FormatMessage().
-;
-; Copyright (c) 2001 Telindustrie, LLC
-;
-; Authors: David Gravereaux <davygrvy@pobox.com>
-;
-; See the file "license.terms" for information on usage and redistribution
-; of this file, and for a DISCLAIMER OF ALL WARRANTIES.
-;========================================================================
+;/* ----------------------------------------------------------------------------
+; * spawndrvmc.mc --
+; *
+; *	This file contains the message catalog for use with Win32 error
+; *	reporting through ReportEvent() and FormatMessage().
+; *
+; * Copyright (c) 2001 Telindustrie, LLC
+; *
+; * Authors: David Gravereaux <davygrvy@pobox.com>
+; *
+; * See the file "license.terms" for information on usage and redistribution
+; * of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+; * ----------------------------------------------------------------------------
+; */
 
-MessageIdTypedef=DWORD
+;//MessageIdTypedef = DWORD
+OutputBase = 16
 
-SeverityNames=(Success=0x0:STATUS_SEVERITY_SUCCESS
-               Informational=0x1:STATUS_SEVERITY_INFORMATIONAL
-               Warning=0x2:STATUS_SEVERITY_WARNING
-               Error=0x3:STATUS_SEVERITY_ERROR
-              )
+;// 2 bits max!
+SeverityNames = (
+    Success=0x0:STATUS_SEVERITY_SUCCESS
+    Informational=0x1:STATUS_SEVERITY_INFORMATIONAL
+    Warning=0x2:STATUS_SEVERITY_WARNING
+    Error=0x3:STATUS_SEVERITY_ERROR
+)
 
-FacilityNames=(System=0x0:FACILITY_SYSTEM
-               Runtime=0x2:FACILITY_RUNTIME
-               Stubs=0x3:FACILITY_STUBS
-               Io=0x4:FACILITY_IO_ERROR_CODE
-              )
+;// 12 bits max!
+FacilityNames = (
+    System=0x0:FACILITY_SYSTEM
+    Stubs=0x1:FACILITY_STUBS
+    Io=0x2:FACILITY_IO
+    Mailbox=0x3:FACILITY_MAILBOX
+    NamedPipe=0x3:FACILITY_NAMEDPIPE
+    WinSock=0x4:FACILITY_WINSOCK
+    DbgTrap=0x5:FACILITY_DBGTRAP
+)
 
 LanguageNames=(English=0x409:MSG00409)
-LanguageNames=(Japanese=0x411:MSG00411)
+;//LanguageNames=(Japanese=0x411:MSG00411)
 
 
-// Message definitions
+;// Message definitions
 
 
 MessageId=0x1
 Severity=Error
-Facility=Runtime
+Facility=WinSock
 SymbolicName=MSG_BAD_COMMAND
 Language=English
 You have chosen an incorrect command.
-.
-Language=Japanese
-∑sê≥Ç»ÉRÉ}É"ÉhÇ™'I'Ç≥ÇÍÇ‹ÇµÇΩ.
 .
 
 MessageId=0x2
@@ -51,9 +57,6 @@ SymbolicName=MSG_BAD_PARM1
 Language=English
 Cannot reconnect to the server.
 .
-Language=Japanese
-ÉTÅ[ÉoÅ[Ç÷çƒê⁄'±Ç≈Ç´Ç‹ÇπÇÒ.
-.
 
 MessageId=0x3
 Severity=Success
@@ -61,9 +64,6 @@ Facility=System
 SymbolicName=MSG_STRIKE_ANY_KEY
 Language=English
 Press any key to continue . . . %0
-.
-Language=Japanese
-'±ÇØÇÈÇ…ÇÕâΩÇ©ÉLÅ[ÇâüÇµÇƒÇ≠ÇæÇ≥Ç¢ . . . %0
 .
 
 MessageId=0x4
@@ -73,9 +73,6 @@ SymbolicName=MSG_CMD_DELETE
 Language=English
 File %1 contains %2 which is in error
 .
-Language=Japanese
-ÉtÉ@ÉCÉã %1 'ÜÇ…ä‹Ç‹ÇÍÇÈ %2 ÇÕÉGÉâÅ[Ç≈Ç∑
-.
 
 MessageId=0x5
 Severity=Success
@@ -84,8 +81,4 @@ SymbolicName=MSG_RETRYS
 Language=English
 There have been %1!d! retrys with %2!d!%% success%! Disconnect from% 
 the server and retry later.
-.
-Language=Japanese
-%1!d! âÒê⁄'±ÇééÇ›Ç‹ÇµÇΩÇ™ %2!d!%% ÇÃê¨å˜óÇ≈ÇµÇΩ%!.
-ÉTÅ[ÉoÅ[Ç∆êÿ'fÇµÇΩå„ÅAçƒê⁄'±ÇµÇƒÇ≠ÇæÇ≥Ç¢.
 .
