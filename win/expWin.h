@@ -44,7 +44,7 @@ typedef struct {
 } ExpSpawnState;
 
 extern DWORD		ExpApplicationType(const char *originalName,
-			    char *fullPath, char *imageName);
+			    char *fullPath);
 /* should be TclpCreateProcess */
 extern DWORD		ExpCreateProcess(int argc, char **argv,
 			    HANDLE inputHandle, HANDLE outputHandle,
