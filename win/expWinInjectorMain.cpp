@@ -23,7 +23,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinInjectorMain.cpp,v 1.1.2.10 2002/06/22 02:50:09 davygrvy Exp $
+ * RCS: @(#) $Id: expWinInjectorMain.cpp,v 1.1.2.11 2002/06/22 14:02:03 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -57,7 +57,7 @@ private:
 	// Create the shared memory IPC transfer mechanism by name
 	// (a mailbox).
 	ConsoleDebuggerIPC = 
-		new CMclMailbox(10, sizeof(INPUT_RECORD), boxName);
+		new CMclMailbox(80, sizeof(INPUT_RECORD), boxName);
 
 	// Check status.
 	switch (err = ConsoleDebuggerIPC->Status()) {
