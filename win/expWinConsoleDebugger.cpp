@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinConsoleDebugger.cpp,v 1.1.2.22 2002/06/22 05:54:32 davygrvy Exp $
+ * RCS: @(#) $Id: expWinConsoleDebugger.cpp,v 1.1.2.23 2002/06/22 14:02:03 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -238,6 +238,7 @@ ConsoleDebugger::~ConsoleDebugger()
 {
     delete [] SymbolPath;
     if (injectorIPC) delete injectorIPC;
+    CloseHandle(hMasterConsole);
 }
 
 unsigned
@@ -254,9 +255,6 @@ ConsoleDebugger::ThreadHandlerProc(void)
     si.wShowWindow = SW_SHOWDEFAULT;
 
     cmdline = ArgMaker::BuildCommandLine(argc, argv);
-
-    // Make sure the master does not ignore Ctrl-C
-    //SetConsoleCtrlHandler(0L, FALSE);
 
     ok = CreateProcess(
 	    0L,		// Module name (not needed).
@@ -279,9 +277,6 @@ ConsoleDebugger::ThreadHandlerProc(void)
     WaitForInputIdle(pi.hProcess, 5000);
     CloseHandle(pi.hThread);
     CloseHandle(pi.hProcess);
-
-    // Make sure we now ignore Ctrl-C
-    //SetConsoleCtrlHandler(0L, TRUE);
 
     exitcode = CommonDebugger();
     NotifyDone();
