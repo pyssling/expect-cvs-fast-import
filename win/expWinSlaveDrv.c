@@ -55,10 +55,10 @@
  * normal headers 
  */
 
-#include "tcl.h"
 #include "tclPort.h"
 #include "expWin.h"
 #include "expWinSlave.h"
+#include "spawndrvmc.h"
 
 #define STATE_WAIT_CMD   0	/* Waiting for the next command */
 #define STATE_CREATE     1	/* Doesn't happen currently */
@@ -194,12 +194,12 @@ main(argc, argv)
     int argc;
     char **argv;
 {
-    HANDLE hConsoleInW;		/* Console, writeable input handle */
+    HANDLE hConsoleInW;	/* Console, writeable input handle */
     HANDLE hConsoleOut;	/* Console, readable output handle */
-    HANDLE hMaster;		/* Pipe between master and us */
-    HANDLE hSlaveOut;		/* Pipe from slave's STDOUT to us */
-    HANDLE hSlaveOutW;		/* Pipe from slave's STDOUT to us */
-    HANDLE hProcess;		/* Current process handle */
+    HANDLE hMaster;	/* Pipe between master and us */
+    HANDLE hSlaveOut;	/* Pipe from slave's STDOUT to us */
+    HANDLE hSlaveOutW;	/* Pipe from slave's STDOUT to us */
+    HANDLE hProcess;	/* Current process handle */
     UCHAR cmdline[BUFSIZE];
     BOOL bRet;
     DWORD dwResult;
@@ -211,6 +211,7 @@ main(argc, argv)
     int useSocket = 0;
     int n;
     int sshd = 0;
+    int port = 0;
 
     struct sockaddr_in sin;
     WSADATA	SockData;
@@ -223,7 +224,7 @@ main(argc, argv)
     ExpDynloadTclStubs();
 
     if (argc < 2) {
-	exit(1);
+	EXP_LOG0(MSG_IO_ARGSWRONG);
     }
     if (argc == 2) {
 	/* This is how we use it from sshd */
@@ -247,35 +248,37 @@ main(argc, argv)
     if (!useSocket) {
 	hMaster = CreateFile(argv[1], GENERIC_READ | GENERIC_WRITE,
 			     0, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, NULL);
-	if (hMaster == NULL) {
-	    EXP_LOG("Unexpected error 0x%x", GetLastError());
-	    Sleep(5000);
-	    ExitProcess(255);
+	if (hMaster == INVALID_HANDLE_VALUE) {
+	    EXP_LOG2(MSG_NP_CANTOPEN, argv[1], ExpSyslogGetSysMsg(GetLastError()));
 	}
     } else {
 	SOCKET fdmaster;
-	dwResult = WSAStartup(MAKEWORD(2, 0), &SockData);
+	dwResult = WSAStartup(WINSOCK_VERSION, &SockData);
 	if (dwResult != 0) {
-	    fprintf(stderr, "Unexpected error 0x%x\n", WSAGetLastError());
-	    EXP_LOG("Unexpected error 0x%x", WSAGetLastError());
-	    Sleep(5000);
-	    ExitProcess(255);
+	    EXP_LOG2(MSG_WS_CANTSTART, "2.2", ExpSyslogGetSysMsg(dwResult));
 	}
 
 	fdmaster = WSASocket(PF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0,
 			     WSA_FLAG_OVERLAPPED);
+	if (fdmaster == INVALID_SOCKET) {
+	    EXP_LOG1(MSG_WS_CANTCREATEMASTERSOCK, ExpSyslogGetSysMsg(WSAGetLastError()));
+	}
 
 	/*
 	 * Now attach this to a specific port.
 	 */
 	sin.sin_family = AF_INET;
-	sin.sin_port = htons((short) strtoul(argv[1], NULL, 10));
-	sin.sin_addr.s_addr = inet_addr("127.0.0.1");
+
+	/* get the port */
+	if (Tcl_GetInt(NULL, argv[1], &port) != TCL_OK || port < 0 || port > 65536) {
+	    EXP_LOG1(MSG_WS_PORTOUTOFRANGE, argv[1]);
+	}
+
+	sin.sin_port = (short) port;
+	sin.sin_addr.s_addr = INADDR_LOOPBACK;
+
 	if (connect(fdmaster, (struct sockaddr *) &sin, sizeof(sin)) == SOCKET_ERROR) {
-	    fprintf(stderr, "Unexpected error 0x%x\n", WSAGetLastError());
-	    EXP_LOG("Unexpected error 0x%x", WSAGetLastError());
-	    Sleep(5000);
-	    ExitProcess(255);
+	    EXP_LOG2(MSG_WS_CANTCONNECTMASTERSOCK, argv[1], ExpSyslogGetSysMsg(WSAGetLastError()));
 	}
 	hMaster = (HANDLE) fdmaster;
     }
@@ -308,8 +311,8 @@ main(argc, argv)
     InitializeWaitQueue();
 
     if (sshd) {
-	OVERLAPPED over;
-	memset(&over, 0, sizeof(over));
+	WSAOVERLAPPED over;
+	ZeroMemory(&over, sizeof(WSAOVERLAPPED));
 	over.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
 
 	bRet = ExpReadMaster(useSocket, hMaster, cmdline, BUFSIZE, &n, &over,
@@ -330,15 +333,13 @@ main(argc, argv)
     hConsoleInW = CreateFile("CONIN$", GENERIC_WRITE, FILE_SHARE_WRITE, NULL, 
 			     OPEN_EXISTING, 0, NULL);
     if (hConsoleInW == NULL) {
-	EXP_LOG("Unexpected error 0x%x", GetLastError());
-	ExitProcess(255);
+	EXP_LOG2(MSG_DT_CANTGETCONSOLEHANDLE, "CONIN$", ExpSyslogGetSysMsg(GetLastError()));
     }
     hConsoleOut = CreateFile("CONOUT$", GENERIC_READ|GENERIC_WRITE,
 			      FILE_SHARE_READ|FILE_SHARE_WRITE, NULL, 
 			      OPEN_EXISTING, 0, NULL);
     if (hConsoleOut == NULL) {
-	EXP_LOG("Unexpected error 0x%x", GetLastError());
-	ExitProcess(255);
+	EXP_LOG2(MSG_DT_CANTGETCONSOLEHANDLE, "CONOUT$", ExpSyslogGetSysMsg(GetLastError()));
     }
 
     ExpConsoleInputMode = ENABLE_LINE_INPUT|ENABLE_ECHO_INPUT|
@@ -409,7 +410,7 @@ static void
 ExpProcessInput(HANDLE hMaster, HANDLE hConsoleInW, HANDLE hConsoleOut,
 		int useSocket, ExpSlaveDebugArg *debugInfo)
 {
-    OVERLAPPED over;
+    WSAOVERLAPPED over;
     UCHAR buffer[BUFSIZE];
     DWORD dwState;
     DWORD dwHave;
@@ -423,7 +424,7 @@ ExpProcessInput(HANDLE hMaster, HANDLE hConsoleInW, HANDLE hConsoleOut,
     dwState = STATE_WAIT_CMD;
     dwNeeded = 1;
 
-    memset(&over, 0, sizeof(over));
+    ZeroMemory(&over, sizeof(WSAOVERLAPPED));
     over.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
     while (1) {
 	bRet = ExpReadMaster(useSocket, hMaster, &buffer[dwHave],
@@ -463,15 +464,14 @@ ExpProcessInput(HANDLE hMaster, HANDLE hConsoleInW, HANDLE hConsoleOut,
 		}
 		else
 		{
-		    EXP_LOG("Unclean shutdown 0x%x", dwResult);
+		    EXP_LOG1(MSG_IO_BADSHUTDOWN, ExpSyslogGetSysMsg(dwResult));
 		}
 	    }
 	    ExpKillProcessList();
 	    ExitProcess(0);
 	} else if (bRet == FALSE) {
-	    EXP_LOG("Unexpected error 0x%x", dwResult);
 	    ExpKillProcessList();
-	    ExitProcess(255);
+	    EXP_LOG1(MSG_IO_UNEXPECTED, ExpSyslogGetSysMsg(dwResult));
 	}
 
 	dwHave += driverInCnt;
@@ -525,7 +525,7 @@ ExpProcessInput(HANDLE hMaster, HANDLE hConsoleInW, HANDLE hConsoleOut,
 				   hConsoleInW, hConsoleOut,
 				   buffer, dwNeeded, &over) == FALSE)
 	    {
-		EXP_LOG("Unable to write to slave: 0x%x", GetLastError());
+		EXP_LOG1(MSG_MS_SLAVENOWRITABLE, ExpSyslogGetSysMsg(GetLastError()));
 	    }
 	    dwTotalNeeded -= dwNeeded;
 	    if (dwTotalNeeded) {
@@ -542,7 +542,7 @@ ExpProcessInput(HANDLE hMaster, HANDLE hConsoleInW, HANDLE hConsoleOut,
 	    break;
 	default:
 	    /* If we ever get here, there is a problem */
-	    EXP_LOG("Unexpected state\n", 0);
+	    EXP_LOG0(MSG_MS_BADSTATE);
 	    break;
 	}
     }
@@ -567,9 +567,9 @@ SshdProcessInput(HANDLE hMaster, HANDLE hConsoleInW, HANDLE hConsoleOut)
     UCHAR buffer[BUFSIZE];
     BOOL b;
     DWORD dwError;
-    OVERLAPPED over;
+    WSAOVERLAPPED over;
 
-    memset(&over, 0, sizeof(over));
+    ZeroMemory(&over, sizeof(WSAOVERLAPPED));
     over.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
 
     ExpNewConsoleSequences(TRUE, hMaster, &over);
@@ -589,10 +589,9 @@ SshdProcessInput(HANDLE hMaster, HANDLE hConsoleInW, HANDLE hConsoleOut)
 	if (WriteBufferToSlave(TRUE, TRUE, FALSE, hMaster, hConsoleInW,
 			       hConsoleOut, buffer, n, &over) == FALSE)
 	{
-	    EXP_LOG("Unable to write to slave: 0x%x", GetLastError());
+	    EXP_LOG1(MSG_MS_SLAVENOWRITABLE, ExpSyslogGetSysMsg(GetLastError()));
 	}
     }
-
 }
 
 

@@ -13,74 +13,220 @@
 ; * ----------------------------------------------------------------------------
 ; */
 
-;//MessageIdTypedef = DWORD
+MessageIdTypedef = DWORD
 OutputBase = 16
 
-;// 2 bits max!
 SeverityNames = (
     Success=0x0:STATUS_SEVERITY_SUCCESS
     Informational=0x1:STATUS_SEVERITY_INFORMATIONAL
     Warning=0x2:STATUS_SEVERITY_WARNING
-    Error=0x3:STATUS_SEVERITY_ERROR
+    Fatal=0x3:STATUS_SEVERITY_FATAL
 )
 
-;// 12 bits max!
 FacilityNames = (
+    Catagories=0x0
     System=0x0:FACILITY_SYSTEM
     Stubs=0x1:FACILITY_STUBS
     Io=0x2:FACILITY_IO
     Mailbox=0x3:FACILITY_MAILBOX
-    NamedPipe=0x3:FACILITY_NAMEDPIPE
-    WinSock=0x4:FACILITY_WINSOCK
-    DbgTrap=0x5:FACILITY_DBGTRAP
+    NamedPipe=0x4:FACILITY_NAMEDPIPE
+    WinSock=0x5:FACILITY_WINSOCK
+    DbgTrap=0x6:FACILITY_DBGTRAP
+    MasterSlave_Protocol=0x7:FACILITY_MSPROTO
 )
 
 LanguageNames=(English=0x409:MSG00409)
-;//LanguageNames=(Japanese=0x411:MSG00411)
 
+MessageId=0x1
+Severity=Success
+Facility=Catagories
+Language=English
+Stubs
+.
 
-;// Message definitions
+MessageId=0x2
+Severity=Success
+Facility=Catagories
+Language=English
+I/O (General)
+.
+
+MessageId=0x3
+Severity=Success
+Facility=Catagories
+Language=English
+MailBoxing IPC
+.
+
+MessageId=0x4
+Severity=Success
+Facility=Catagories
+Language=English
+NamedPipe IPC
+.
+
+MessageId=0x5
+Severity=Success
+Facility=Catagories
+Language=English
+WinSock IPC
+.
+
+MessageId=0x6
+Severity=Success
+Facility=Catagories
+Language=English
+Console API traps
+.
+
+MessageId=0x7
+Severity=Success
+Facility=Catagories
+Language=English
+Master/Slave protocol
+.
+
+MessageId=0x1
+Severity=Error
+Facility=System
+SymbolicName=MSG_BYPASS
+Language=English
+%1
+.
+
 
 
 MessageId=0x1
 Severity=Error
-Facility=Stubs
-SymbolicName=STUBS_TCLDLL_CANTFIND
+Facility=Io
+SymbolicName=MSG_IO_ARGSWRONG
 Language=English
-Tcl is not available.  The Tcl Dll as specified in the envar EXP_TCLDLL as
-"%1" could not be loaded by LoadLibrary().  Ensure EXP_TCLDLL has the correct
-core and is the fullpath.
+%1 : %2 (%3,%4): No commandline arguements to slavedrv.exe.  No work to do.
 .
 
 MessageId=0x2
 Severity=Warning
 Facility=Io
-SymbolicName=MSG_BAD_PARM1
+SymbolicName=MSG_IO_BADSHUTDOWN
 Language=English
-Cannot reconnect to the server.
+%1 : %2 (%3,%4): Unclean shutdown: %5
+.
+
+MessageId=0x2
+Severity=Error
+Facility=Io
+SymbolicName=MSG_IO_UNEXPECTED
+Language=English
+%1 : %2 (%3,%4): Unexpected error: %5
+.
+
+
+
+
+MessageId=0x1
+Severity=Fatal
+Facility=Stubs
+SymbolicName=MSG_STUBS_TCLDLLCANTFIND
+Language=English
+%1 : %2 (%3,%4): Tcl is not available.  The Tcl Dll as specified in the environment variable EXP_TCLDLL as "%5" could not be loaded by LoadLibrary().  Check that EXP_TCLDLL has the correct filename and is the fullpath. ex: "C:\Program Files\Tcl\bin\tcl84.dll"
+.
+
+MessageId=0x2
+Severity=Fatal
+Facility=Stubs
+SymbolicName=MSG_STUBS_NOCREATEINTERP
+Language=English
+%1 : %2 (%3,%4): Tcl API function, Tcl_CreateInterp(), not found in "%5".
 .
 
 MessageId=0x3
-Severity=Success
-Facility=System
-SymbolicName=MSG_STRIKE_ANY_KEY
+Severity=Fatal
+Facility=Stubs
+SymbolicName=MSG_STUBS_ENVARNOTSET
 Language=English
-Press any key to continue . . . %0
+%1 : %2 (%3,%4): EXP_TCLDLL was not found in the environment.  It is required for slavedrv.exe to know where the Tcl DLL is to use its services.  The channel driver in the Expect extension should be setting this before launching spawndrv.exe.  This executable was not intended to be used outside of the Expect extension.
+.
+
+MessageId=0x4
+Severity=Fatal
+Facility=Stubs
+SymbolicName=MSG_STUBS_INITSTUBS
+Language=English
+%1 : %2 (%3,%4): Tcl_InitStubs() failed with "%5".
+.
+
+
+
+
+MessageId=0x1
+Severity=Warning
+Facility=MasterSlave_Protocol
+SymbolicName=MSG_MS_SLAVENOWRITABLE
+Language=English
+%1 : %2 (%3,%4): Unable to write to slave: %5
+.
+
+MessageId=0x2
+Severity=Error
+Facility=MasterSlave_Protocol
+SymbolicName=MSG_MS_BADSTATE
+Language=English
+%1 : %2 (%3,%4): Unexpected state
+.
+
+
+
+
+MessageId=0x1
+Severity=Error
+Facility=NamedPipe
+SymbolicName=MSG_NP_CANTOPEN
+Language=English
+%1 : %2 (%3,%4): Can't open argv[1], "%5", for read/write.  CreateFile() returned: %6
+.
+
+
+
+
+MessageId=0x1
+Severity=Error
+Facility=WinSock
+SymbolicName=MSG_WS_CANTSTART
+Language=English
+%1 : %2 (%3,%4): WinSock system was unable to start.  slavedrv.exe requested version %5.  WSAStartup() returned: %6
+.
+
+MessageId=0x2
+Severity=Error
+Facility=WinSock
+SymbolicName=MSG_WS_CANTCREATEMASTERSOCK
+Language=English
+%1 : %2 (%3,%4): Master socket was unable to be created.  WSASocket() returned: %6
+.
+
+MessageId=0x3
+Severity=Error
+Facility=WinSock
+SymbolicName=MSG_WS_CANTCONNECTMASTERSOCK
+Language=English
+%1 : %2 (%3,%4): Can't connect to local loopback on port %5.  connect() returned: %6
 .
 
 MessageId=0x4
 Severity=Error
-Facility=System
-SymbolicName=MSG_CMD_DELETE
+Facility=WinSock
+SymbolicName=MSG_WS_PORTOUTOFRANGE
 Language=English
-File %1 contains %2 which is in error
+%1 : %2 (%3,%4): Local loopback port out-of-range at "%5".  Must be greater than zero and less than 65536.
 .
 
-MessageId=0x5
-Severity=Success
-Facility=System
-SymbolicName=MSG_RETRYS
+
+
+
+MessageId=0x1
+Severity=Error
+Facility=DbgTrap
+SymbolicName=MSG_DT_CANTGETCONSOLEHANDLE
 Language=English
-There have been %1!d! retrys with %2!d!%% success%! Disconnect from% 
-the server and retry later.
+%1 : %2 (%3,%4): Can't open a console handle. CreateFile("%5") returned: %6
 .

@@ -628,10 +628,10 @@ ExpCommonDebugger()
 	    sprintf(buf, "%d/%d (%d)", 
 		    debEvent.dwProcessId, debEvent.dwThreadId,
 		    debEvent.dwDebugEventCode);
-	    EXP_LOG("Unexpected debug event for %s", buf);
+	    //EXP_LOG1("Unexpected debug event for %s", buf);
 	    if (debEvent.dwDebugEventCode == EXCEPTION_DEBUG_EVENT) {
-		EXP_LOG("ExceptionCode: 0x%08x",
-			debEvent.u.Exception.ExceptionRecord.ExceptionCode);
+		//EXP_LOG("ExceptionCode: 0x%08x",
+			//debEvent.u.Exception.ExceptionRecord.ExceptionCode);
 		dwContinueStatus = DBG_EXCEPTION_NOT_HANDLED;
 	    }
 	    goto skip;
@@ -1041,7 +1041,7 @@ OnXFirstBreakpoint(ExpProcess *proc, LPDEBUG_EVENT pDebEvent)
 	tclEntry = Tcl_FindHashEntry(proc->funcTable, "VirtualAlloc");
 	if (tclEntry == NULL) {
 	    proc->nBreakCount++;	/* Don't stop at second breakpoint */
-	    EXP_LOG("Unable to find entry for VirtualAlloc", NULL);
+	    //EXP_LOG("Unable to find entry for VirtualAlloc", NULL);
 	    return;
 	}
 	addr = (DWORD) Tcl_GetHashValue(tclEntry);
@@ -1060,10 +1060,10 @@ OnXFirstBreakpoint(ExpProcess *proc, LPDEBUG_EVENT pDebEvent)
 
 	base = FirstContext.Eip;
 	if (!ReadSubprocessMemory(proc, (PVOID) base, FirstPage, sizeof(InjectCode))) {
-	    EXP_LOG("Error reading subprocess memory", NULL);
+	    //EXP_LOG("Error reading subprocess memory", NULL);
 	}
 	if (!WriteSubprocessMemory(proc, (PVOID) base, &code, sizeof(InjectCode))) {
-	    EXP_LOG("Error reading subprocess memory", NULL);
+	    //EXP_LOG("Error reading subprocess memory", NULL);
 	}
     }
     return;
@@ -1108,7 +1108,7 @@ OnXSecondBreakpoint(ExpProcess *proc, LPDEBUG_EVENT pDebEvent)
 
     base = FirstContext.Eip;
     if (!WriteSubprocessMemory(proc, (PVOID) base, FirstPage, sizeof(InjectCode))) {
-	EXP_LOG("Error writing subprocess memory", NULL);
+	//EXP_LOG("Error writing subprocess memory", NULL);
     }
     SetThreadContext(FirstThread, &FirstContext);
 
@@ -1364,7 +1364,7 @@ OnXSecondChanceException(ExpProcess *proc,  LPDEBUG_EVENT pDebEvent)
     }
     fprintf(stderr, "Backtrace for %s\n", s);
     fprintf(stderr, "-------------------------------------\n");
-    EXP_LOG("Backtrace for %s", s);
+    //EXP_LOG("Backtrace for %s", s);
     while (1) {
         pSymbol->SizeOfStruct = sizeof(symbolBuffer);
         pSymbol->MaxNameLength = 512;
@@ -1396,10 +1396,10 @@ OnXSecondChanceException(ExpProcess *proc,  LPDEBUG_EVENT pDebEvent)
 		pSymbol->Name, displacement);
 	    sprintf(buf, "%.20s %08x\t%s+%X", s, frame.AddrPC.Offset,
 		pSymbol->Name, displacement);
-	    EXP_LOG("%s", buf);
+	    //EXP_LOG("%s", buf);
 	} else {
 	    fprintf(stderr, "%08x\n", frame.AddrPC.Offset);
-	    EXP_LOG("%08x\t", frame.AddrPC.Offset);
+	    //EXP_LOG("%08x\t", frame.AddrPC.Offset);
 	}
     }
 
@@ -1671,7 +1671,7 @@ SetBreakpoint(ExpProcess *proc, ExpBreakInfo *info)
 
     tclEntry = Tcl_FindHashEntry(proc->funcTable, info->funcName);
     if (tclEntry == NULL) {
-	EXP_LOG("Unable to set breakpoint at %s", info->funcName);
+	//EXP_LOG("Unable to set breakpoint at %s", info->funcName);
 	return FALSE;
     }
 
@@ -2055,8 +2055,8 @@ OnFillConsoleOutputCharacter(ExpProcess *proc, ExpThreadInfo *threadInfo,
     }
     if (GetConsoleScreenBufferInfo(HConsole, &info) == FALSE) {
 	char errbuf[200];
-	wsprintfA(errbuf, "Call to GetConsoleScreenBufferInfo failed: handle=0x%08x, err=0x%08x", HConsole, GetLastError());
-	EXP_LOG("%s", errbuf);
+	wsprintfA(errbuf, "handle=0x%08x", HConsole);
+	EXP_LOG2(MSG_DT_SCREENBUF, errbuf, ExpSyslogGetSysMsg(GetLastError()));
     } else {
 	CursorPosition = info.dwCursorPosition;
 	wsprintfA(&buf[bufpos], "\033[%d;%dH",

@@ -1,6 +1,6 @@
-#include "tcl.h"
 #include "tclPort.h"
 #include "expWin.h"
+#include "spawndrvmc.h"
 
 int
 ExpDynloadTclStubs (void)
@@ -16,21 +16,19 @@ ExpDynloadTclStubs (void)
     if (GetEnvironmentVariable(_T("EXP_TCLDLL"), TclDLLPath, MAX_PATH)) {
 	/* Load it */
 	if (!(hTclMod = LoadLibrary(TclDLLPath))) {
-	    EXP_LOG("\"%s\" failed to load", TclDLLPath);
-	    return 0;
+	    EXP_LOG1(MSG_STUBS_TCLDLLCANTFIND, TclDLLPath);
 	}
 
 	/* LoadLibrary() loaded the module correctly.
-	   Get the location of Tcl_CreateInterp. */
+	 * Get the location of Tcl_CreateInterp. */
 	
 	if ((createInterpProc = (LPFN_createInterpProc) GetProcAddress(hTclMod,
 	    _T("Tcl_CreateInterp"))) == NULL) {
-	    EXP_LOG("Tcl_CreateInterp() not found in \"%s\"!", TclDLLPath);
-	    return 0;
+	    EXP_LOG1(MSG_STUBS_NOCREATEINTERP, TclDLLPath);
 	}
 	interp = createInterpProc();
 	if (Tcl_InitStubs(interp, "8.1", 0) == NULL) {
-	    EXP_LOG("Tcl_InitStubs() failed with \"%s\".", interp->result);
+	    EXP_LOG1(MSG_STUBS_INITSTUBS, interp->result);
 	}
 
 	/* Discover the calling application.
@@ -42,7 +40,8 @@ ExpDynloadTclStubs (void)
 	 * interp anymore. */
 	Tcl_DeleteInterp(interp);
     } else {
-	exit(999);  /* envar not found */
+	/* envar not found */
+	EXP_LOG0(MSG_STUBS_ENVARNOTSET);
     }
     return 1;
 }

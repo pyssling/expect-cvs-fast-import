@@ -24,8 +24,13 @@
 #define EXP_KILL_CTRL_C     0x2
 #define EXP_KILL_CTRL_BREAK 0x4
 
-#define EXP_LOG(format, args) \
-    ExpSyslog("Expect SlaveDriver (%s: %d): " format, __FILE__, __LINE__, args)
+/*
+ * Errors and logging
+ */
+#define FILEPOSINFO			__FILE__ "(" STRINGIFY(__LINE__) ")"
+#define EXP_LOG0(errCode)		ExpSyslog(errCode, FILEPOSINFO, 0)
+#define EXP_LOG1(errCode, arg1)		ExpSyslog(errCode, FILEPOSINFO, arg1, 0)
+#define EXP_LOG2(errCode, arg1, arg2)	ExpSyslog(errCode, FILEPOSINFO, arg1, arg2, 0)
 
 /*
  * The following defines identify the various types of applications that 
@@ -43,17 +48,18 @@ typedef struct {
     int toWrite;
 } ExpSpawnState;
 
-extern DWORD		ExpApplicationType(const char *originalName,
+extern DWORD		ExpApplicationType (const char *originalName,
 			    char *fullPath);
-extern DWORD		ExpCreateProcess(int argc, char **argv,
+extern DWORD		ExpCreateProcess (int argc, char **argv,
 			    HANDLE inputHandle, HANDLE outputHandle,
 			    HANDLE errorHandle, int allocConsole,
 			    int hideConsole, int debug, int newProcessGroup,
 			    Tcl_Pid *pidPtr, PDWORD globalPidPtr);
 extern Tcl_Channel	ExpCreateSpawnChannel (Tcl_Interp *, Tcl_Channel chan);
-extern void		ExpSyslog TCL_VARARGS(char *,fmt);
-extern Tcl_Pid		Exp_WaitPid(Tcl_Pid pid, int *statPtr, int options);
-extern void		Exp_KillProcess(Tcl_Pid pid);
-extern void		ExpInitWinProcessAPI(void);
-extern int		ExpDynloadTclStubs(void);
+extern void		ExpSyslog TCL_VARARGS(DWORD,arg1);
+extern TCHAR*		ExpSyslogGetSysMsg (DWORD);
+extern Tcl_Pid		Exp_WaitPid (Tcl_Pid pid, int *statPtr, int options);
+extern void		Exp_KillProcess (Tcl_Pid pid);
+extern void		ExpInitWinProcessAPI (void);
+extern int		ExpDynloadTclStubs (void);
 
