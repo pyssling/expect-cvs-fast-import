@@ -24,11 +24,11 @@ proc delete_special {s} {
 }
 
 set timeout 60
-log_user 0
+#log_user 0
 
 set env(TERM) vt100	;# actual value doesn't matter, just has to be set
 
-spawn telnet madlab.sprl.umich.edu 3000
+spawn telnet cirrus.sprl.umich.edu 3000
 match_max 100000
 while {1} {
 	expect timeout {
