@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinConsoleDebugger.hpp,v 1.1.2.11 2002/03/12 07:09:36 davygrvy Exp $
+ * RCS: @(#) $Id: expWinConsoleDebugger.hpp,v 1.1.2.12 2002/03/12 07:59:14 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -30,10 +30,8 @@
 #define INC_expWinConsoleDebugger_hpp__
 
 #include "expWinSlave.hpp"
+#include "TclHash.hpp"	    // for the hash table template.
 #include <imagehlp.h>
-
-#include <string>   // for the string class.
-#include <map>	    // for associative arrays.
 
 
 #ifdef _M_IX86
@@ -138,8 +136,8 @@ private:
 	PIMAGE_DEBUG_INFORMATION dbgInfo;
     };
 
-    typedef std::map<std::string, PVOID> STRING2PTR;
-    typedef std::map<PVOID, Module *> PTR2MODULE;
+    typedef Tcl::Hash<PVOID,TCL_STRING_KEYS> STRING2PTR;
+    typedef Tcl::Hash<Module *,TCL_ONE_WORD_KEYS> PTR2MODULE;
 
     //  There is one of these instances for each subprocess that we are
     //  controlling.

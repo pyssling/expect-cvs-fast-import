@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinConsoleDebugger.cpp,v 1.1.2.8 2002/03/11 05:36:37 davygrvy Exp $
+ * RCS: @(#) $Id: expWinConsoleDebugger.cpp,v 1.1.2.9 2002/03/12 07:09:36 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -554,20 +554,19 @@ ConsoleDebugger::OnXFirstBreakpoint(Process *proc, LPDEBUG_EVENT pDebEvent)
 
     {
 	InjectCode code;
-	STRING2PTR::iterator iTor;
 	DWORD addr;
 
 	FirstThread = tinfo->hThread;
 	FirstContext.ContextFlags = CONTEXT_FULL;
 	GetThreadContext(FirstThread, &FirstContext);
 
-	iTor = proc->funcTable.find("VirtualAlloc");
-	if (iTor == proc->funcTable.end()) {
+	if (proc->funcTable.Find("VirtualAlloc",
+		reinterpret_cast<PVOID *>(&addr)) != TCL_OK)
+	{
 	    proc->nBreakCount++;	// Don't stop at second breakpoint
 	    EXP_LOG0(MSG_DT_NOVIRT);
 	    return;
 	}
-	addr = reinterpret_cast<DWORD>((*iTor).second);
 
 	code.instPush1     = 0x68;
 	code.argMemProtect = PAGE_EXECUTE_READWRITE;
@@ -687,7 +686,6 @@ ConsoleDebugger::OnXSecondChanceException(Process *proc,
     STACKFRAME frame;
     CONTEXT context;
     ThreadInfo *tinfo;
-    PTR2MODULE::iterator iTor;
     Module *modPtr;
     DWORD displacement;
     BYTE symbolBuffer[sizeof(IMAGEHLP_SYMBOL) + 512];
@@ -756,9 +754,8 @@ ConsoleDebugger::OnXSecondChanceException(Process *proc,
 
     //  Iterate through the loaded modules and load symbols for each one.
     //
-    iTor = proc->moduleTable.begin();
-    while (iTor != proc->moduleTable.end()) {
-	modPtr = (*iTor).second;
+    proc->moduleTable.Top(&modPtr);
+    do {
 	if (! modPtr->loaded) {
 	    modPtr->dbgInfo = MapDebugInformation(modPtr->hFile, 0L,
 		SymbolPath, (DWORD)modPtr->baseAddr);
@@ -767,8 +764,7 @@ ConsoleDebugger::OnXSecondChanceException(Process *proc,
 		0L, 0L, (DWORD) modPtr->baseAddr, 0);
 	    modPtr->loaded = TRUE;
 	}
-	iTor++;
-    }
+    } while (proc->moduleTable.Next(&modPtr) != TCL_ERROR);
 
 
     if (proc->exeModule && proc->exeModule->dbgInfo && 
@@ -800,8 +796,7 @@ ConsoleDebugger::OnXSecondChanceException(Process *proc,
 	    char buf[1024];
 
 	    base = SymGetModuleBase(proc->hProcess, frame.AddrPC.Offset);
-	    iTor = proc->moduleTable.find(reinterpret_cast<PVOID>(base));
-	    modPtr = (*iTor).second;
+	    proc->moduleTable.Find(reinterpret_cast<PVOID>(base), &modPtr);
 	    if (modPtr->dbgInfo && modPtr->dbgInfo->ImageFileName) {
 		s = modPtr->dbgInfo->ImageFileName;
 	    } else {
@@ -1081,7 +1076,7 @@ ConsoleDebugger::OnXLoadDll(Process *proc, LPDEBUG_EVENT pDebEvent)
 	ReadSubprocessMemory(proc, funcPtr, &dw, sizeof(DWORD));
 	funcPtr = (PVOID) (base + dw);
 
-	proc->funcTable.insert(STRING2PTR::value_type(funcName, funcPtr));
+	proc->funcTable.Add(funcName, funcPtr);
 
 	ptr = (PVOID) (sizeof(DWORD) + (ULONG) ptr);
     }
@@ -1113,14 +1108,11 @@ ConsoleDebugger::OnXLoadDll(Process *proc, LPDEBUG_EVENT pDebEvent)
 void
 ConsoleDebugger::OnXUnloadDll(Process *proc, LPDEBUG_EVENT pDebEvent)
 {
-    PTR2MODULE::iterator iTor;
     Module *modPtr;
 
-    iTor = proc->moduleTable.find(pDebEvent->u.UnloadDll.lpBaseOfDll);
-
-
-    if (iTor != proc->moduleTable.end()) {
-	modPtr = (*iTor).second;
+    if (proc->moduleTable.Find(pDebEvent->u.UnloadDll.lpBaseOfDll, &modPtr)
+	    != TCL_ERROR)
+    {
 	if (modPtr->hFile) {
 	    CloseHandle(modPtr->hFile);
 	}
@@ -1131,7 +1123,7 @@ ConsoleDebugger::OnXUnloadDll(Process *proc, LPDEBUG_EVENT pDebEvent)
 	    UnmapDebugInformation(modPtr->dbgInfo);
 	}
 	delete modPtr;
-	proc->moduleTable.erase(iTor);
+	proc->moduleTable.Delete(pDebEvent->u.UnloadDll.lpBaseOfDll);
     }
 }
 
@@ -1151,12 +1143,10 @@ ConsoleDebugger::OnXUnloadDll(Process *proc, LPDEBUG_EVENT pDebEvent)
 BOOL
 ConsoleDebugger::SetBreakpoint(Process *proc, BreakInfo *info)
 {
-    STRING2PTR::iterator iTor;
     PVOID funcPtr;
 
-    iTor = proc->funcTable.find(info->funcName);
-
-    if (iTor == proc->funcTable.end()) {
+    if (proc->funcTable.Find((void *)info->funcName, &funcPtr) == TCL_ERROR)
+    {
 //	EXP_LOG("Unable to set breakpoint at %s", info->funcName);
 	return FALSE;
     }
@@ -1164,7 +1154,6 @@ ConsoleDebugger::SetBreakpoint(Process *proc, BreakInfo *info)
     // Set a breakpoint at the function start in the subprocess and
     // save the original code at the function start.
     //
-    funcPtr = (*iTor).second;
     SetBreakpointAtAddr(proc, info, funcPtr);
     return TRUE;
 }
@@ -1620,7 +1609,7 @@ ConsoleDebugger::LoadedModule(Process *proc, HANDLE hFile, LPVOID modname,
 	proc->exeModule = modPtr;
     }
 
-    proc->moduleTable.insert(PTR2MODULE::value_type(baseAddr, modPtr));
+    proc->moduleTable.Add(baseAddr, modPtr);
 
     return known;
 }
