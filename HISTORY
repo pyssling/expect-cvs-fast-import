@@ -3,8 +3,13 @@ support are in ChangeLog. - Don
 
 Date	Version	Description
 -------	-------	------------------------------------------------------
-		See the NEWS file for this date for an overview.  (I'm
+6/29/99 5.31.0	See the NEWS file for this date for an overview.  (I'm
 		too tired to add all the details.  Maybe later.)
+
+		Removed error checking from ioctl(TIOCSCTTY) to pacify the
+		variety of (but not all) Linux systems and a few others which
+		define TIOCSCTTY but return an error although seem to work
+		anyway.
 
 		Added configure test for 0 vs 2-arg setpgrp.
 

@@ -31,11 +31,11 @@ script" to control this behavior.  The default behavior is to return.
 (This change was required because Expect now gives control to Tcl upon
 exit and Tcl's wait (potentially forever) for all processes to die on
 exit.)  Explicit calls to interpreter are almost non-existent.
-However, you should look for interact commands with a pattern but no
-action.  This required changes in the examples: dislocate, dvorak,
-kibitz, and xkibitz.
+However, you should look for *implicit* calls via interact commands
+with a pattern but no action.  This required changes in the examples:
+dislocate, dvorak, kibitz, and xkibitz.
 
-indirect variables can no longer start with "exp".  Such variables
+Indirect variables can no longer start with "exp".  Such variables
 will be interpreted as channel names.
 
 Old-style regexps may need conversion.  If you have been protecting
@@ -80,7 +80,7 @@ particular way (other than unique strings).
 ** OTHER NOTES
 
 Expect uses channels.  There is an Expect channel type.  It is
-possible to use Tcl's channel commands, such as fconfigure to change
+possible to use Tcl's channel commands, such as fconfigure, to change
 the encoding.  However, Expect layers its own buffering system on top
 of Tcl's channel handler so don't expect intuitive behavior when using
 commands such as gets and puts.  Unless you know what you're doing, I
@@ -100,18 +100,19 @@ full advantage was taken to do something different :-)
 
 Several esoteric bugs were fixed.
 
-Little work was done on the Expect library.  It continues to use Henry
+Little work was done on the Expect library (the one that is, uh,
+scripted using C and C++).  The library continues to use Henry
 Spencer's original regexp engine.
 
 No testing has been done of the poll and non-event subsystems.  (These
 are used on systems which don't support select on ptys or ttys.  Some
 minor work needs to be done on them (because the event subsystem was
-rewritten) which I'll probably do if only if anyone requests it.
+rewritten) which I'll probably do only if anyone requests it.
 
 Many deprecated features (deprecated for many years!) have been
 removed.  All such features were deprecated prior to Exploring Expect
 so if that's how you learned Expect, you have nothing to worry about.
-For example Expect's getpid command predates Tcl's pid command and
+For example, Expect's getpid command predates Tcl's pid command and
 it's been deprecated for, oh.... 6 years - wow!  Other deprecated features
 include:
   expect -timestamp (flag only; behavior itself was removed years ago)

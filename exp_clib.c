@@ -78,7 +78,7 @@ would appreciate credit if this program or parts of it are used.
  * See the file "license.terms" for information on usage and redistribution
  * of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  *
- * RCS: @(#) $Id: exp_clib.c,v 5.28.1.1.2.5 1999/06/28 06:29:23 libes Exp $
+ * RCS: @(#) $Id: exp_clib.c,v 5.28.1.1.2.6 1999/06/29 02:27:45 libes Exp $
  */
 
 #ifndef _STDLIB
@@ -130,7 +130,7 @@ extern unsigned long	strtoul _ANSI_ARGS_((CONST char *string,
  * See the file "license.terms" for information on usage and redistribution
  * of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  *
- * RCS: @(#) $Id: exp_clib.c,v 5.28.1.1.2.5 1999/06/28 06:29:23 libes Exp $
+ * RCS: @(#) $Id: exp_clib.c,v 5.28.1.1.2.6 1999/06/29 02:27:45 libes Exp $
  */
 
 #ifndef _TCL
@@ -1260,7 +1260,7 @@ EXTERN int		Tcl_AppInit _ANSI_ARGS_((Tcl_Interp *interp));
  * Caveat:  this is V8 regexp(3) [actually, a reimplementation thereof],
  * not the System V one.
  *
- * RCS: @(#) $Id: exp_clib.c,v 5.28.1.1.2.5 1999/06/28 06:29:23 libes Exp $
+ * RCS: @(#) $Id: exp_clib.c,v 5.28.1.1.2.6 1999/06/29 02:27:45 libes Exp $
  */
 
 #ifndef _REGEXP
@@ -1351,7 +1351,7 @@ EXTERN char *TclGetRegError _ANSI_ARGS_((void));
  * *** 2. This in addition to changes to TclRegError makes the   ***
  * ***    code multi-thread safe.                                ***
  *
- * RCS: @(#) $Id: exp_clib.c,v 5.28.1.1.2.5 1999/06/28 06:29:23 libes Exp $
+ * RCS: @(#) $Id: exp_clib.c,v 5.28.1.1.2.6 1999/06/29 02:27:45 libes Exp $
  */
 
 #if ACK
@@ -3007,13 +3007,20 @@ when trapping, see below in child half of fork */
 	/* according to Stevens - Adv. Prog..., p 642 */
 #ifdef __QNX__ /* posix in general */
 	if (tcsetct(0, getpid()) == -1) {
-#else
-	if (ioctl(0,TIOCSCTTY,(char *)0) < 0) {
-#endif
-		restore_error_fd
-		fprintf(stderr,"failed to get controlling terminal using TIOCSCTTY");
-		exit(-1);
+	  restore_error_fd
+	  expErrorLog("failed to get controlling terminal using TIOCSCTTY");
+	  exit(-1);
 	}
+#else
+	(void) ioctl(0,TIOCSCTTY,(char *)0);
+	/* ignore return value - on some systems, it is defined but it
+	 * fails and it doesn't seem to cause any problems.  Or maybe
+	 * it works but returns a bogus code.  Noone seems to be able
+	 * to explain this to me.  The systems are an assortment of
+	 * different linux systems (and FreeBSD 2.5), RedHat 5.2 and
+	 * Debian 2.0
+	 */
+#endif
 #endif
 
 #ifdef CRAY
