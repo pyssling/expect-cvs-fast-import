@@ -118,10 +118,6 @@ LINK32=link.exe
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
-SOURCE=.\expSlaveDrvMain.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\expWinDynloadTclStubs.c
 # End Source File
 # Begin Source File
@@ -131,10 +127,6 @@ SOURCE=.\expWinInit.c
 # Begin Source File
 
 SOURCE=.\expWinLog.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\expWinMailboxCli.cpp
 # End Source File
 # Begin Source File
 
@@ -151,6 +143,18 @@ SOURCE=.\expWinSlaveDrv.c
 # Begin Source File
 
 SOURCE=.\expWinSlaveKey.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\expWinSlaveMain.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\expWinSpawnMailboxCli.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\expWinSpawnTransport.cpp
 # End Source File
 # End Group
 # Begin Group "Header Files"
@@ -186,7 +190,7 @@ SOURCE=.\expWinPort.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\expWinSlave.h
+SOURCE=.\expWinSlave.hpp
 # End Source File
 # End Group
 # Begin Group "Resource Files"

@@ -1,8 +1,8 @@
 /* ----------------------------------------------------------------------------
- * expWinSlave.h --
+ * expWinSlave.hpp --
  *
- *	Useful definitions used by the slave driver but not useful
- *	for anybody else.
+ *	Useful definitions used by the slave driver application but not
+ *	useful for anybody else.
  *
  * ----------------------------------------------------------------------------
  *
@@ -23,9 +23,11 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: exp.h,v 1.1.2.5 2001/10/29 06:40:29 davygrvy Exp $
+ * RCS: @(#) $Id: expWinSlave.h,v 1.1.2.3 2001/11/07 10:04:57 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
+#ifndef _EXPWINSLAVE_HPP
+#define _EXPWINSLAVE_HPP
 
 typedef struct ExpSlaveDebugArg {
     HANDLE hMaster;		/* Output handle */
@@ -120,6 +122,41 @@ extern TCL_CPP void			ExpSetConsoleSize(HANDLE hConsoleInW,
 				    int w, int h, int useSocket,
 				    HANDLE hMaster, LPWSAOVERLAPPED over);
 
-/* Mailbox API */
-extern TCL_CPP void SpawnOpenClientMailbox (const char *box);
 
+#ifdef __cplusplus
+#include "./Mcl/include/CMcl.h"
+
+class ExpSpawnTransportCli
+{
+public:
+    virtual void ExpWriteMaster() = 0;
+    virtual void ExpReadMaster() = 0;
+};
+
+class ExpSpawnMailboxCli : public ExpSpawnTransportCli
+{
+public:
+    ExpSpawnMailboxCli(const char *name);
+    virtual void ExpWriteMaster();
+    virtual void ExpReadMaster();
+private:
+    CMclMailbox *MasterToExpect;
+    CMclMailbox *MasterFromExpect;
+};
+
+/* below not implimented yet */
+class ExpSpawnSocketCli : public ExpSpawnTransportCli
+{
+public:
+    ExpSpawnSocketCli(const char *name);
+    virtual void ExpWriteMaster();
+    virtual void ExpReadMaster();
+private:
+};
+
+/* from expWinSpawnTransport.cpp */
+extern ExpSpawnTransportCli *ExpWinSpawnOpenTransport(const char *name);
+
+#endif /* __cplusplus */
+
+#endif /* _EXPWINSLAVE_HPP */

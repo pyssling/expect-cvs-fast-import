@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expSlaveDrvMain.c,v 1.1.2.1 2001/11/07 10:04:57 davygrvy Exp $
+ * RCS: @(#) $Id: expSlaveDrvMain.c,v 1.1.2.2 2001/11/07 22:10:39 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -62,6 +62,7 @@ main (void)
     DWORD threadId;
     int argc;			/* Number of command-line arguments. */
     char **argv;		/* Values of command-line arguments. */
+    ExpSpawnTransportCli *tclient;  /* class pointer of transport client */
 
 
     /* We use a few APIs from Tcl, dynamically load it now. */
@@ -81,7 +82,8 @@ main (void)
     /*
      * Open the client side of our IPC transport.
      */
-    SpawnOpenClientMailbox(argv[1]);
+    tclient = ExpWinSpawnOpenTransport(argv[1]);
+
 
 //    ExpConsoleOut = CreateFile(
 //	    "CONOUT$",
@@ -168,9 +170,9 @@ main (void)
  */
 
 void
-SetArgv(argcPtr, argvPtr)
-    int *argcPtr;		/* Filled with number of argument strings. */
-    char ***argvPtr;		/* Filled with argument strings in UTF (malloc'd). */
+SetArgv(
+    int *argcPtr,		/* Filled with number of argument strings. */
+    char ***argvPtr)		/* Filled with argument strings in UTF (malloc'd). */
 {
     char *p, *arg, *argSpace;
     char **argv;

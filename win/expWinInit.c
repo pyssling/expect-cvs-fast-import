@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinLog.c,v 1.1.2.5 2001/11/07 10:04:57 davygrvy Exp $
+ * RCS: @(#) $Id: expWinInit.c,v 1.1.2.2 2001/11/07 22:10:39 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -72,15 +72,9 @@ ExpWinProcs *expWinProcs = &asciiProcs;
 void
 ExpWinInit (void)
 {
-    OSVERSIONINFO os;
-    os.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
-    
-    if (GetVersionEx(&os) != 0) {    
-	switch (os.dwPlatformId) {
-	    case VER_PLATFORM_WIN32_WINDOWS:
-		expWinProcs = &asciiProcs; break;
-	    case VER_PLATFORM_WIN32_NT:
-		expWinProcs = &unicodeProcs; break;
-	}
+    if (TclWinGetPlatformId() == VER_PLATFORM_WIN32_NT) {    
+	expWinProcs = &unicodeProcs;
+    } else {
+	expWinProcs = &asciiProcs;
     }
 }
