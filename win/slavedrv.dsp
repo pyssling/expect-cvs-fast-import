@@ -41,7 +41,7 @@ CFG=slavedrv - Win32 Debug
 # PROP Use_Debug_Libraries 0
 # PROP Output_Dir ""
 # PROP Intermediate_Dir ""
-# PROP Cmd_Line "nmake -nologo -f makefile.vc32 slavedrv DEBUG=1"
+# PROP Cmd_Line "nmake -nologo -f makefile.vc32 slavedrv"
 # PROP Rebuild_Opt "/a"
 # PROP Target_File "Release/slavedrv.exe"
 # PROP Bsc_Name ""
