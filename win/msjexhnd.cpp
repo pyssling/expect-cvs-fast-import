@@ -134,7 +134,7 @@ void MSJExceptionHandler::GenerateExceptionReport(
     PCONTEXT pCtx = pExceptionInfo->ContextRecord;
 
     // Show the registers
-    #ifdef _M_IX86  // Intel Only!
+#ifdef _M_IX86  // Intel Only!
     _tprintf( _T("\nRegisters:\n") );
 
     _tprintf(_T("EAX:%08X\nEBX:%08X\nECX:%08X\nEDX:%08X\nESI:%08X\nEDI:%08X\n"),
@@ -147,16 +147,16 @@ void MSJExceptionHandler::GenerateExceptionReport(
               pCtx->SegDs, pCtx->SegEs, pCtx->SegFs, pCtx->SegGs );
     _tprintf( _T("Flags:%08X\n"), pCtx->EFlags );
 
-    #endif
+#endif
 
     if ( !InitImagehlpFunctions() )
     {
         OutputDebugString(_T("IMAGEHLP.DLL or its exported procs not found"));
         
-        #ifdef _M_IX86  // Intel Only!
+#ifdef _M_IX86  // Intel Only!
         // Walk the stack using x86 specific code
         IntelStackWalk( pCtx );
-        #endif
+#endif
 
         return;
     }

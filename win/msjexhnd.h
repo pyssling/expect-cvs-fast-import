@@ -28,21 +28,21 @@ class MSJExceptionHandler
       static BOOL GetLogicalAddress(PVOID addr, PTSTR szModule, DWORD len,
                                     DWORD& section, DWORD& offset );
       static void IntelStackWalk( PCONTEXT pContext );
-      #if 1
+#if 1
       static void ImagehlpStackWalk( PCONTEXT pContext );
-      #endif
+#endif
       static int __cdecl _tprintf(const TCHAR * format, ...);
 
-      #if 1
+#if 1
       static BOOL InitImagehlpFunctions( void );
-      #endif
+#endif
           
       // Variables used by the class
       static TCHAR m_szLogFileName[MAX_PATH];
       static LPTOP_LEVEL_EXCEPTION_FILTER m_previousFilter;
       static HANDLE m_hReportFile;
 
-      #if 1
+#if 1
       // Make typedefs for some IMAGEHLP.DLL functions so that we can use them
       // with GetProcAddress
       typedef BOOL (__stdcall * SYMINITIALIZEPROC)( HANDLE, LPSTR, BOOL );
@@ -67,7 +67,7 @@ class MSJExceptionHandler
       static SYMGETMODULEBASEPROC _SymGetModuleBase;
       static SYMGETSYMFROMADDRPROC _SymGetSymFromAddr;
 
-      #endif
+#endif
 
 };
 
