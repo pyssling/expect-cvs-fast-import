@@ -614,9 +614,9 @@ pattern:
 		    if (default_esPtr != EXP_SPAWN_ID_BAD) {
 			eg->i_list = exp_new_i_simple(default_esPtr,eg->duration);
 		    } else {
-			/* it'll be checked later, if used */
-			default_esPtr = expStateCurrent(interp,0,0,1);
-			eg->i_list = exp_new_i_simple(default_esPtr,eg->duration);
+		        default_esPtr = expStateCurrent(interp,0,0,1);
+		        if (!default_esPtr) goto error;
+		        eg->i_list = exp_new_i_simple(default_esPtr,eg->duration);
 		    }
 		}
 		ec.i_list = eg->i_list;
@@ -656,6 +656,7 @@ pattern:
 	} else {
 	    /* it'll be checked later, if used */
 	    default_esPtr = expStateCurrent(interp,0,0,1);
+	    if (!default_esPtr) goto error;
 	    eg->i_list = exp_new_i_simple(default_esPtr,eg->duration);
 	}
     }
