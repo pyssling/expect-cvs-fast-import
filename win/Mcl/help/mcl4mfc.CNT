@@ -1,0 +1,61 @@
+:Base MCL4MFC.HLP
+:Title Mcl4Mfc C+ Class Library Reference
+1 Mcl4Mfc C++ Class Library
+2 Introduction=Mcl4Mfc_C___Class_Library@Mcl4mfc.hlp
+2 CMcl4MfcGUIThread Class
+3 CMcl4MfcGUIThread Description=CMcl4MfcGUIThread@Mcl4mfc.hlp
+3 CMcl4MfcGUIThread:: CMcl4MfcGUIThread=CMcl4MfcGUIThread___CMcl4MfcGUIThread@Mcl4mfc.hlp
+3 CMcl4MfcGUIThread::GetMainWnd=CMcl4MfcGUIThread__GetMainWnd@Mcl4mfc.hlp
+3 CMcl4MfcGUIThread::PostThreadMessage=CMcl4MfcGUIThread__PostThreadMessage@Mcl4mfc.hlp
+3 CMcl4MfcGUIThread::Run=CMcl4MfcGUIThread__Run@Mcl4mfc.hlp
+3 CMcl4MfcGUIThread::SetMainWnd=CMcl4MfcGUIThread__SetMainWnd@Mcl4mfc.hlp
+2 CMcl4MfcGUIThreadAutoPtr Class
+3 CMcl4MfcGUIThreadAutoPtr Description=CMcl4MfcGUIThreadAutoPtr@Mcl4mfc.hlp
+2 CMcl4MfcThread Class
+3 CMcl4MfcThread Description=CMcl4MfcThread@Mcl4mfc.hlp
+3 CMcl4MfcThread::~CMcl4MfcThread=CMcl4MfcThread___CMcl4MfcThread@Mcl4mfc.hlp
+3 CMcl4MfcThread::CMcl4MfcThread=CMcl4MfcThread__CMcl4MfcThread@Mcl4mfc.hlp
+3 CMcl4MfcThread::ExitInstance=CMcl4MfcThread__ExitInstance@Mcl4mfc.hlp
+3 CMcl4MfcThread::GetExitCode=CMcl4MfcThread__GetExitCode@Mcl4mfc.hlp
+3 CMcl4MfcThread::GetPriority=CMcl4MfcThread__GetPriority@Mcl4mfc.hlp
+3 CMcl4MfcThread::GetThreadId=CMcl4MfcThread__GetThreadId@Mcl4mfc.hlp
+3 CMcl4MfcThread::InitInstance=CMcl4MfcThread__InitInstance@Mcl4mfc.hlp
+3 CMcl4MfcThread::IsIdleMessage=CMcl4MfcThread__IsIdleMessage@Mcl4mfc.hlp
+3 CMcl4MfcThread::m_pWinThread=CMcl4MfcThread__m_pWinThread@Mcl4mfc.hlp
+3 CMcl4MfcThread::OnIdle=CMcl4MfcThread__OnIdle@Mcl4mfc.hlp
+3 CMcl4MfcThread::PreTranslateMessage=CMcl4MfcThread__PreTranslateMessage@Mcl4mfc.hlp
+3 CMcl4MfcThread::ProcessMessageFilter=CMcl4MfcThread__ProcessMessageFilter@Mcl4mfc.hlp
+3 CMcl4MfcThread::ProcessWndProcException=CMcl4MfcThread__ProcessWndProcException@Mcl4mfc.hlp
+3 CMcl4MfcThread::Resume=CMcl4MfcThread__Resume@Mcl4mfc.hlp
+3 CMcl4MfcThread::Run=CMcl4MfcThread__Run@Mcl4mfc.hlp
+3 CMcl4MfcThread::SetPriority=CMcl4MfcThread__SetPriority@Mcl4mfc.hlp
+3 CMcl4MfcThread::Suspend=CMcl4MfcThread__Suspend@Mcl4mfc.hlp
+3 CMcl4MfcThread::Terminate=CMcl4MfcThread__Terminate@Mcl4mfc.hlp
+2 CMcl4MfcThreadAutoPtr Class
+3 CMcl4MfcThreadAutoPtr Description=CMcl4MfcThreadAutoPtr@Mcl4mfc.hlp
+2 CMcl4MfcWorkerThread Class
+3 CMcl4MfcWorkerThread Description=CMcl4MfcWorkerThread@Mcl4mfc.hlp
+3 CMcl4MfcWorkerThread::CMcl4MfcWorkerThread=CMcl4MfcWorkerThread__CMcl4MfcWorkerThread@Mcl4mfc.hlp
+3 CMcl4MfcWorkerThread::m_pcThreadHandler=CMcl4MfcWorkerThread__m_pcThreadHandler@Mcl4mfc.hlp
+3 CMcl4MfcWorkerThread::Run=CMcl4MfcWorkerThread__Run@Mcl4mfc.hlp
+3 CMcl4MfcWorkerThreadAutoPtr=CMcl4MfcWorkerThreadAutoPtr@Mcl4mfc.hlp
+2 CMclWinThread Class
+3 CMclWinThread Description=CMclWinThread@Mcl4mfc.hlp
+3 CMclWinThread::CMclWinThread=CMclWinThread__CMclWinThread@Mcl4mfc.hlp
+3 CMclWinThread::ExitInstance=CMclWinThread__ExitInstance@Mcl4mfc.hlp
+3 CMclWinThread::InitInstance=CMclWinThread__InitInstance@Mcl4mfc.hlp
+3 CMclWinThread::IsIdleMessage=CMclWinThread__IsIdleMessage@Mcl4mfc.hlp
+3 CMclWinThread::m_pOwner=CMclWinThread__m_pOwner@Mcl4mfc.hlp
+3 CMclWinThread::MfcExitInstance=CMclWinThread__MfcExitInstance@Mcl4mfc.hlp
+3 CMclWinThread::MfcInitInstance=CMclWinThread__MfcInitInstance@Mcl4mfc.hlp
+3 CMclWinThread::MfcIsIdleMessage=CMclWinThread__MfcIsIdleMessage@Mcl4mfc.hlp
+3 CMclWinThread::MfcOnIdle=CMclWinThread__MfcOnIdle@Mcl4mfc.hlp
+3 CMclWinThread::MfcPreTranslateMessage=CMclWinThread__MfcPreTranslateMessage@Mcl4mfc.hlp
+3 CMclWinThread::MfcProcessMessageFilter=CMclWinThread__MfcProcessMessageFilter@Mcl4mfc.hlp
+3 CMclWinThread::MfcProcessWndProcException=CMclWinThread__MfcProcessWndProcException@Mcl4mfc.hlp
+3 CMclWinThread::MfcRun=CMclWinThread__MfcRun@Mcl4mfc.hlp
+3 CMclWinThread::OnIdle=CMclWinThread__OnIdle@Mcl4mfc.hlp
+3 CMclWinThread::PreTranslateMessage=CMclWinThread__PreTranslateMessage@Mcl4mfc.hlp
+3 CMclWinThread::ProcessMessageFilter=CMclWinThread__ProcessMessageFilter@Mcl4mfc.hlp
+3 CMclWinThread::ProcessWndProcException=CMclWinThread__ProcessWndProcException@Mcl4mfc.hlp
+3 CMclWinThread::Run=CMclWinThread__Run@Mcl4mfc.hlp

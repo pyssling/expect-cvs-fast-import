@@ -1,0 +1,189 @@
+2000-09-16  davidg
+	* include/CMclLinkedLists.h:
+		Put back the protected access to CMclLinkedList for both CMclStack and
+CMclQueue templates as I would like to offer the internals to derived classes
+
+	* .cvsignore:
+	* CMcl.h:
+	* CMclAutoLock.cpp:
+	* CMclAutoLock.h:
+	* CMclAutoPtr.cpp:
+	* CMclAutoPtr.h:
+	* CMclCritSec.cpp:
+	* CMclCritSec.h:
+	* CMclEvent.cpp:
+	* CMclEvent.h:
+	* CMclGlobal.cpp:
+	* CMclGlobal.h:
+	* CMclKernel.cpp:
+	* CMclKernel.h:
+	* CMclLinkedLists.h:
+	* CMclMailbox.cpp:
+	* CMclMailbox.h:
+	* CMclMonitor.cpp:
+	* CMclMonitor.h:
+	* CMclMutex.cpp:
+	* CMclMutex.h:
+	* CMclSemaphore.cpp:
+	* CMclSemaphore.h:
+	* CMclSharedMemory.cpp:
+	* CMclSharedMemory.h:
+	* CMclThread.cpp:
+	* CMclThread.h:
+	* CMclWaitableCollection.cpp:
+	* CMclWaitableCollection.h:
+	* CMclWaitableObject.h:
+	* Mcl.dsp:
+	* Mcl.dsw:
+	* include/CMcl.h:
+	* include/CMclAutoLock.h:
+	* include/CMclAutoPtr.h:
+	* include/CMclCritSec.h:
+	* include/CMclEvent.h:
+	* include/CMclGlobal.h:
+	* include/CMclKernel.h:
+	* include/CMclLinkedLists.h:
+	* include/CMclMailbox.h:
+	* include/CMclMonitor.h:
+	* include/CMclMutex.h:
+	* include/CMclSemaphore.h:
+	* include/CMclSharedMemory.h:
+	* include/CMclThread.h:
+	* include/CMclWaitableCollection.h:
+	* include/CMclWaitableObject.h:
+	* src/CMclAutoLock.cpp:
+	* src/CMclAutoPtr.cpp:
+	* src/CMclCritSec.cpp:
+	* src/CMclEvent.cpp:
+	* src/CMclGlobal.cpp:
+	* src/CMclKernel.cpp:
+	* src/CMclMailbox.cpp:
+	* src/CMclMonitor.cpp:
+	* src/CMclMutex.cpp:
+	* src/CMclSemaphore.cpp:
+	* src/CMclSharedMemory.cpp:
+	* src/CMclThread.cpp:
+	* src/CMclWaitableCollection.cpp:
+		moving around sources
+
+	* lib/Mcl.lib:
+	* lib/mcld.lib:
+	* lib/mclu.lib:
+	* lib/mclud.lib:
+		distributing binaries
+
+	* readme.txt:
+		added a readme
+
+	* Mcl.dsp:
+		added some missing commandline options
+
+2000-08-06  davidg
+	* .cvsignore:
+	* Mcl.dsp:
+		gotcha...  irc_engine now compiles.. next it gets
+converted to using Tcl Tcp channels for sockets.
+
+2000-08-05  davidg
+	* .cvsignore:
+	* CMcl.h:
+	* CMclAutoLock.cpp:
+	* CMclAutoLock.h:
+	* CMclAutoPtr.cpp:
+	* CMclAutoPtr.h:
+	* CMclCritSec.cpp:
+	* CMclCritSec.h:
+	* CMclEvent.cpp:
+	* CMclEvent.h:
+	* CMclGlobal.cpp:
+	* CMclGlobal.h:
+	* CMclKernel.cpp:
+	* CMclKernel.h:
+	* CMclLinkedLists.h:
+	* CMclMailbox.cpp:
+	* CMclMailbox.h:
+	* CMclMonitor.cpp:
+	* CMclMonitor.h:
+	* CMclMutex.cpp:
+	* CMclMutex.h:
+	* CMclSemaphore.cpp:
+	* CMclSemaphore.h:
+	* CMclSharedMemory.cpp:
+	* CMclSharedMemory.h:
+	* CMclThread.cpp:
+	* CMclThread.h:
+	* CMclWaitableCollection.cpp:
+	* CMclWaitableCollection.h:
+	* CMclWaitableObject.h:
+	* Mcl.dsp:
+		ack!!  why did I get all these fucked-up <EOL> things??
+
+2000-04-19  davygrvy
+	* .cvsignore:
+		no message
+
+2000-02-02  davygrvy
+	* CMcl.h:
+	* CMclAutoLock.cpp:
+	* CMclAutoLock.h:
+	* CMclAutoPtr.cpp:
+	* CMclAutoPtr.h:
+	* CMclCritSec.cpp:
+	* CMclCritSec.h:
+	* CMclEvent.cpp:
+	* CMclEvent.h:
+	* CMclGlobal.cpp:
+	* CMclGlobal.h:
+	* CMclKernel.cpp:
+	* CMclKernel.h:
+	* CMclLinkedLists.h:
+	* CMclMailbox.cpp:
+	* CMclMailbox.h:
+	* CMclMonitor.cpp:
+	* CMclMonitor.h:
+	* CMclMutex.cpp:
+	* CMclMutex.h:
+	* CMclSemaphore.cpp:
+	* CMclSemaphore.h:
+	* CMclSharedMemory.cpp:
+	* CMclSharedMemory.h:
+	* CMclThread.cpp:
+	* CMclThread.h:
+	* CMclWaitableCollection.cpp:
+	* CMclWaitableCollection.h:
+	* CMclWaitableObject.h:
+	* Mcl.dsp:
+		initial import
+
+	* CMcl.h:
+	* CMclAutoLock.cpp:
+	* CMclAutoLock.h:
+	* CMclAutoPtr.cpp:
+	* CMclAutoPtr.h:
+	* CMclCritSec.cpp:
+	* CMclCritSec.h:
+	* CMclEvent.cpp:
+	* CMclEvent.h:
+	* CMclGlobal.cpp:
+	* CMclGlobal.h:
+	* CMclKernel.cpp:
+	* CMclKernel.h:
+	* CMclLinkedLists.h:
+	* CMclMailbox.cpp:
+	* CMclMailbox.h:
+	* CMclMonitor.cpp:
+	* CMclMonitor.h:
+	* CMclMutex.cpp:
+	* CMclMutex.h:
+	* CMclSemaphore.cpp:
+	* CMclSemaphore.h:
+	* CMclSharedMemory.cpp:
+	* CMclSharedMemory.h:
+	* CMclThread.cpp:
+	* CMclThread.h:
+	* CMclWaitableCollection.cpp:
+	* CMclWaitableCollection.h:
+	* CMclWaitableObject.h:
+	* Mcl.dsp:
+		Initial revision
+
