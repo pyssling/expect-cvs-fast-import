@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinConsoleDebugger.cpp,v 1.1.2.23 2002/06/22 14:02:03 davygrvy Exp $
+ * RCS: @(#) $Id: expWinConsoleDebugger.cpp,v 1.1.2.24 2002/06/23 09:27:22 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -252,7 +252,10 @@ ConsoleDebugger::ThreadHandlerProc(void)
     ZeroMemory(&pi, sizeof(PROCESS_INFORMATION));
     ZeroMemory(&si, sizeof(STARTUPINFO));
     si.cb = sizeof(STARTUPINFO);
-    si.wShowWindow = SW_SHOWDEFAULT;
+    si.dwXCountChars = 80;
+    si.dwYCountChars = 25;
+    si.wShowWindow = SW_SHOWNOACTIVATE;
+    si.dwFlags = STARTF_USESHOWWINDOW | STARTF_USECOUNTCHARS;
 
     cmdline = ArgMaker::BuildCommandLine(argc, argv);
 
@@ -566,7 +569,8 @@ ConsoleDebugger::OnXThirdBreakpoint(Process *proc, LPDEBUG_EVENT pDebEvent)
     // Create the IPC connection to our loaded injector.dll
     //
     wsprintf(boxName, "ExpectInjector_pid%d", proc->pid);
-    injectorIPC = new CMclMailbox(boxName);
+    injectorIPC = new CMclMailbox(80, sizeof(INPUT_RECORD), boxName);
+
     // Check status.
     if ((err = injectorIPC->Status()) != NO_ERROR) {
 	char *error = new char [512];
@@ -1824,8 +1828,9 @@ ConsoleDebugger::NotifyDone()
 void
 ConsoleDebugger::WriteRecord (INPUT_RECORD *ir)
 {
+    DWORD why;
     if (injectorIPC != 0L) {
-	injectorIPC->Post(ir);
+	why = injectorIPC->Post(ir);
     }
 }
 
