@@ -24,15 +24,13 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinConsoleDebuggerBreakPoints.cpp,v 1.1.2.1 2002/03/07 02:41:46 davygrvy Exp $
+ * RCS: @(#) $Id: expWinConsoleDebuggerBreakPoints.cpp,v 1.1.2.2 2002/03/07 03:25:43 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
 #include "expWinConsoleDebugger.hpp"
 
-
-//  NOTE:  black magic abounds...  be warry young padwon...
-
+// NOTE:  black magic abounds...  be warry young padwon...
 
 /*
  *----------------------------------------------------------------------
@@ -70,7 +68,7 @@ ConsoleDebugger::CreateVtSequence(Process *proc, COORD newPos, DWORD n)
 	memset(&buf[1], '\n', newPos.Y - oldPos.Y);
 	count = 1 + newPos.Y - oldPos.Y;
     } else {
-	/* VT100 sequence */
+	// VT100 sequence
 	wsprintfA(buf, "\033[%d;%dH", newPos.Y+1, newPos.X+1);
 	count = strlen(buf);
     }
@@ -105,12 +103,10 @@ void
 ConsoleDebugger::OnBeep(Process *proc, ThreadInfo *threadInfo,
     Breakpoint *brkpt, PDWORD returnValue, DWORD direction)
 {
-    CHAR buf[50];
-
-//    LOG_ENTRY("Beep");
+    CHAR buf[2];
 
     if (direction == BREAK_IN) {
-	/* Modify the arguments so a beep doesn't sound on the server */
+	// Modify the arguments so a beep doesn't sound on the server
 	threadInfo->args[1] = 0;
     } else if (direction == BREAK_OUT) {
 	if (*returnValue == 0) {
@@ -151,10 +147,8 @@ ConsoleDebugger::OnFillConsoleOutputCharacter(Process *proc,
 //    BOOL bRet;
     COORD coord;
     DWORD lines, preCols, postCols;
-    BOOL eol, bol;		/* Needs clearing to end, beginning of line */
+    BOOL eol, bol;		// Needs clearing to end, beginning of line
     CONSOLE_SCREEN_BUFFER_INFO info;
-
-//    LOG_ENTRY("FillConsoleOutputCharacter");
 
     if (*returnValue == 0) {
 	return;
@@ -194,7 +188,7 @@ ConsoleDebugger::OnFillConsoleOutputCharacter(Process *proc,
 
     if (preCols) {
 	if (bol) {
-	    /* Beginning of line to before end of line */
+	    // Beginning of line to before end of line
 	    if (c == ' ') {
 		wsprintfA(&buf[bufpos], "\033[%d;%dH\033[1K",
 			  coord.Y+1, preCols+coord.X);
@@ -207,7 +201,7 @@ ConsoleDebugger::OnFillConsoleOutputCharacter(Process *proc,
 		bufpos += preCols;
 	    }
 	} else {
-	    /* After beginning of line to end of line */
+	    // After beginning of line to end of line
 	    wsprintfA(&buf[bufpos], "\033[%d;%dH", coord.Y+1, coord.X+1);
 	    bufpos += strlen(&buf[bufpos]);
 	    if (eol && c == ' ') {
@@ -223,12 +217,12 @@ ConsoleDebugger::OnFillConsoleOutputCharacter(Process *proc,
     }
     if (lines) {
 	if ((c == ' ') && ((lines + coord.Y) >= (DWORD) ConsoleSize.Y)) {
-	    /* Clear to end of screen */
+	    // Clear to end of screen
 	    wsprintfA(&buf[bufpos], "\033[%d;%dH\033[J",
 		      coord.Y+1, coord.X+1);
 	    bufpos += strlen(&buf[bufpos]);
 	} else if ((c == ' ') && (coord.Y == 0) && (lines > 0)) {
-	    /* Clear to top of screen */
+	    // Clear to top of screen
 	    wsprintfA(&buf[bufpos], "\033[%d;%dH\033[1J", lines, 1);
 	    bufpos += strlen(&buf[bufpos]);
 	} else {
@@ -250,7 +244,7 @@ ConsoleDebugger::OnFillConsoleOutputCharacter(Process *proc,
 	
     if (postCols) {
 	if (c == ' ') {
-	    /* Clear to beginning of line */
+	    // Clear to beginning of line
 	    wsprintfA(&buf[bufpos], "\033[%d;%dH\033[1K",
 		      coord.Y+1, postCols+coord.X);
 	    bufpos += strlen(&buf[bufpos]);
@@ -364,16 +358,13 @@ ConsoleDebugger::OnOpenConsoleW(Process *proc, ThreadInfo *threadInfo,
     WCHAR name[256];
     PVOID ptr;
 
-//    LOG_ENTRY("OpenConsoleW");
     if (*returnValue == (DWORD) INVALID_HANDLE_VALUE) {
 	return;
     }
 
-    /*
-     * Save any console input handle.  No SetConsoleMode() calls will
-     * succeed unless they are really attached to a console input buffer.
-     */
-
+    // Save any console input handle.  No SetConsoleMode() calls will
+    // succeed unless they are really attached to a console input buffer.
+    //
     ptr = (PVOID) threadInfo->args[0];
     ReadSubprocessStringW(proc, ptr, name, 256);
 
@@ -445,7 +436,6 @@ ConsoleDebugger::OnScrollConsoleScreenBuffer(Process *proc,
     CHAR_INFO fill;
     CHAR c;
     PVOID ptr;
-//    LOG_ENTRY("ScrollConsoleScreenBuffer");
 
     if (*returnValue == FALSE) {
 	return;
@@ -463,7 +453,7 @@ ConsoleDebugger::OnScrollConsoleScreenBuffer(Process *proc,
     ReadSubprocessMemory(proc, ptr, &fill, sizeof(CHAR_INFO));
     c = fill.Char.AsciiChar;
 
-    /* Check for a full line scroll */
+    // Check for a full line scroll
     if (c == ' ' && scroll.Left == dest.X &&
 	scroll.Left == 0 && scroll.Right >= ConsoleSize.X-1)
     {
@@ -511,9 +501,7 @@ ConsoleDebugger::OnSetConsoleMode(Process *proc, ThreadInfo *threadInfo,
     DWORD i;
     BOOL found;
 
-//    LOG_ENTRY("SetConsoleMode");
-
-    /* The console mode seems to get set even if the return value is FALSE */
+    // The console mode seems to get set even if the return value is FALSE
     if (*returnValue == FALSE) {
 	return;
     }
@@ -551,8 +539,6 @@ ConsoleDebugger::OnSetConsoleActiveScreenBuffer(Process *proc,
     ThreadInfo *threadInfo, Breakpoint *brkpt, PDWORD returnValue,
     DWORD direction)
 {
-//    LOG_ENTRY("SetConsoleActiveScreenBuffer");
-
     if (*returnValue == FALSE) {
 	return;
     }
@@ -585,8 +571,6 @@ ConsoleDebugger::OnSetConsoleCursorPosition(Process *proc,
 //    BOOL b;
     CHAR buf[50];
     DWORD count;
-
-//    LOG_ENTRY("SetConsoleCursorPosition");
 
     if (*returnValue == FALSE) {
 	return;
@@ -650,14 +634,10 @@ ConsoleDebugger::OnWriteConsoleA(Process *proc, ThreadInfo *threadInfo,
     PCHAR p;
 //    BOOL bRet;
 
-//    LOG_ENTRY("WriteConsoleA");
-
     if (*returnValue == 0) {
 	return;
     }
-    /*
-     * Get number of bytes written
-     */
+    // Get number of bytes written
     ptr = (PVOID) threadInfo->args[3];
     if (ptr == 0L) {
 	n = threadInfo->args[2];
@@ -713,8 +693,6 @@ ConsoleDebugger::OnWriteConsoleW(Process *proc, ThreadInfo *threadInfo,
 //    BOOL bRet;
     int w;
 
-//    LOG_ENTRY("WriteConsoleW");
-
     if (*returnValue == 0) {
 	return;
     }
@@ -724,6 +702,7 @@ ConsoleDebugger::OnWriteConsoleW(Process *proc, ThreadInfo *threadInfo,
 
     if (n > 1024) {
 	p = new WCHAR [n];
+	asize = n * 2 * sizeof(CHAR);
 	a = new CHAR [n * 2];
     } else {
 	p = buf;
@@ -733,10 +712,8 @@ ConsoleDebugger::OnWriteConsoleW(Process *proc, ThreadInfo *threadInfo,
     ReadSubprocessMemory(proc, ptr, p, n * sizeof(WCHAR));
 //    ResetEvent(proc->overlapped.hEvent);
 
-    /*
-     * Convert to ASCII and write the intercepted data to the pipe.
-     */
-
+    // Convert to ASCII and write the intercepted data to the pipe.
+    //
     w = WideCharToMultiByte(CP_ACP, 0, p, n, a, asize, NULL, NULL);
 //    bRet = ExpWriteMaster(UseSocket, HMaster, a, w, &proc->overlapped);
 
@@ -782,19 +759,17 @@ ConsoleDebugger::OnWriteConsoleOutputA(Process *proc,
     CHAR_INFO *charBuf, *pcb;
     SHORT x, y;
 
-//    LOG_ENTRY("WriteConsoleOutputA");
-
     if (*returnValue == 0) {
 	return;
     }
 
     bufferSize = *((PCOORD) &threadInfo->args[2]);
     bufferCoord = *((PCOORD) &threadInfo->args[3]);
-    ptr = (PVOID) threadInfo->args[4]; /* Get the rectangle written */
+    ptr = (PVOID) threadInfo->args[4]; // Get the rectangle written
     if (ptr == 0L) return;
     ReadSubprocessMemory(proc, ptr, &writeRegion,sizeof(SMALL_RECT));
 
-    ptr = (PVOID) threadInfo->args[1]; /* Get character array */
+    ptr = (PVOID) threadInfo->args[1]; // Get character array
     if (ptr == 0L) return;
 
     n = bufferSize.X * bufferSize.Y * sizeof(CHAR_INFO);
@@ -832,13 +807,9 @@ ConsoleDebugger::OnWriteConsoleOutputA(Process *proc,
 	maxbuf = p - buf;
 //	b = ExpWriteMaster(UseSocket, HMaster, buf, maxbuf, &proc->overlapped);
 	buf[maxbuf] = 0;
-#if 0
-	ExpSyslog("Writing %s", buf);
-#endif
     }
 
     delete [] charBuf;
-//    LOG_EXIT("WriteConsoleOutputA");
 }
 
 /*
@@ -877,19 +848,17 @@ ConsoleDebugger::OnWriteConsoleOutputW(Process *proc,
     CHAR_INFO *charBuf, *pcb;
     SHORT x, y;
 
-//    LOG_ENTRY("WriteConsoleOutputW");
-
     if (*returnValue == 0) {
 	return;
     }
 
     bufferSize = *((PCOORD) &threadInfo->args[2]);
     bufferCoord = *((PCOORD) &threadInfo->args[3]);
-    ptr = (PVOID) threadInfo->args[4]; /* Get the rectangle written */
+    ptr = (PVOID) threadInfo->args[4]; // Get the rectangle written
     if (ptr == 0L) return;
     ReadSubprocessMemory(proc, ptr, &writeRegion,sizeof(SMALL_RECT));
 
-    ptr = (PVOID) threadInfo->args[1]; /* Get character array */
+    ptr = (PVOID) threadInfo->args[1]; // Get character array
     if (ptr == 0L) return;
 
     n = bufferSize.X * bufferSize.Y * sizeof(CHAR_INFO);
@@ -933,7 +902,6 @@ ConsoleDebugger::OnWriteConsoleOutputW(Process *proc,
     }
 
     delete [] charBuf;
-//    LOG_EXIT("WriteConsoleOutputW");
 }
 
 /*
@@ -964,14 +932,10 @@ ConsoleDebugger::OnWriteConsoleOutputCharacterA(Process *proc,
     PCHAR p;
 //    BOOL b;
 
-//    LOG_ENTRY("WriteConsoleOutputCharacterA");
-
     if (*returnValue == 0) {
 	return;
     }
-    /*
-     * Get number of bytes written
-     */
+    // Get number of bytes written
     ptr = (PVOID) threadInfo->args[4];
     if (ptr == 0L) {
 	n = threadInfo->args[2];
@@ -994,7 +958,7 @@ ConsoleDebugger::OnWriteConsoleOutputCharacterA(Process *proc,
 //    b = ExpWriteMaster(UseSocket, HMaster, p, n, &proc->overlapped);
 
     if (p != buf) {
-	delete p;
+	delete [] p;
     }
     CursorKnown = FALSE;
 }
@@ -1031,19 +995,10 @@ ConsoleDebugger::OnWriteConsoleOutputCharacterW(Process *proc,
 //    BOOL b;
     int w;
 
-    if (direction == BREAK_IN) {
-//	LOG_ENTRY("WriteConsoleOutputCharacterW (in)a");
-	return;
-//    } else {
-//	LOG_ENTRY("WriteConsoleOutputCharacterW (out)");
-    }
-
     if (*returnValue == 0) {
 	return;
     }
-    /*
-     * Get number of bytes written
-     */
+    // Get number of bytes written
     ptr = (PVOID) threadInfo->args[4];
     if (ptr == 0L) {
 	n = threadInfo->args[2];
@@ -1067,17 +1022,9 @@ ConsoleDebugger::OnWriteConsoleOutputCharacterW(Process *proc,
     ReadSubprocessMemory(proc, ptr, p, n * sizeof(WCHAR));
 //    ResetEvent(proc->overlapped.hEvent);
 
-    /*
-     * Convert to ASCI and Write the intercepted data to the pipe.
-     */
-
+    // Convert to ASCI and Write the intercepted data to the pipe.
     w = WideCharToMultiByte(CP_ACP, 0, p, n, a, asize, NULL, NULL);
 //    b = ExpWriteMaster(UseSocket, HMaster, a, w, &proc->overlapped);
-
-#if 0
-    a[w] = 0;
-    ExpSyslog("WCOCW: Writing %s", a);
-#endif
 
     if (p != buf) {
 	delete [] p, a;

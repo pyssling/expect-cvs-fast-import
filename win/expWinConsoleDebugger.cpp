@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinConsoleDebugger.hpp,v 1.1.2.2 2002/03/07 02:41:46 davygrvy Exp $
+ * RCS: @(#) $Id: expWinConsoleDebugger.cpp,v 1.1.2.1 2002/03/07 03:25:43 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -33,15 +33,25 @@
 #   pragma comment (lib, "imagehlp.lib")
 #endif
 
-// constructor.
+//  Constructor.
 ConsoleDebugger::ConsoleDebugger (int argc, char * const *argv)
     : _argc(argc), _argv(argv), ProcessList(0L), CursorKnown(FALSE)
 {
+    //  Until further notice, assume this.
+    //
     ConsoleSize.X = 80;
     ConsoleSize.Y = 25;
+
+    //  Until further notice, assume this, too.
+    //
     CursorPosition.X = 0;
     CursorPosition.Y = 0;
 
+    //  Set all our breakpoint info.  We have to do this the long way, here in
+    //  the constructor, because we need to have the this pointer already
+    //  set because we refer to ourselves by needing the address to member
+    //  functions.
+    //
     BreakArrayKernel32[0].funcName = "Beep";
     BreakArrayKernel32[0].nargs = 2;
     BreakArrayKernel32[0].breakProc = OnBeep;
@@ -142,33 +152,11 @@ ConsoleDebugger::ConsoleDebugger (int argc, char * const *argv)
     BreakArrayKernel32[19].breakProc = 0L;
     BreakArrayKernel32[19].dwFlags = 0;
 
-/*    BreakArrayKernel32[0] = {
-	{"Beep", 2, OnBeep, BREAK_OUT|BREAK_IN},
-	{"FillConsoleOutputCharacterA", 5, OnFillConsoleOutputCharacter, BREAK_OUT},
-	{"FillConsoleOutputCharacterW", 5, OnFillConsoleOutputCharacter, BREAK_OUT},
-	{"GetStdHandle", 1, OnGetStdHandle, BREAK_OUT},
-	{"OpenConsoleW", 4, OnOpenConsoleW, BREAK_OUT},
-	{"ReadConsoleInputA", 4, OnReadConsoleInput, BREAK_OUT},
-	{"ReadConsoleInputW", 4, OnReadConsoleInput, BREAK_OUT},
-	{"ScrollConsoleScreenBufferA", 5, OnScrollConsoleScreenBuffer, BREAK_OUT},
-	{"ScrollConsoleScreenBufferW", 5, OnScrollConsoleScreenBuffer, BREAK_OUT},
-	{"SetConsoleMode", 2, OnSetConsoleMode, BREAK_OUT},
-	{"SetConsoleActiveScreenBuffer", 1, OnSetConsoleActiveScreenBuffer, BREAK_OUT},
-	{"SetConsoleCursorPosition", 2, OnSetConsoleCursorPosition, BREAK_OUT},
-	{"SetConsoleWindowInfo", 2, OnSetConsoleWindowInfo, BREAK_OUT},
-	{"WriteConsoleA", 5, OnWriteConsoleA, BREAK_OUT},
-	{"WriteConsoleW", 5, OnWriteConsoleW, BREAK_OUT},
-	{"WriteConsoleOutputA", 5, OnWriteConsoleOutputA, BREAK_OUT},
-	{"WriteConsoleOutputW", 5, OnWriteConsoleOutputW, BREAK_OUT},
-	{"WriteConsoleOutputCharacterA", 5, OnWriteConsoleOutputCharacterA, BREAK_OUT},
-	{"WriteConsoleOutputCharacterW", 5, OnWriteConsoleOutputCharacterW, BREAK_OUT|BREAK_IN},
-	{0L, 0, 0L}
-    };*/
-
     BreakArrayUser32[0].funcName = "IsWindowVisible";
     BreakArrayUser32[0].nargs = 1;
     BreakArrayUser32[0].breakProc = OnIsWindowVisible;
     BreakArrayUser32[0].dwFlags = BREAK_OUT;
+
     BreakArrayUser32[1].funcName = 0L;
     BreakArrayUser32[1].nargs = 0;
     BreakArrayUser32[1].breakProc = 0L;
@@ -176,13 +164,16 @@ ConsoleDebugger::ConsoleDebugger (int argc, char * const *argv)
 
     BreakPoints[0].dllName = "kernel32.dll";
     BreakPoints[0].breakInfo = BreakArrayKernel32;
+
     BreakPoints[1].dllName = "user32.dll";
     BreakPoints[1].breakInfo = BreakArrayUser32;
+
     BreakPoints[2].dllName = 0L;
     BreakPoints[2].breakInfo = 0L;
 }
 
-unsigned ConsoleDebugger::ThreadHandlerProc(void)
+unsigned
+ConsoleDebugger::ThreadHandlerProc(void)
 {
     //ExpSlaveDebugArg *arg = (ExpSlaveDebugArg *) lparg;
     Process *proc;
@@ -196,6 +187,7 @@ unsigned ConsoleDebugger::ThreadHandlerProc(void)
 
     /* Make sure the master does not ignore Ctrl-C */
     SetConsoleCtrlHandler(0L, FALSE);
+
     result = ExpWinCreateProcess(
 	    _argc,
 	    _argv,
@@ -222,7 +214,7 @@ unsigned ConsoleDebugger::ThreadHandlerProc(void)
     }
 
     proc = ProcessNew();
-    //proc->hPid = arg->globalPid;
+//    proc->hPid = arg->globalPid;
 //    if (arg->passThrough) {
 //	ExpProcess *proc;
 //
@@ -231,15 +223,15 @@ unsigned ConsoleDebugger::ThreadHandlerProc(void)
 //	proc->hProcess = arg->process;
 //	ExpAddToWaitQueue(proc->hProcess);
 //    } else {
-	//CloseHandle(arg->process);
+	CloseHandle(process);
 	proc->hProcess = process;
 //	arg->process = proc->hProcess;
 	if (proc->hProcess == 0L) {
 	    //arg->lastError = GetLastError();
 	    return 0;
 	}
-	//ExpAddToWaitQueue(proc->hProcess);
-	//proc->overlapped.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+//	ExpAddToWaitQueue(proc->hProcess);
+//	proc->overlapped.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
 	CommonDebugger();
 //    }
 
@@ -456,12 +448,10 @@ ConsoleDebugger::CommonDebugger()
 		break;
 
 	    case DBG_CONTROL_C:
-		/* fprintf(stderr, "Saw DBG_CONTROL_C event\n"); */
 		dwContinueStatus = DBG_EXCEPTION_NOT_HANDLED;
 		break;
 
 	    case DBG_CONTROL_BREAK:
-		/* fprintf(stderr, "Saw DBG_CONTROL_BREAK event\n"); */
 		dwContinueStatus = DBG_EXCEPTION_NOT_HANDLED;
 		break;
 
@@ -480,25 +470,14 @@ ConsoleDebugger::CommonDebugger()
 	    break;
 
 	case CREATE_THREAD_DEBUG_EVENT:
-#if 0
-	    fprintf(stderr, "Process %d creating thread %d\n", proc->hPid, 
-		    debEvent.dwThreadId);
-#endif
 	    OnXCreateThread(proc, &debEvent);
 	    break;
 
 	case CREATE_PROCESS_DEBUG_EVENT:
-#if 0
-	    fprintf(stderr, "Process %d starting...\n", debEvent.dwProcessId);
-#endif
 	    OnXCreateProcess(proc, &debEvent);
 	    break;
 
 	case EXIT_THREAD_DEBUG_EVENT:
-#if 0
-	    fprintf(stderr, "Process %d thread %d exiting\n", proc->hPid,
-		    debEvent.dwThreadId);
-#endif
 	    OnXDeleteThread(proc, &debEvent);
 	    break;
 
@@ -530,14 +509,14 @@ ConsoleDebugger::CommonDebugger()
 	    break;
 
 	case OUTPUT_DEBUG_STRING_EVENT:
-	    /* Display the output debugging string. */
+	    // Display the output debugging string.
 	    break;
 	}
 
     skip:
-	/* Resume executing the thread that reported the debugging event. */
-	ContinueDebugEvent(debEvent.dwProcessId,
-			   debEvent.dwThreadId, dwContinueStatus);
+	// Resume executing the thread that reported the debugging event.
+	ContinueDebugEvent(debEvent.dwProcessId, debEvent.dwThreadId,
+		dwContinueStatus);
     }
 }
 

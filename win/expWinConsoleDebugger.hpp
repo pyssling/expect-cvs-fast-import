@@ -1,7 +1,7 @@
 /* ----------------------------------------------------------------------------
  * expWinConsoleDebugger.hpp --
  *
- *	Console debugger class defined here.
+ *	Console debugger class declared here.
  *
  * ----------------------------------------------------------------------------
  *
@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinConsoleDebugger.hpp,v 1.1.2.2 2002/03/07 02:41:46 davygrvy Exp $
+ * RCS: @(#) $Id: expWinConsoleDebugger.hpp,v 1.1.2.3 2002/03/07 03:25:43 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -45,7 +45,7 @@
 #define PAGEMASK (PAGESIZE-1)
 
 
-//  This is our debugger.  We run it as a thread. 
+//  This is our debugger.  We run it in a thread. 
 //
 class ConsoleDebugger : public CMclThreadHandler
 {
@@ -99,7 +99,8 @@ private:
 	friend class ConsoleDebugger;
 	const char  *funcName;	// Name of function to intercept.
 	DWORD	    nargs;	// Number of arguments.
-	void (ConsoleDebugger::*breakProc)(Process *, ThreadInfo *, Breakpoint *, PDWORD returnValue, DWORD direction);
+	void (ConsoleDebugger::*breakProc)(Process *, ThreadInfo *,
+		Breakpoint *, PDWORD, DWORD);
 				// Function to call when the breakpoint is hit.
 #	define BREAK_IN  1	// Call handler on the way in.
 #	define BREAK_OUT 2	// Call handler on the way out.
@@ -175,29 +176,29 @@ private:
 
     //  Our breakpoint handlers (indirect).  Called from OnXBreakpoint().
     //
-    void OnBeep				(Process *, ThreadInfo *, Breakpoint *, PDWORD returnValue, DWORD direction);
-    void OnFillConsoleOutputCharacter	(Process *, ThreadInfo *, Breakpoint *, PDWORD returnValue, DWORD direction);
-    void OnGetStdHandle			(Process *, ThreadInfo *, Breakpoint *, PDWORD returnValue, DWORD direction);
-    void OnIsWindowVisible		(Process *, ThreadInfo *, Breakpoint *, PDWORD returnValue, DWORD direction);
-    void OnOpenConsoleW			(Process *, ThreadInfo *, Breakpoint *, PDWORD returnValue, DWORD direction);
-    void OnReadConsoleInput		(Process *, ThreadInfo *, Breakpoint *, PDWORD returnValue, DWORD direction);
-    void OnSetConsoleActiveScreenBuffer	(Process *, ThreadInfo *, Breakpoint *, PDWORD returnValue, DWORD direction);
-    void OnSetConsoleCursorPosition	(Process *, ThreadInfo *, Breakpoint *, PDWORD returnValue, DWORD direction);
-    void OnSetConsoleMode		(Process *, ThreadInfo *, Breakpoint *, PDWORD returnValue, DWORD direction);
-    void OnSetConsoleWindowInfo		(Process *, ThreadInfo *, Breakpoint *, PDWORD returnValue, DWORD direction);
-    void OnScrollConsoleScreenBuffer	(Process *, ThreadInfo *, Breakpoint *, PDWORD returnValue, DWORD direction);
-    void OnWriteConsoleA		(Process *, ThreadInfo *, Breakpoint *, PDWORD returnValue, DWORD direction);
-    void OnWriteConsoleW		(Process *, ThreadInfo *, Breakpoint *, PDWORD returnValue, DWORD direction);
-    void OnWriteConsoleOutputA		(Process *, ThreadInfo *, Breakpoint *, PDWORD returnValue, DWORD direction);
-    void OnWriteConsoleOutputW		(Process *, ThreadInfo *, Breakpoint *, PDWORD returnValue, DWORD direction);
-    void OnWriteConsoleOutputCharacterA	(Process *, ThreadInfo *, Breakpoint *, PDWORD returnValue, DWORD direction);
-    void OnWriteConsoleOutputCharacterW	(Process *, ThreadInfo *, Breakpoint *, PDWORD returnValue, DWORD direction);
-    void OnExpGetExecutablePathA	(Process *, ThreadInfo *, Breakpoint *, PDWORD returnValue, DWORD direction);
-    void OnExpGetExecutablePathW	(Process *, ThreadInfo *, Breakpoint *, PDWORD returnValue, DWORD direction);
-    void OnSearchPathW			(Process *, ThreadInfo *, Breakpoint *, PDWORD returnValue, DWORD direction);
-    void OnlstrcpynW			(Process *, ThreadInfo *, Breakpoint *, PDWORD returnValue, DWORD direction);
-    void OnlstrrchrW			(Process *, ThreadInfo *, Breakpoint *, PDWORD returnValue, DWORD direction);
-    void OnGetFileAttributesW		(Process *, ThreadInfo *, Breakpoint *, PDWORD returnValue, DWORD direction);
+    void OnBeep			    (Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnFillConsoleOutputCharacter (Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnGetStdHandle		    (Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnIsWindowVisible	    (Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnOpenConsoleW		    (Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnReadConsoleInput	    (Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnSetConsoleActiveScreenBuffer	(Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnSetConsoleCursorPosition (Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnSetConsoleMode	    (Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnSetConsoleWindowInfo	    (Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnScrollConsoleScreenBuffer (Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnWriteConsoleA	    (Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnWriteConsoleW	    (Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnWriteConsoleOutputA	    (Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnWriteConsoleOutputW	    (Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnWriteConsoleOutputCharacterA	(Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnWriteConsoleOutputCharacterW	(Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnExpGetExecutablePathA    (Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnExpGetExecutablePathW    (Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnSearchPathW		    (Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnlstrcpynW		    (Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnlstrrchrW		    (Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
+    void OnGetFileAttributesW	    (Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
 
     // Internal utilities
     //
