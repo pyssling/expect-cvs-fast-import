@@ -7,7 +7,7 @@
 #   environment.
 #
 #==============================================================================
-# RCS: @(#) $Id: mkvc32.mif,v 1.1.2.1 2001/09/26 14:24:21 davygrvy Exp $
+# RCS: @(#) $Id: mkprepvc32.mif,v 1.1.2.1 2001/09/28 02:15:55 davygrvy Exp $
 #==============================================================================
 
 !ifndef _MKPREPVC32_MIF
@@ -21,7 +21,7 @@ _MKPREPVC32_MIF = 1
 !endif
 
 
-MAKECMD	    = nmake.exe -nologo /$(MAKEFLAGS) -f win\makefile.vc32
+MAKECMD	    = cd win & nmake.exe -nologo /$(MAKEFLAGS) -f makefile.vc32
 SYM	    =
 
 

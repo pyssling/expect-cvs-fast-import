@@ -36,4 +36,8 @@ SLAVEDRV_OBJs = \
 	$(TMP_DIR)\expWinSlaveDbg.obj \
 	$(TMP_DIR)\expWinDynloadTclStubs.obj \
 	$(TMP_DIR)\expWinProcess.obj \
-	$(TMP_DIR)\expWinLog.obj
+	$(TMP_DIR)\expWinLog.obj \
+	$(TMP_DIR)\spawndrv.res
+
+
+$(TMP_DIR)\spawndrv.res : $(TMP_DIR)\spawndrvmc.rc

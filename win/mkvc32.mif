@@ -6,13 +6,13 @@
 #   NMAKE specific syntax is allowed in this file.
 #
 #==============================================================================
-# RCS: @(#) $Id: mkvc32.mif,v 1.1.2.3 2001/10/11 02:41:47 davygrvy Exp $
+# RCS: @(#) $Id: mkvc32.mif,v 1.1.2.4 2001/10/11 03:59:36 davygrvy Exp $
 #==============================================================================
 
 !ifndef _MKVC32_MIF
 _MKVC32_MIF = 1
 
-!include "mkconfig.mif"
+!include ..\mkconfig.mif
 
 
 TOOLSET	    = vc32
@@ -87,7 +87,7 @@ OUTEXT	= dll
 TMPDIRNAME	= $(TMPDIRNAMEPREFIX)
 !endif
 
-SOURCEROOT	= .
+SOURCEROOT	= ..
 COMPATDIR	= $(SOURCEROOT)\compat
 GENERICDIR	= $(SOURCEROOT)\generic
 TESTDIR		= $(SOURCEROOT)\tests

@@ -4,11 +4,11 @@
 #  that needs editing to build Expect.
 #
 #==============================================================================
-# RCS: @(#) $Id: mkconfig.mif,v 1.1.2.1 2001/09/26 13:25:20 davygrvy Exp $
+# RCS: @(#) $Id: mkconfig.mif,v 1.1.2.2 2001/09/28 00:41:50 davygrvy Exp $
 #==============================================================================
 
 
-!error Please set the user defaults in this file before using this build system.
+#!error Please set the user defaults in this file before using this build system.
 
 
 #==============================================
@@ -20,22 +20,21 @@ CVS_RSH		= c:\cygwin\bin\ssh.exe
 
 #==============================================
 # Where is Tcl ?
+# This needs to be the source location.
 #==============================================
-TCLROOT		= C:\program Files\Tcl
+TCLROOT		= D:\thread_ws\Tcl
 
-
-#==============================================
-# Does the above Tcl path point to the install
-# or sources ?
-#==============================================
-ISTCLINSTALL	= 1
+### We can't set this to 1, so don't try.  Expect needs to know some
+### deep internals and it's only available with the source dist.
+### Expect CANNOT build from the distribution.
+ISTCLINSTALL	= 0
 
 
 #==============================================
 # Where should we install to ?  Use $(TCLROOT)
 # when ISTCLINSTALL == 1
 #==============================================
-INSTALLDIR	= $(TCLROOT)
+INSTALLDIR	= C:\program Files\Tcl
 
 
 #==============================================
