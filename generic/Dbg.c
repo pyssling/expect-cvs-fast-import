@@ -6,11 +6,13 @@ Design and implementation of this program was paid for by U.S. tax
 dollars.  Therefore it is public domain.  However, the author and NIST
 would appreciate credit if this program or parts of it are used.
 
+ RCS: @(#) $Id: Dbg.c,v 5.31 2001/08/02 00:30:14 hobbs Exp $
+
 */
 
 #include <stdio.h>
 
-#include "Dbg_cf.h"
+#include "tcldbgcf.h"
 #if 0
 /* tclInt.h drags in stdlib.  By claiming no-stdlib, force it to drag in */
 /* Tcl's compat version.  This avoids having to test for its presence */
@@ -27,39 +29,15 @@ would appreciate credit if this program or parts of it are used.
 /*				objects to including varargs.h twice, just */
 /*				omit this one. */
 /*#include "string.h"		tclInt.h drags this in, too! */
-#include "Dbg.h"
+#include "tcldbg.h"
 
 #ifndef TRUE
 #define TRUE 1
 #define FALSE 0
 #endif
 
-
-/*
- * Declarations for local procedures defined in this file:
- */
-
-static int		cmdBreak _ANSI_ARGS_((ClientData clientData,
-			    Tcl_Interp *interp, int argc, char **argv));
-static int		cmdDir _ANSI_ARGS_((ClientData clientData,
-			    Tcl_Interp *interp, int argc, char **argv));
-static int		cmdHelp _ANSI_ARGS_((ClientData clientData,
-			    Tcl_Interp *interp, int argc, char **argv));
-static int		cmdNext _ANSI_ARGS_((ClientData clientData,
-			    Tcl_Interp *interp, int argc, char **argv));
-static int		cmdSimple _ANSI_ARGS_((ClientData clientData,
-			    Tcl_Interp *interp, int argc, char **argv));
-static int		cmdWhere _ANSI_ARGS_((ClientData clientData,
-			    Tcl_Interp *interp, int argc, char **argv));
-static int		simple_interactor _ANSI_ARGS_((Tcl_Interp *interp,
-			    ClientData data));
-static int		zero _ANSI_ARGS_((Tcl_Interp *interp, char *string));
-static void		print _ANSI_ARGS_(TCL_VARARGS(Tcl_Interp *,interp));
-static void		debugger_trap _ANSI_ARGS_((ClientData clientData,
-			    Tcl_Interp *interp, int level, char *command,
-			    Tcl_CmdProc *cmdProc, ClientData cmdClientData,
-			    int argc, char **argv));
-
+static int simple_interactor _ANSI_ARGS_((Tcl_Interp *interp, ClientData data));
+static int zero _ANSI_ARGS_((Tcl_Interp *interp, char *funcname));
 
 /* most of the static variables in this file may be */
 /* moved into Tcl_Interp */
@@ -69,6 +47,16 @@ static ClientData interdata = 0;
 static Dbg_IgnoreFuncsProc *ignoreproc = zero;
 static Dbg_OutputProc *printproc = 0;
 static ClientData printdata = 0;
+
+static void print _ANSI_ARGS_(TCL_VARARGS(Tcl_Interp *,interp));
+static Tcl_CmdProc cmdNext;
+static Tcl_CmdProc cmdSimple;
+static Tcl_CmdProc cmdWhere;
+static Tcl_CmdProc cmdBreak;
+static Tcl_CmdProc cmdDir;
+static Tcl_CmdProc cmdHelp;
+static Tcl_CmdTraceProc debugger_trap;
+
 
 static int debugger_active = FALSE;
 
@@ -96,7 +84,7 @@ static int goalNumLevel;	/* destination for Next */
 
 static enum debug_cmd {
 	none, step, next, ret, cont, up, down, where, Next
-} debug_cmd;
+} debug_cmd = step;
 
 /* info about last action to use as a default */
 static enum debug_cmd last_action_cmd = next;
@@ -110,19 +98,17 @@ static debug_new_action;
 
 struct breakpoint {
 	int id;
-	char *file;	/* file where breakpoint is */
+	Tcl_Obj *file;	/* file where breakpoint is */
 	int line;	/* line where breakpoint is */
-	char *pat;	/* pattern defining where breakpoint can be */
-	regexp *re;	/* regular expression to trigger breakpoint */
-	char *expr;	/* expr to trigger breakpoint */
-	char *cmd;	/* cmd to eval at breakpoint */
+	int re;		/* 1 if this is regexp pattern */
+	Tcl_Obj *pat;	/* pattern defining where breakpoint can be */
+	Tcl_Obj *expr;	/* expr to trigger breakpoint */
+	Tcl_Obj *cmd;	/* cmd to eval at breakpoint */
 	struct breakpoint *next, *previous;
 };
 
 static struct breakpoint *break_base = 0;
 static int breakpoint_max_id = 0;
-
-
 
 static struct breakpoint *
 breakpoint_new()
@@ -148,50 +134,49 @@ breakpoint_print(interp,b)
 Tcl_Interp *interp;
 struct breakpoint *b;
 {
-	print(interp,"breakpoint %d: ",b->id);
+    print(interp,"breakpoint %d: ",b->id);
 
-	if (b->re) {
-		print(interp,"-re \"%s\" ",b->pat);
-	} else if (b->pat) {
-		print(interp,"-glob \"%s\" ",b->pat);
-	} else if (b->line != NO_LINE) {
-		if (b->file) {
-			print(interp,"%s:",b->file);
-		}
-		print(interp,"%d ",b->line);
+    if (b->re) {
+	print(interp,"-re \"%s\" ",Tcl_GetString(b->pat));
+    } else if (b->pat) {
+	print(interp,"-glob \"%s\" ",Tcl_GetString(b->pat));
+    } else if (b->line != NO_LINE) {
+	if (b->file) {
+	    print(interp,"%s:",Tcl_GetString(b->file));
 	}
+	print(interp,"%d ",b->line);
+    }
 
-	if (b->expr)
-		print(interp,"if {%s} ",b->expr);
+    if (b->expr)
+	print(interp,"if {%s} ",Tcl_GetString(b->expr));
 
-	if (b->cmd)
-		print(interp,"then {%s}",b->cmd);
+    if (b->cmd)
+	print(interp,"then {%s}",Tcl_GetString(b->cmd));
 
-	print(interp,"\n");
+    print(interp,"\n");
 }
 
 static void
-save_re_matches(interp,re)
+save_re_matches(interp, re, objPtr)
 Tcl_Interp *interp;
-regexp *re;
+Tcl_RegExp re;
+Tcl_Obj *objPtr;
 {
-	int i;
-	char name[20];
-	char match_char;/* place to hold char temporarily */
-			/* uprooted by a NULL */
+    Tcl_RegExpInfo info;
+    int i, start;
+    char name[20];
 
-	for (i=0;i<NSUBEXP;i++) {
-		if (re->startp[i] == 0) break;
+    Tcl_RegExpGetInfo(re, &info); 
+    for (i=0;i<=info.nsubs;i++) {
+	start = info.matches[i].start;
+	/* end = info.matches[i].end-1;*/
 
-		sprintf(name,"%d",i);
-		/* temporarily null-terminate in middle */
-		match_char = *re->endp[i];
-		*re->endp[i] = 0;
-		Tcl_SetVar2(interp,Dbg_VarName,name,re->startp[i],0);
+	if (start == -1) continue;
 
-		/* undo temporary null-terminator */
-		*re->endp[i] = match_char;
-	}
+	sprintf(name,"%d",i);
+	Tcl_SetVar2Ex(interp, Dbg_VarName, name, Tcl_GetRange(objPtr,
+		info.matches[i].start, info.matches[i].end-1), 0);
+    }
 }
 
 /* return 1 to break, 0 to continue */
@@ -201,32 +186,44 @@ Tcl_Interp *interp;
 char *cmd;		/* command about to be executed */
 struct breakpoint *bp;	/* breakpoint to test */
 {
-	if (bp->re) {
-		if (0 == TclRegExec(bp->re,cmd,cmd)) return 0;
-		save_re_matches(interp,bp->re);
-	} else if (bp->pat) {
-		if (0 == Tcl_StringMatch(cmd,bp->pat)) return 0;
-	} else if (bp->line != NO_LINE) {
-		/* not yet implemented - awaiting support from Tcl */
-		return 0;
+    if (bp->re) {
+        int found = 0;
+	Tcl_Obj *cmdObj;
+	Tcl_RegExp re = Tcl_GetRegExpFromObj(NULL, bp->pat,
+		TCL_REG_ADVANCED);
+	cmdObj = Tcl_NewStringObj(cmd,-1);
+	Tcl_IncrRefCount(cmdObj);
+	if (Tcl_RegExpExecObj(NULL, re, cmdObj, 0 /* offset */,
+		-1 /* nmatches */, 0 /* eflags */) > 0) {
+	    save_re_matches(interp, re, cmdObj);
+	    found = 1;
 	}
+	Tcl_DecrRefCount(cmdObj);
+	if (!found) return 0;
+    } else if (bp->pat) {
+	if (0 == Tcl_StringMatch(cmd,
+		Tcl_GetString(bp->pat))) return 0;
+    } else if (bp->line != NO_LINE) {
+	/* not yet implemented - awaiting support from Tcl */
+	return 0;
+    }
 
-	if (bp->expr) {
-		int value;
+    if (bp->expr) {
+	int value;
 
-		/* ignore errors, since they are likely due to */
-		/* simply being out of scope a lot */
-		if (TCL_OK != Tcl_ExprBoolean(interp,bp->expr,&value)
-		    || (value == 0)) return 0;
-	}
+	/* ignore errors, since they are likely due to */
+	/* simply being out of scope a lot */
+	if (TCL_OK != Tcl_ExprBooleanObj(interp,bp->expr,&value)
+		|| (value == 0)) return 0;
+    }
 
-	if (bp->cmd) {
-		Tcl_Eval(interp,bp->cmd);
-	} else {
-		breakpoint_print(interp,bp);
-	}
+    if (bp->cmd) {
+	Tcl_EvalObjEx(interp, bp->cmd, 0);
+    } else {
+	breakpoint_print(interp,bp);
+    }
 
-	return 1;
+    return 1;
 }
 
 static char *already_at_top_level = "already at top level";
@@ -315,49 +312,49 @@ TclGetFrame2(interp, origFramePtr, string, framePtrPtr, dir)
 static char *printify(s)
 char *s;
 {
-	static int destlen = 0;
-	char *d;		/* ptr into dest */
-	int need;
-	static char buf_basic[DEFAULT_WIDTH+1];
-	static char *dest = buf_basic;
+    static int destlen = 0;
+    char *d;		/* ptr into dest */
+    unsigned int need;
+    static char buf_basic[DEFAULT_WIDTH+1];
+    static char *dest = buf_basic;
+    Tcl_UniChar ch;
 
-	if (s == 0) return("<null>");
+    if (s == 0) return("<null>");
 
-	/* worst case is every character takes 4 to printify */
-	need = strlen(s)*4;
-	if (need > destlen) {
-		if (dest && (dest != buf_basic)) ckfree(dest);
-		dest = (char *)ckalloc(need+1);
-		destlen = need;
+    /* worst case is every character takes 4 to printify */
+    need = strlen(s)*6;
+    if (need > destlen) {
+	if (dest && (dest != buf_basic)) ckfree(dest);
+	dest = (char *)ckalloc(need+1);
+	destlen = need;
+    }
+
+    for (d = dest;*s;) {
+	s += Tcl_UtfToUniChar(s, &ch);
+	if (ch == '\b') {
+	    strcpy(d,"\\b");		d += 2;
+	} else if (ch == '\f') {
+	    strcpy(d,"\\f");		d += 2;
+	} else if (ch == '\v') {
+	    strcpy(d,"\\v");		d += 2;
+	} else if (ch == '\r') {
+	    strcpy(d,"\\r");		d += 2;
+	} else if (ch == '\n') {
+	    strcpy(d,"\\n");		d += 2;
+	} else if (ch == '\t') {
+	    strcpy(d,"\\t");		d += 2;
+	} else if ((unsigned)ch < 0x20) { /* unsigned strips parity */
+	    sprintf(d,"\\%03o",ch);		d += 4;
+	} else if (ch == 0177) {
+	    strcpy(d,"\\177");		d += 4;
+	} else if ((ch < 0x80) && isprint(UCHAR(ch))) {
+	    *d = (char)ch;		d += 1;
+	} else {
+	    sprintf(d,"\\u%04x",ch);	d += 6;
 	}
-
-	for (d = dest;*s;s++) {
-		/* since we check at worst by every 4 bytes, play */
-		/* conservative and subtract 4 from the limit */
-		if (d-dest > destlen-4) break;
-
-		if (*s == '\b') {
-			strcpy(d,"\\b");		d += 2;
-		} else if (*s == '\f') {
-			strcpy(d,"\\f");		d += 2;
-		} else if (*s == '\v') {
-			strcpy(d,"\\v");		d += 2;
-		} else if (*s == '\r') {
-			strcpy(d,"\\r");		d += 2;
-		} else if (*s == '\n') {
-			strcpy(d,"\\n");		d += 2;
-		} else if (*s == '\t') {
-			strcpy(d,"\\t");		d += 2;
-		} else if ((unsigned)*s < 0x20) { /* unsigned strips parity */
-			sprintf(d,"\\%03o",*s);		d += 4;
-		} else if (*s == 0177) {
-			strcpy(d,"\\177");		d += 4;
-		} else {
-			*d = *s;			d += 1;
-		}
-	}
-	*d = '\0';
-	return(dest);
+    }
+    *d = '\0';
+    return(dest);
 }
 
 static
@@ -391,8 +388,8 @@ char *argv[];
 	arg_index = 1;
 	
 	while (argc && (space > 0)) {
-		char *elementPtr;
-		char *nextPtr;
+		CONST char *elementPtr;
+		CONST char *nextPtr;
 		int wrap;
 
 		/* braces/quotes have been stripped off arguments */
@@ -405,10 +402,9 @@ char *argv[];
 		else {
 			(void) TclFindElement(interp,*argv,
 #if TCL_MAJOR_VERSION >= 8
-				        strlen(*argv),
+					      -1,
 #endif
-					&elementPtr,
-					&nextPtr,(int *)0,(int *)0);
+				&elementPtr,&nextPtr,(int *)0,(int *)0);
 			if (*elementPtr == '\0') wrap = TRUE;
 			else if (*nextPtr == '\0') wrap = FALSE;
 			else wrap = TRUE;
@@ -436,12 +432,32 @@ char *argv[];
 	/* usually but not always right, but assume truncation if buffer is */
 	/* full.  this avoids tiny but odd-looking problem of appending "}" */
 	/* to truncated lists during {}-wrapping earlier */
-	if (strlen(buf) == (size_t) buf_width) {
+	if (strlen(buf) == buf_width) {
 		buf[buf_width-1] = buf[buf_width-2] = buf[buf_width-3] = '.';
 	}
 
 	return(buf);
 }
+
+#if TCL_MAJOR_VERSION >= 8
+static
+char *
+print_objv(interp,objc,objv)
+Tcl_Interp *interp;
+int objc;
+Tcl_Obj *objv[];
+{
+    char **argv;
+    int argc;
+    int len;
+    argv = (char **)ckalloc(objc+1 * sizeof(char *));
+    for (argc=0 ; argc<objc ; argc++) {
+	argv[argc] = Tcl_GetStringFromObj(objv[argc],&len);
+    }
+    argv[argc] = NULL;
+    return(print_argv(interp,argc,argv));
+}
+#endif
 
 static
 void
@@ -460,22 +476,11 @@ CallFrame *viewf;	/* view FramePtr */
 				ptr,print_argv(interp,main_argc,main_argv));
 	} else {
 		PrintStackBelow(interp,curf->callerVarPtr,viewf);
-#if TCL_MAJOR_VERSION < 8
 		print(interp,"%c%d: %s\n",ptr,curf->level,
-			print_argv(interp,curf->argc,curf->argv));
+#if TCL_MAJOR_VERSION >= 8
+			print_objv(interp,curf->objc,curf->objv));
 #else
-		if (1) {
-			char **argv;
-			int i, length;
-			argv = (char **) ckalloc(curf->objc * sizeof(char *));
-			for (i = 0; i < curf->objc; i++) {
-				argv[i] = Tcl_GetStringFromObj(curf->objv[i],
-							       &length);
-			}
-			print(interp,"%c%d: %s\n",ptr,curf->level,
-			      print_argv(interp,curf->objc, argv));
-			ckfree((char *) argv);
-		}
+			print_argv(interp,curf->argc,curf->argv));
 #endif
 	}
 }
@@ -521,6 +526,23 @@ Interp *iptr;
 		}
 	}
 	return 0;
+}
+
+static char *cmd_print(cmdtype)
+enum debug_cmd cmdtype;
+{
+	switch (cmdtype) {
+	case none:  return "cmd: none";
+	case step:  return "cmd: step";
+	case next:  return "cmd: next";
+	case ret:   return "cmd: ret";
+	case cont:  return "cmd: cont";
+	case up:    return "cmd: up";
+	case down:  return "cmd: down";
+	case where: return "cmd: where";
+	case Next:  return "cmd: Next";
+	}
+	return "cmd: Unknown";
 }
 
 /* debugger's trace handler */
@@ -587,11 +609,13 @@ char *argv[];
 		break_status |= breakpoint_test(interp,command,b);
 	}
 	if (break_status) {
-		if (!debug_new_action) goto start_interact;
+		if (!debug_new_action) {
+			goto start_interact;
+		}
 
 		/* if s or n triggered by breakpoint, make "s 1" */
 		/* (and so on) refer to next command, not this one */
-/*		step_count++;*/
+		/* step_count++;*/
 		goto end_interact;
 	}
 
@@ -702,6 +726,7 @@ char **argv;
 {
 	debug_new_action = TRUE;
 	debug_cmd = *(enum debug_cmd *)clientData;
+
 	last_action_cmd = debug_cmd;
 
 	step_count = (argc == 1)?1:atoi(argv[1]);
@@ -747,10 +772,10 @@ void
 breakpoint_destroy(b)
 struct breakpoint *b;
 {
-	if (b->file) ckfree(b->file);
-	if (b->pat) ckfree(b->pat);
-	if (b->re) ckfree((char *)b->re);			
-	if (b->cmd) ckfree(b->cmd);
+	if (b->file) Tcl_DecrRefCount(b->file);
+	if (b->pat) Tcl_DecrRefCount(b->pat);
+	if (b->cmd) Tcl_DecrRefCount(b->cmd);
+	if (b->expr) Tcl_DecrRefCount(b->expr);
 
 	/* unlink from chain */
 	if ((b->previous == 0) && (b->next == 0)) {
@@ -769,12 +794,12 @@ struct breakpoint *b;
 }
 
 static void
-savestr(straddr,str)
-char **straddr;
+savestr(objPtr,str)
+Tcl_Obj **objPtr;
 char *str;
 {
-	*straddr = ckalloc(strlen(str)+1);
-	strcpy(*straddr,str);
+    *objPtr = Tcl_NewStringObj(str, -1);
+    Tcl_IncrRefCount(*objPtr);
 }
 
 /* return 1 if a string is substring of a flag */
@@ -876,9 +901,15 @@ char **argv;
 
 	if (flageq("-regexp",argv[0],2)) {
 		argc--; argv++;
-		if ((argc > 0) && (b->re = TclRegComp(argv[0]))) {
-			savestr(&b->pat,argv[0]);
-			argc--; argv++;
+		if (argc > 0) {
+		    b->re = 1;
+		    savestr(&b->pat,argv[0]);
+		    if (Tcl_GetRegExpFromObj(interp, b->pat, TCL_REG_ADVANCED)
+			    == NULL) {
+			breakpoint_destroy(b);
+			return TCL_ERROR;
+		    }
+		    argc--; argv++;
 		} else {
 			breakpoint_fail("bad regular expression")
 		}
@@ -913,7 +944,7 @@ char **argv;
 		} else {
 			/* not an int? - unwind & assume it is an expression */
 
-			if (b->file) ckfree(b->file);
+			if (b->file) Tcl_DecrRefCount(b->file);
 		}
 	}
 
@@ -1135,12 +1166,12 @@ char *string;
 }
 
 static int
-simple_interactor(interp, clientData)
+simple_interactor(interp,data)
 Tcl_Interp *interp;
-ClientData clientData;
+ClientData data;
 {
 	int rc;
-	char *ccmd;		/* pointer to complete command */
+	char *ccmd;	/* pointer to complete command */
 	char line[BUFSIZ+1];	/* space for partial command */
 	int newcmd = TRUE;
 	Interp *iPtr = (Interp *)interp;
@@ -1153,43 +1184,31 @@ ClientData clientData;
 		struct cmd_list *c;
 
 		if (newcmd) {
-			print(interp,"dbg%d> ",iPtr->numLevels);
+#if TCL_MAJOR_VERSION < 8
+			print(interp,"dbg%d.%d> ",iPtr->numLevels,iPtr->curEventNum+1);
+#else
+			/* unncessarily tricky coding - if nextid
+			   isn't defined, maintain our own static
+			   version */
+
+			static int nextid = 0;
+			char *nextidstr = Tcl_GetVar2(interp,"tcl::history","nextid",0);
+			if (nextidstr) {
+				sscanf(nextidstr,"%d",&nextid);
+			}
+			print(interp,"dbg%d.%d> ",iPtr->numLevels,nextid++);
+#endif
 		} else {
 			print(interp,"dbg+> ");
 		}
 		fflush(stdout);
 
-#ifdef __WIN32__
-		if (1) {
-			Tcl_Obj *objv[3];
-			char *end;
-
-			objv[0] = Tcl_NewStringObj("gets", -1);
-			objv[1] = Tcl_NewStringObj("stdin", -1);
-			objv[2] = Tcl_NewStringObj("ExpectTmpDbgVarX0X0X0Y", -1);
-			rc = Tcl_GetsObjCmd(NULL, interp, 3, objv);
-			Tcl_DecrRefCount(objv[0]);
-			Tcl_DecrRefCount(objv[1]);
-			Tcl_DecrRefCount(objv[2]);
-			if (rc == TCL_ERROR) {
-				return TCL_ERROR;
-			}
-			if (interp->result[0] == '-') {
-				Tcl_AppendResult(interp,
-						 "error: stdin is non-blocking, can't debug", NULL);
-				return TCL_ERROR;
-			}
-			rc = strtoul(interp->result, &end, 10);
-			strcpy(line, interp->result);
-		}
-#else
 		if (0 >= (rc = read(0,line,BUFSIZ))) {
 			if (!newcmd) line[0] = 0;
 			else exit(0);
 		} else line[rc] = '\0';
-#endif
 
-		ccmd = Tcl_DStringAppend(&dstring,line,rc);
+		(CONST char *) ccmd = Tcl_DStringAppend(&dstring,line,rc);
 		if (!Tcl_CommandComplete(ccmd)) {
 			newcmd = FALSE;
 			continue;	/* continue collecting command */
@@ -1290,13 +1309,18 @@ int immediate;		/* if true, stop immediately */
 {
 	if (!debugger_active) init_debugger(interp);
 
-	debug_cmd = step;
+	/* Initialize debugger in single-step mode.
+	 *
+	 * Note: if the command reader is already active, it's too late
+	 * which is why we also statically initialize debug_cmd to step.
+	 */
+	debug_cmd = step; 
 	step_count = 1;
 
 	if (immediate) {
 		static char *fake_cmd = "--interrupted-- (command_unknown)";
 
-		debugger_trap((ClientData)0,interp,-1,fake_cmd,(Tcl_CmdProc *)0,
+		debugger_trap((ClientData)0,interp,-1,fake_cmd,0,
 					(ClientData)0,1,&fake_cmd);
 /*		(*interactor)(interp);*/
 	}
@@ -1317,4 +1341,8 @@ Tcl_Interp *interp;
 	Tcl_DeleteTrace(interp,debug_handle);
 	debugger_active = FALSE;
 	Tcl_UnsetVar(interp,Dbg_VarName,TCL_GLOBAL_ONLY);
+
+	/* initialize for next use */
+	debug_cmd = step;
+	step_count = 1;
 }
