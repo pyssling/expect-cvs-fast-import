@@ -1,0 +1,78 @@
+/* ----------------------------------------------------------------------------
+ * spawndrv.rc --
+ *
+ *	Resource script for use with the resource compiler.
+ * 
+ * ----------------------------------------------------------------------------
+ *
+ * Written by: Don Libes, libes@cme.nist.gov, NIST, 12/3/90
+ * 
+ * Design and implementation of this program was paid for by U.S. tax
+ * dollars.  Therefore it is public domain.  However, the author and NIST
+ * would appreciate credit if this program or parts of it are used.
+ * 
+ * Copyright (c) 1997 Mitel Corporation
+ *	work by Gordon Chaffee <chaffee@bmrc.berkeley.edu> for the WinNT port.
+ *
+ * Copyright (c) 2001-2002 Telindustrie, LLC
+ *	work by David Gravereaux <davygrvy@pobox.com> for any Win32 OS.
+ *
+ * ----------------------------------------------------------------------------
+ * URLs:    http://expect.nist.gov/
+ *	    http://expect.sf.net/
+ *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
+ * ----------------------------------------------------------------------------
+ * RCS: @(#) $Id: spawndrv.rc,v 1.1.2.6 2001/11/07 10:04:57 davygrvy Exp $
+ * ----------------------------------------------------------------------------
+ */
+
+#include <winver.h>
+#define RESOURCE_INCLUDED   /* needed by tcl.h because it doesn't use RC_INVOKED */
+#include "exp.h"
+
+VS_VERSION_INFO VERSIONINFO
+    FILEVERSION	    EXP_MAJOR_VERSION,EXP_MINOR_VERSION,EXP_RELEASE_LEVEL,EXP_RELEASE_SERIAL
+    PRODUCTVERSION  EXP_MAJOR_VERSION,EXP_MINOR_VERSION,EXP_RELEASE_LEVEL,EXP_RELEASE_SERIAL
+    FILEFLAGSMASK   VS_FFI_FILEFLAGSMASK
+
+#if defined(_DEBUG)
+    FILEFLAGS	    VS_FF_DEBUG
+#elif EXP_RELEASE_LEVEL == TCL_FINAL_RELEASE
+    FILEFLAGS	    0x0L
+#else
+    FILEFLAGS	    VS_FF_PRERELEASE
+#endif
+
+#if defined(_UNICODE)
+    FILEOS	    VOS_NT_WINDOWS32  /* limit this to NT only */
+#else
+    FILEOS	    VOS__WINDOWS32    /* open to all */
+#endif
+
+    FILETYPE	    VFT_DLL
+    FILESUBTYPE     VFT2_UNKNOWN
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904b0" /* LANG_ENGLISH/SUBLANG_ENGLISH_US, Unicode CP */
+        BEGIN
+            VALUE "FileDescription", "Spawn Driver helper application for overseeing Win32 consoles.\0"
+            VALUE "OriginalFilename", "spawndrv.exe\0"
+            VALUE "CompanyName", "Telindustrie, LLC\0"
+            VALUE "FileVersion", EXP_PATCH_LEVEL "\0"
+            VALUE "LegalCopyright", "Copyright \251 Telindustrie, LLC 2002\0"
+            VALUE "ProductName", "Expect " EXP_VERSION " for Win32\0"
+            VALUE "ProductVersion", EXP_PATCH_LEVEL "\0"
+	    VALUE "Comments", "Expect was written for Unix by Don Libes at NIST.\r\n" "Gordon Chaffee ported it to WinNT for Mitel Corporation in 1997.\r\n" "David Gravereaux merged Gordon's port back into the official sources for Telindustrie LLC in Oct. 2001.\0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1200
+    END
+END
+
+
+// Include the Message Table that lists the error codes and textual replies.
+// This is output from the message compiler and found in the temp build directory.
+#include "slavedrvmc.rc"
