@@ -1,6 +1,105 @@
+2001-11-07  davygrvy
+	* win/.cvsignore:
+	* win/Mcl/.cvsignore:
+		a few more globs added.
+
+	* expect.dsw:
+	* win/buildfiles.dsp(removed):
+	* win/expect.dsp(removed):
+	* win/genStubs.dsp(removed):
+	* win/slavedrv.dsp:
+		Changed to an IDE project rather than a makefile project.
+		The makefiles will be disappearing.
+
+	* generic/exp.decls:
+	* generic/exp.h:
+	* generic/expDecls.h:
+	* generic/expInt.h:
+	* generic/expIntDecls.h:
+	* generic/expIntPlatDecls.h:
+	* generic/expPlatDecls.h:
+	* generic/expStubInit.c:
+		Massive restructuring done to the header files.
+		Closely emulates the core.
+
+	* win/Mcl/.cvsignore:
+	* win/Mcl/ChangeLog:
+	* win/Mcl/Mcl.dsp:
+	* win/Mcl/Mcl.dsw:
+	* win/Mcl/help/MCL.HLP:
+	* win/Mcl/help/MCL4MFC.HLP:
+	* win/Mcl/help/Mcl C++ Class Library.chm:
+	* win/Mcl/help/Mcl4Mfc C++ Class Library.chm:
+	* win/Mcl/help/mcl.CNT:
+	* win/Mcl/help/mcl4mfc.CNT:
+	* win/Mcl/include/CMcl.h:
+	* win/Mcl/include/CMclAutoLock.h:
+	* win/Mcl/include/CMclAutoPtr.h:
+	* win/Mcl/include/CMclCritSec.h:
+	* win/Mcl/include/CMclEvent.h:
+	* win/Mcl/include/CMclGlobal.h:
+	* win/Mcl/include/CMclKernel.h:
+	* win/Mcl/include/CMclLinkedLists.h:
+	* win/Mcl/include/CMclMailbox.h:
+	* win/Mcl/include/CMclMonitor.h:
+	* win/Mcl/include/CMclMutex.h:
+	* win/Mcl/include/CMclSemaphore.h:
+	* win/Mcl/include/CMclSharedMemory.h:
+	* win/Mcl/include/CMclThread.h:
+	* win/Mcl/include/CMclWaitableCollection.h:
+	* win/Mcl/include/CMclWaitableObject.h:
+	* win/Mcl/readme.txt:
+	* win/Mcl/src/CMclAutoLock.cpp:
+	* win/Mcl/src/CMclAutoPtr.cpp:
+	* win/Mcl/src/CMclCritSec.cpp:
+	* win/Mcl/src/CMclEvent.cpp:
+	* win/Mcl/src/CMclGlobal.cpp:
+	* win/Mcl/src/CMclKernel.cpp:
+	* win/Mcl/src/CMclMailbox.cpp:
+	* win/Mcl/src/CMclMonitor.cpp:
+	* win/Mcl/src/CMclMutex.cpp:
+	* win/Mcl/src/CMclSemaphore.cpp:
+	* win/Mcl/src/CMclSharedMemory.cpp:
+	* win/Mcl/src/CMclThread.cpp:
+	* win/Mcl/src/CMclWaitableCollection.cpp:
+		"Mcl" multithreading C++ class library added
+
+	* win/dllEntryPoint.c:
+	* win/expSlaveDrvMain.c:
+	* win/expWin.h:
+	* win/expWinCommand.c:
+	* win/expWinDynloadTclStubs.c:
+	* win/expWinInit.c:
+	* win/expWinInt.h:
+	* win/expWinLog.c:
+	* win/expWinPort.h:
+	* win/expWinProcess.c:
+	* win/expWinSlave.h:
+	* win/expWinSlaveDbg.c:
+	* win/expWinSlaveDrv.c:
+	* win/expWinSlaveKey.c:
+	* win/expWinSpawnChan.c:
+	* win/makefile.vc32:
+	* win/spawndrv.rc:
+	* win/spawndrvmc.mc:
+		Numerous changes
+
+	* win/slavedrv.dsp:
+		small unicode changes.
+
+	* win/expWinMailboxCli.cpp:
+	* win/expWinMailboxSrv.cpp:
+		Small test beginnings of the IPC channel driver with client for
+		spawndrv.exe
+
 2001-10-30  davygrvy
 	* win/dllEntryPoint.c:
 		(new) not neccessarily needed, but being explict is a good thing.
+
+	* win/makefile.vc32:
+	* win/mkfiles.mif:
+	* win/mkvc32.mif:
+		added a 'clean' target.
 
 2001-10-29  davygrvy
 	* win/expect.dsp:
@@ -30,7 +129,7 @@
 	* win/slavedrv.dsp:
 		fixed the release build to actually do a release build.
 
-	* generic/expPlatIntDecls.h:
+	* generic/expPlatIntDecls.h (removed):
 		Whoops.  should be IntPlat, not PlatInt.
 
 	* generic/expIntPlatDecls.h:
