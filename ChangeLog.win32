@@ -1,3 +1,498 @@
+2001-10-28  davygrvy
+	* generic/exp.h (new):
+	* generic/expDecls.h (new):
+	* generic/expInt.h (new):
+	* generic/expIntDecls.h (new):
+	* generic/expPort.h:
+	* generic/exp_command.h (removed):
+	* generic/exp_event.h (removed):
+		reworking the header files for a more core style and structure.
+
+	* generic/exp.decls:
+		(new) Stubs table
+
+	* expect.dsw:
+	* win/genStubs.dsp (new):
+		IDE file for rebuilding the Stubs table.
+
+	* win/expWinLog.c:
+		removed the check to when not to call DebugBreak().  Always
+		call it.
+
+	* generic/expCommand.c:
+	* generic/expCommand.c:
+	* generic/exp_event.c:
+		large amount of edits to make it work (again).  Needs to be checked against
+		the snap29 mods.
+
+	* generic/exp_main_sub.c:
+		no more custom shells
+
+	* win/buildfiles.dsp:
+	* win/expect.dsp:
+	* win/makefile.vc32:
+	* win/mkfiles.mif:
+		build instruction changes
+
+	* makefile.win:
+		extension target changed from 'release' to 'expect'
+
+2001-10-26  davygrvy
+	* unix/expUnixSpawnChan.c:
+		a "merge" of the older Gordon port to 5.32.2's
+
+	* win/expWinLog.c:
+	* win/expWinProcess.c:
+	* win/expWinSlaveDbg.c:
+	* win/expWinSlaveDrv.c:
+	* win/spawndrvmc.mc:
+		adding more calls to ExpSyslog() where needed.
+
+	* win/expWin.h:
+	* win/expWinDynloadTclStubs.c:
+	* win/expWinLog.c:
+	* win/expWinProcess.c:
+	* win/expWinSlaveDbg.c:
+	* win/expWinSlaveDrv.c:
+	* win/spawndrvmc.mc:
+		ExpSyslog() is finally doing what I want.  More work to do, but the
+		groundwork is now set.
+
+	* expect.dsw:
+	* win/buildfiles.dsp:
+	* win/expect.dsp:
+		a couple more IDE project files for MsDev
+
+2001-10-22  davygrvy
+	* win/msjexhnd.cpp:
+	* win/msjexhnd.h:
+		simple formatting changes.
+
+	* win/makefile.vc32:
+		Needed to include the temp directory in the include path so spawndrvmc.h
+		is picked-up.
+
+	* win/expWinSlaveDbg.c:
+		removed #include "tclInt.h".  tclPort.h brings it in anyways.
+
+	* win/slavedrv.dsp:
+		MSVC++ v6 project file.  Calls the makefile anyways..  Just a shortcut
+		when working in the IDE so the debugger knows what is what and who
+		is who and everyone can co-exist all peacefully.
+
+	* expect.dsw:
+		MSVC++ v6 workspace file for the IDE.
+
+	* .cvsignore:
+	* win/.cvsignore:
+		globs to ignore by CVS.
+
+2001-10-14  davygrvy
+	* win/expect.rc:
+	* win/spawndrv.rc:
+	* win/spawndrvmc.mc:
+		Added #define RESOURCE_INCLUDED because tcl.h doesn't
+		use RC_INVOKED.  Which it should, but doesn't.
+
+	* mkconfig.mif:
+	* win/makefile.vc32:
+	* win/mkfiles.mif:
+	* win/mkprepvc32.mif:
+	* win/mkvc32.mif:
+		Changed the build files to be run from the /win directory instead
+		of the top-root.  This will help get MS project .dsp files working.
+
+2001-10-12  davygrvy
+	* win/spawndrv.rc:
+	* win/spawndrv.rc:
+	* win/spawndrvmc.mc:
+		spawndrv.exe needed a resource script and a message catalog.
+
+	* win/spawndrv.rc:
+	* win/spawndrvmc.mc:
+		getting closer to building the message catalog.
+
+	* win/spawndrvmc.mc:
+		corrected title block text.
+
+2001-10-11  davygrvy
+	* win/expWin.h:
+	* win/expWinDynloadTclStubs.c:
+	* win/expWinProcess.c:
+	* win/expWinSlaveDrv.c:
+	* win/mkfiles.mif:
+		Added Stubs dynloading stuff.  slavedrv.exe appears to be
+		working thus far,
+
+	* win/expWinProcess.c:
+		Added ExpInitWinProcessAPI() to setup the ascii/unicode proc
+		switching.
+
+	* win/expWinProcess.c:
+		l'il bugfix
+
+	* win/expWin.h:
+	* win/expWin.h:
+	* win/expWinCommand.c:
+	* win/expWinPort.h:
+	* win/expWinProcess.c:
+	* win/expWinProcess.c:
+	* win/expWinSlave.h:
+	* win/expWinSlaveDbg.c:
+	* win/expWinSlaveDrv.c:
+	* win/expWinSpawnChan.c:
+	* win/expWinTty.c:
+	* win/expect.rc:
+	* win/makefile.vc32:
+	* win/makefile.vc32:
+	* win/mkfiles.mif:
+	* win/mkvc32.mif:
+	* win/mkvc32.mif:
+		slavedrv.exe is building..  need to add Stubs startup code.
+
+	* win/expWinProcess.c:
+		updated ExpCreateProcess() to match 8.4 imp.  I wish I could use the core for
+		this function, but can't as the changes are deep.
+
+	* win/expWinProcess.c:
+		Ack!  bigger bugfix repaired.  Had some doubleup during some edits for
+		comparisons and forget to delete the old half.
+
+2001-10-05  davygrvy
+	* generic/exp_main_exp.c:
+	* generic/exp_main_tk.c:
+		motion toward a pure extension.  No custom shells.
+
+	* generic/expSpawnChan.c:
+		Mostly adapted to the ExpState structure...
+
+	* generic/exp_regexp.c:
+	* generic/exp_regexp.h:
+		won't be used anymore in favor of the core RE engine.
+
+	* generic/expChannel.c:
+		pertinent code moved to expSpawnChan.c instead.
+
+	* generic/exp_memmove.c:
+		moved to the compat/ directory
+
+2001-10-04  davygrvy
+	* win/expectlib.rc:
+		There will be no more expectLib
+
+2001-10-03  davygrvy
+	* exp_tty_in.h:
+		Top-level source files removed.
+
+2001-10-02  davygrvy
+	* win/panic.c:
+	* win/tclHash.c:
+		not needed.  We'll be using the core for this.  NO COPIES!
+
+	* win/Dbg_cf.h:
+		not needed here.
+
+	* generic/expect.c:
+	* generic/expect.h:
+		fixed numerous warnings and errors.  code is from 5.32.2
+
+	* Dbg.c:
+	* expTcl.c:
+	* expTcl.h:
+	* exp_chan.c:
+	* exp_clib.c:
+	* exp_closetcl.c:
+	* exp_command.c:
+	* exp_command.h:
+	* exp_console.c:
+	* exp_event.c:
+	* exp_event.h:
+	* exp_glob.c:
+	* exp_int.h:
+	* exp_inter.c:
+	* exp_log.c:
+	* exp_log.h:
+	* exp_main_exp.c:
+	* exp_main_sub.c:
+	* exp_main_tk.c:
+	* exp_noevent.c:
+	* exp_poll.c:
+	* exp_prog.h:
+	* exp_pty.c:
+	* exp_pty.h:
+	* exp_regexp.c:
+	* exp_regexp.h:
+	* exp_rename.h:
+	* exp_simple.c:
+	* exp_trap.c:
+	* exp_tstamp.h:
+	* exp_tty.c:
+	* exp_tty.h:
+	* exp_tty_comm.c:
+	* exp_win.c:
+	* exp_win.h:
+	* expect.c:
+	* expect.h:
+	* expect_comm.h:
+	* expect_tcl.h:
+	* pty_sgttyb.c:
+	* pty_termios.c:
+	* pty_unicos.c:
+	* tcldbg.h:
+		Top-level source files removed.
+
+	* generic/Dbg.c:
+	* generic/Dbg.h:
+	* generic/tcldbg.h:
+		Brought in 5.32.2 and fixed compiler warnings about
+		inappropriate casts.
+
+2001-09-28  davygrvy
+	* win/mkfiles.mif:
+		Common list of target object files for all make implimentations.
+
+	* makefile.win:
+		Added list of expected (pun intended) targets that will be used.
+
+	* win/mkprepvc32.mif:
+	* win/mkvc32.mif:
+		Moved the makefile prep work to a seperate file.
+
+	* mkconfig.mif:
+		Added more config info the build system will need.
+
+2001-09-26  davygrvy
+	* win/expAlloc.c:
+	* win/expDString.c:
+		already found in the core.  NO COPIES ALLOWED!
+
+	* makefile.win:
+	* mkconfig.mif:
+	* win/makefile.vc32:
+	* win/mkbc32.mif:
+	* win/mkmgw32.mif:
+	* win/mkvc32.mif:
+	* win/mkwc32.mif:
+		New top-root makefile under windows.
+
+2001-09-13  davygrvy
+	* generic/Dbg.c:
+	* generic/Dbg.h:
+	* generic/expChan.c:
+	* generic/expChannel.c:
+	* generic/expCommand.c:
+	* generic/expSpawnChan.c:
+	* generic/expTrap.c:
+	* generic/exp_clib.c:
+	* generic/exp_closetcl.c:
+	* generic/exp_command.h:
+	* generic/exp_event.c:
+	* generic/exp_event.h:
+	* generic/exp_glob.c:
+	* generic/exp_int.h:
+	* generic/exp_inter.c:
+	* generic/exp_log.c:
+	* generic/exp_log.h:
+	* generic/exp_main_exp.c:
+	* generic/exp_main_sub.c:
+	* generic/exp_main_tk.c:
+	* generic/exp_memmove.c:
+	* generic/exp_noevent.c:
+	* generic/exp_port.h:
+	* generic/exp_printify.c:
+	* generic/exp_printify.h:
+	* generic/exp_prog.h:
+	* generic/exp_regexp.c:
+	* generic/exp_regexp.h:
+	* generic/exp_rename.h:
+	* generic/exp_strf.c:
+	* generic/exp_tstamp.h:
+	* generic/exp_tty.h:
+	* generic/exp_version.h:
+	* generic/exp_win.c:
+	* generic/exp_win.h:
+	* generic/expect.c:
+	* generic/expect.h:
+	* generic/expect_comm.h:
+	* generic/expect_tcl.h:
+	* generic/getopt.c:
+	* generic/getopt.h:
+	* unix/DbgMkfl.in:
+	* unix/Dbg_cf.h.in:
+	* unix/Dbgconfig.in:
+	* unix/Makefile.in:
+	* unix/aclocal.m4:
+	* unix/config.guess:
+	* unix/config.sub:
+	* unix/configure:
+	* unix/configure.in:
+	* unix/expUnixCommand.c:
+	* unix/expUnixPort.h:
+	* unix/expUnixSpawnChan.c:
+	* unix/expUnixTty.c:
+	* unix/expUnixTty.h:
+	* unix/exp_clib_orig.c:
+	* unix/exp_command.c:
+	* unix/exp_console.c:
+	* unix/exp_poll.c:
+	* unix/exp_pty.c:
+	* unix/exp_pty.h:
+	* unix/exp_select.c:
+	* unix/exp_simple.c:
+	* unix/exp_trap.c:
+	* unix/exp_tty_comm.c:
+	* unix/exp_tty_in.h:
+	* unix/expect_cf.h.in:
+	* unix/fixcat:
+	* unix/fixline1:
+	* unix/install-sh:
+	* unix/pkgIndex.in:
+	* unix/pty_sgttyb.c:
+	* unix/pty_termios.c:
+	* unix/pty_unicos.c:
+	* unix/vgrindefs:
+	* win/Dbg_cf.h:
+	* win/debugger.c:
+	* win/etest.tcl:
+	* win/expAlloc.c:
+	* win/expDString.c:
+	* win/expWin.h:
+	* win/expWinCLib.c:
+	* win/expWinCommand.c:
+	* win/expWinLog.c:
+	* win/expWinPort.h:
+	* win/expWinProcess.c:
+	* win/expWinSlave.h:
+	* win/expWinSlaveDbg.c:
+	* win/expWinSlaveDrv.c:
+	* win/expWinSlaveKey.c:
+	* win/expWinSpawnChan.c:
+	* win/expWinTrap.c:
+	* win/expWinTty.c:
+	* win/expWinTty.h:
+	* win/expect.rc:
+	* win/expectlib.rc:
+	* win/makefile:
+	* win/msjexhnd.cpp:
+	* win/msjexhnd.h:
+	* win/panic.c:
+	* win/pkgIndex.tcl:
+	* win/tclHash.c:
+	* win/testa2.c:
+	* win/testcalc.c:
+	* win/testcalc.h:
+	* win/testcat.c:
+	* win/testcat.mak:
+	* win/testclib.c:
+	* win/testclib2.c:
+	* win/testconsout.c:
+	* win/testcrash.c:
+	* win/testmodem.c:
+	* win/tests/all:
+	* win/tests/basic.test:
+	* win/tests/cmd.test:
+	* win/tests/crash.tcl:
+	* win/tests/crash.test:
+	* win/tests/defs:
+	* win/tests/emacs.test:
+	* win/tests/ftp.test:
+	* win/tests/modemtest.exp:
+	* win/tests/pipe.test:
+	* win/tests/script.test:
+	* win/tests/suite.tcl:
+	* win/tests/telnet.test:
+	* win/tests/test.pl:
+	* win/tests/test_suite.tcl:
+	* win/tests/testtcl:
+	* win/tests/trap.tcl:
+	* win/tests/trap.test:
+	* win/tests/trap2.tcl:
+	* win/testsig.c:
+	* win/testwprog.c:
+	* win/testwstation.c:
+	* win/testwstation.tcl:
+		snap29 "import"
+
+	* exp_clib.c:
+		<eol> mishandling repaired
+
+	* mac/README.mac.txt:
+		a notice of nothing.
+
+	* exp_clib.c:
+		umm.. fixed bad fix...  ignore last mistake ;)
+
+	* compat/exp_memmove.c:
+	* compat/exp_select.c:
+	* compat/exp_strf.c:
+	* doc/expect.man:
+	* doc/expectk.man:
+	* doc/libexpect.man:
+	* exp_memmove.c:
+	* exp_select.c:
+	* exp_strf.c:
+	* expect.man:
+	* expectk.man:
+	* libexpect.man:
+		moved from root
+
+2000-01-06  wart
+	* exp_printify.c:
+	* exp_printify.h:
+		Merge of expect5-31-branch to mainline
+
+1999-09-01  jenn
+	* tests/all:
+	* tests/defs:
+		Removed all and defs, added all.tcl.
+
+1999-08-31  jenn
+	* tests/all:
+	* tests/defs:
+		* Makefile.in: Changed test target to source tests/all.tcl instead
+		of tests/all
+		
+		* tests/README: Modified documentation to reflect the change from
+		usage of a defs file to the use of package tcltest to run the tests
+		
+		* tests/all:
+		* tests/defs:
+		* tests/all.tcl:
+		* tests/cat.test:
+		* tests/expect.test:
+		* tests/logfile.test:
+		* tests/pid.test:
+		* tests/send.test:
+		* tests/spawn.test
+		* tests/stty.test: Modified test files to use package tcltest,
+		removed tests/all and tests/defs, and added tests/all.tcl
+
+1999-06-15  stanton
+	* exp_printify.c:
+	* exp_printify.h:
+		regenerated configure script
+		removed exp_printify files
+		changed Dbg.c to use new regexp interfaces
+
+1999-06-14  don
+	* exp_printify.h:
+		made stuff compile
+
+	* exp_printify.c:
+		fixed Log/Diag and ExpectCmd
+
+1999-06-11  stanton
+	* exp_printify.c:
+		modified expect command to use new regexp interfaces, made various
+		I18N changes
+
+1998-10-14  cvsadmin
+	* exp_printify.c:
+	* exp_printify.h:
+	* tests/all:
+	* tests/defs:
+		Import of Expect v. 5.28.1
+
 2001-10-14  davygrvy
 	* win/expect.rc:
 	* win/spawndrv.rc:
