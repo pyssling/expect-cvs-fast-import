@@ -1,3 +1,9 @@
+2002-02-07  Andreas Kupries  <andreas_kupries@users.sourceforge.net>
+
+	* exp_log.c (expStdoutLogU): Use Tcl_WriteChars/Tcl_Flush instead
+	  of 'fwrite' for tcl 8.1 and beyond to enforce correct conversion
+	  of the internal UTF/8 into the external representation.
+
 2002-01-16  Andreas Kupries  <andreas_kupries@users.sourceforge.net>
 
 	* Resynchronization of SourceForge with Don's sources to Expect
