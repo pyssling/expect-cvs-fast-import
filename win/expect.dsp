@@ -165,6 +165,10 @@ SOURCE=.\expWinCommand.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\ExpWinInit.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\expWinLog.c
 # End Source File
 # Begin Source File
