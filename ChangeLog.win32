@@ -1,4 +1,200 @@
+2001-10-14  davygrvy
+	* win/expect.rc:
+	* win/spawndrv.rc:
+	* win/spawndrvmc.mc:
+		Added #define RESOURCE_INCLUDED because tcl.h doesn't
+		use RC_INVOKED.  Which it should, but doesn't.
+
+	* mkconfig.mif:
+	* win/makefile.vc32:
+	* win/mkfiles.mif:
+	* win/mkprepvc32.mif:
+	* win/mkvc32.mif:
+		Changed the build files to be run from the /win directory instead
+		of the top-root.  This will help get MS project .dsp files working.
+
+2001-10-12  davygrvy
+	* win/spawndrv.rc:
+	* win/spawndrv.rc:
+	* win/spawndrvmc.mc:
+		spawndrv.exe needed a resource script and a message catalog.
+
+	* win/spawndrv.rc:
+	* win/spawndrvmc.mc:
+		getting closer to building the message catalog.
+
+	* win/spawndrvmc.mc:
+		corrected title block text.
+
+2001-10-11  davygrvy
+	* win/expWin.h:
+	* win/expWinDynloadTclStubs.c:
+	* win/expWinProcess.c:
+	* win/expWinSlaveDrv.c:
+	* win/mkfiles.mif:
+		Added Stubs dynloading stuff.  slavedrv.exe appears to be
+		working thus far,
+
+	* win/expWinProcess.c:
+		Added ExpInitWinProcessAPI() to setup the ascii/unicode proc
+		switching.
+
+	* win/expWinProcess.c:
+		l'il bugfix
+
+	* win/expWin.h:
+	* win/expWin.h:
+	* win/expWinCommand.c:
+	* win/expWinPort.h:
+	* win/expWinProcess.c:
+	* win/expWinProcess.c:
+	* win/expWinSlave.h:
+	* win/expWinSlaveDbg.c:
+	* win/expWinSlaveDrv.c:
+	* win/expWinSpawnChan.c:
+	* win/expWinTty.c:
+	* win/expect.rc:
+	* win/makefile.vc32:
+	* win/makefile.vc32:
+	* win/mkfiles.mif:
+	* win/mkvc32.mif:
+	* win/mkvc32.mif:
+		slavedrv.exe is building..  need to add Stubs startup code.
+
+	* win/expWinProcess.c:
+		updated ExpCreateProcess() to match 8.4 imp.  I wish I could use the core for
+		this function, but can't as the changes are deep.
+
+	* win/expWinProcess.c:
+		Ack!  bigger bugfix repaired.  Had some doubleup during some edits for
+		comparisons and forget to delete the old half.
+
+2001-10-05  davygrvy
+	* generic/exp_main_exp.c:
+	* generic/exp_main_tk.c:
+		motion toward a pure extension.  No custom shells.
+
+	* generic/expSpawnChan.c:
+		Mostly adapted to the ExpState structure...
+
+	* generic/exp_regexp.c:
+	* generic/exp_regexp.h:
+		won't be used anymore in favor of the core RE engine.
+
+	* generic/expChannel.c:
+		pertinent code moved to expSpawnChan.c instead.
+
+	* generic/exp_memmove.c:
+		moved to the compat/ directory
+
+2001-10-04  davygrvy
+	* win/expectlib.rc:
+		There will be no more expectLib
+
+2001-10-03  davygrvy
+	* exp_tty_in.h:
+		Top-level source files removed.
+
+2001-10-02  davygrvy
+	* win/panic.c:
+	* win/tclHash.c:
+		not needed.  We'll be using the core for this.  NO COPIES!
+
+	* win/Dbg_cf.h:
+		not needed here.
+
+	* generic/expect.c:
+	* generic/expect.h:
+		fixed numerous warnings and errors.  code is from 5.32.2
+
+	* Dbg.c:
+	* expTcl.c:
+	* expTcl.h:
+	* exp_chan.c:
+	* exp_clib.c:
+	* exp_closetcl.c:
+	* exp_command.c:
+	* exp_command.h:
+	* exp_console.c:
+	* exp_event.c:
+	* exp_event.h:
+	* exp_glob.c:
+	* exp_int.h:
+	* exp_inter.c:
+	* exp_log.c:
+	* exp_log.h:
+	* exp_main_exp.c:
+	* exp_main_sub.c:
+	* exp_main_tk.c:
+	* exp_noevent.c:
+	* exp_poll.c:
+	* exp_prog.h:
+	* exp_pty.c:
+	* exp_pty.h:
+	* exp_regexp.c:
+	* exp_regexp.h:
+	* exp_rename.h:
+	* exp_simple.c:
+	* exp_trap.c:
+	* exp_tstamp.h:
+	* exp_tty.c:
+	* exp_tty.h:
+	* exp_tty_comm.c:
+	* exp_win.c:
+	* exp_win.h:
+	* expect.c:
+	* expect.h:
+	* expect_comm.h:
+	* expect_tcl.h:
+	* pty_sgttyb.c:
+	* pty_termios.c:
+	* pty_unicos.c:
+	* tcldbg.h:
+		Top-level source files removed.
+
+	* generic/Dbg.c:
+	* generic/Dbg.h:
+	* generic/tcldbg.h:
+		Brought in 5.32.2 and fixed compiler warnings about
+		inappropriate casts.
+
+2001-09-28  davygrvy
+	* win/mkfiles.mif:
+		Common list of target object files for all make implimentations.
+
+	* makefile.win:
+		Added list of expected (pun intended) targets that will be used.
+
+	* win/mkprepvc32.mif:
+	* win/mkvc32.mif:
+		Moved the makefile prep work to a seperate file.
+
+	* mkconfig.mif:
+		Added more config info the build system will need.
+
+2001-09-26  davygrvy
+	* win/expAlloc.c:
+	* win/expDString.c:
+		already found in the core.  NO COPIES ALLOWED!
+
+	* makefile.win:
+	* mkconfig.mif:
+	* win/makefile.vc32:
+	* win/mkbc32.mif:
+	* win/mkmgw32.mif:
+	* win/mkvc32.mif:
+	* win/mkwc32.mif:
+		New top-root makefile under windows.
+
+2001-09-12  David Gravereaux <davygrvy@pobox.com>
+
+	* makefile.win:
+	* mkconfig.mif:
+	* win/mkvc32.mif:
+	* win/makefile.vc32:
+
 2001-09-13  David Gravereaux <davygrvy@pobox.com>
+
 	* generic/Dbg.c:
 	* generic/Dbg.h:
 	* generic/expChan.c:
