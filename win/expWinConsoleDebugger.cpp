@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinConsoleDebugger.cpp,v 1.1.2.25 2002/06/25 08:40:50 davygrvy Exp $
+ * RCS: @(#) $Id: expWinConsoleDebugger.cpp,v 1.1.2.26 2002/06/25 22:50:07 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -1384,10 +1384,11 @@ ConsoleDebugger::ReadSubprocessMemory(Process *proc, LPVOID addr, LPVOID buf, DW
     BOOL ret = TRUE;
     DWORD err = ERROR_SUCCESS;
 
-    // if not committed memory abort.
+    // if inaccessible or not committed memory, abort
     //
-    if (!VirtualQueryEx(proc->hProcess, addr, &mbi, sizeof(mbi)) ||
-	    mbi.State != MEM_COMMIT) {
+    if (!VirtualQueryEx(proc->hProcess, addr, &mbi,
+	    sizeof(MEMORY_BASIC_INFORMATION)) || mbi.State != MEM_COMMIT)
+    {
 	return FALSE;
     }
 
@@ -1442,9 +1443,9 @@ ConsoleDebugger::WriteSubprocessMemory(Process *proc, LPVOID addr, LPVOID buf, D
     BOOL ret = TRUE;
     DWORD err = ERROR_SUCCESS;
 
-    // if not committed memory abort
-    if (!VirtualQueryEx(proc->hProcess, addr, &mbi, sizeof(mbi)) ||
-	mbi.State != MEM_COMMIT)
+    // if inaccessible or not committed memory, abort
+    if (!VirtualQueryEx(proc->hProcess, addr, &mbi,
+	    sizeof(MEMORY_BASIC_INFORMATION)) || mbi.State != MEM_COMMIT)
     {
 	return FALSE;
     }
@@ -1843,6 +1844,7 @@ ConsoleDebugger::WriteMasterWarning(CHAR *buf, DWORD len)
     mQ.Put(msg);
 }
 
+/* doesn't copy! */
 void
 ConsoleDebugger::WriteMasterError(CHAR *buf, DWORD len)
 {
@@ -1866,9 +1868,8 @@ ConsoleDebugger::NotifyDone()
 void
 ConsoleDebugger::WriteRecord (INPUT_RECORD *ir)
 {
-    DWORD why;
     if (injectorIPC != 0L) {
-	why = injectorIPC->Post(ir);
+	injectorIPC->Post(ir);
     }
 }
 
