@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinMessage.hpp,v 1.1.2.2 2002/03/12 04:37:39 davygrvy Exp $
+ * RCS: @(#) $Id: expWinSlaveTrap.hpp,v 1.1.2.1 2002/03/12 07:09:36 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -32,18 +32,16 @@
 #include "expWinMessage.hpp"
 #include "Mcl/include/CMcl.h"
 
-class ExpSlaveTrap {
+class SlaveTrap {
+public:
+    virtual void Write(Message *) = 0;
 };
 
-/*
-class ExpSlaveTrapPipe : public ExpSlaveTrap {
-public:
-    ExpSlaveTrapPipe(int argc, char * const argv[], CMclQueue<Message> &_mQ);
-};*/
 
-class ExpSlaveTrapDbg : public ExpSlaveTrap {
+class SlaveTrapDbg : public SlaveTrap {
 public:
-    ExpSlaveTrapDbg(int argc, char * const argv[], CMclQueue<Message *> &_mQ);
+    SlaveTrapDbg(int argc, char * const argv[], CMclQueue<Message *> &_mQ);
+    virtual void Write(Message *);
 private:
     CMclQueue<Message *> &mQ;
     CMclThreadAutoPtr debuggerThread;
