@@ -25,7 +25,7 @@
 #	   http://expect.sf.net/
 #	   http://bmrc.berkeley.edu/people/chaffee/expectnt.html
 # ----------------------------------------------------------------------------
-# RCS: @(#) $Id: exp.decls,v 1.1.4.3 2002/02/10 12:04:21 davygrvy Exp $
+# RCS: @(#) $Id: exp.decls,v 1.1.4.4 2002/02/10 13:40:47 davygrvy Exp $
 # ----------------------------------------------------------------------------
 
 library exp
@@ -346,7 +346,7 @@ declare 2 generic {
 #}
 declare 4 generic {
     struct exp_i *exp_new_i_complex (Tcl_Interp *interp, char *arg,
-	int duration, Tcl_VarTraceProc *updateproc, char *msg)
+	int duration, Tcl_VarTraceProc *updateproc, CONST char *msg)
 }
 declare 5 generic {
     struct exp_i *exp_new_i_simple (struct exp_f *fd, int duration)

@@ -23,7 +23,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expIntDecls.h,v 1.1.4.3 2002/02/10 12:04:22 davygrvy Exp $
+ * RCS: @(#) $Id: expIntDecls.h,v 1.1.4.4 2002/02/10 13:40:47 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -54,7 +54,7 @@ TCL_EXTERN(int)		Exp_StringMatch2 _ANSI_ARGS_((CONST char * string,
 TCL_EXTERN(struct exp_i *) exp_new_i_complex _ANSI_ARGS_((
 				Tcl_Interp * interp, char * arg, 
 				int duration, Tcl_VarTraceProc * updateproc, 
-				char * msg));
+				CONST char * msg));
 /* 5 */
 TCL_EXTERN(struct exp_i *) exp_new_i_simple _ANSI_ARGS_((struct exp_f * fd, 
 				int duration));
@@ -170,7 +170,7 @@ typedef struct ExpIntStubs {
     int (*exp_StringMatch) _ANSI_ARGS_((CONST char * string, CONST char * pattern, int * offset)); /* 1 */
     int (*exp_StringMatch2) _ANSI_ARGS_((CONST char * string, CONST char * pattern)); /* 2 */
     void *reserved3;
-    struct exp_i * (*exp_new_i_complex) _ANSI_ARGS_((Tcl_Interp * interp, char * arg, int duration, Tcl_VarTraceProc * updateproc, char * msg)); /* 4 */
+    struct exp_i * (*exp_new_i_complex) _ANSI_ARGS_((Tcl_Interp * interp, char * arg, int duration, Tcl_VarTraceProc * updateproc, CONST char * msg)); /* 4 */
     struct exp_i * (*exp_new_i_simple) _ANSI_ARGS_((struct exp_f * fd, int duration)); /* 5 */
     struct exp_fs_list * (*exp_new_fs) _ANSI_ARGS_((struct exp_f * f)); /* 6 */
     void (*exp_free_i) _ANSI_ARGS_((Tcl_Interp * interp, struct exp_i * i, Tcl_VarTraceProc * updateproc)); /* 7 */
