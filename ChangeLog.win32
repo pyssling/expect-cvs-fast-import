@@ -1,3 +1,165 @@
+2001-09-13  David Gravereaux <davygrvy@pobox.com>
+	* generic/Dbg.c:
+	* generic/Dbg.h:
+	* generic/expChan.c:
+	* generic/expChannel.c:
+	* generic/expCommand.c:
+	* generic/expSpawnChan.c:
+	* generic/expTrap.c:
+	* generic/exp_clib.c:
+	* generic/exp_closetcl.c:
+	* generic/exp_command.h:
+	* generic/exp_event.c:
+	* generic/exp_event.h:
+	* generic/exp_glob.c:
+	* generic/exp_int.h:
+	* generic/exp_inter.c:
+	* generic/exp_log.c:
+	* generic/exp_log.h:
+	* generic/exp_main_exp.c:
+	* generic/exp_main_sub.c:
+	* generic/exp_main_tk.c:
+	* generic/exp_memmove.c:
+	* generic/exp_noevent.c:
+	* generic/exp_port.h:
+	* generic/exp_printify.c:
+	* generic/exp_printify.h:
+	* generic/exp_prog.h:
+	* generic/exp_regexp.c:
+	* generic/exp_regexp.h:
+	* generic/exp_rename.h:
+	* generic/exp_strf.c:
+	* generic/exp_tstamp.h:
+	* generic/exp_tty.h:
+	* generic/exp_version.h:
+	* generic/exp_win.c:
+	* generic/exp_win.h:
+	* generic/expect.c:
+	* generic/expect.h:
+	* generic/expect_comm.h:
+	* generic/expect_tcl.h:
+	* generic/getopt.c:
+	* generic/getopt.h:
+	* unix/DbgMkfl.in:
+	* unix/Dbg_cf.h.in:
+	* unix/Dbgconfig.in:
+	* unix/Makefile.in:
+	* unix/aclocal.m4:
+	* unix/config.guess:
+	* unix/config.sub:
+	* unix/configure:
+	* unix/configure.in:
+	* unix/expUnixCommand.c:
+	* unix/expUnixPort.h:
+	* unix/expUnixSpawnChan.c:
+	* unix/expUnixTty.c:
+	* unix/expUnixTty.h:
+	* unix/exp_clib_orig.c:
+	* unix/exp_command.c:
+	* unix/exp_console.c:
+	* unix/exp_poll.c:
+	* unix/exp_pty.c:
+	* unix/exp_pty.h:
+	* unix/exp_select.c:
+	* unix/exp_simple.c:
+	* unix/exp_trap.c:
+	* unix/exp_tty_comm.c:
+	* unix/exp_tty_in.h:
+	* unix/expect_cf.h.in:
+	* unix/fixcat:
+	* unix/fixline1:
+	* unix/install-sh:
+	* unix/pkgIndex.in:
+	* unix/pty_sgttyb.c:
+	* unix/pty_termios.c:
+	* unix/pty_unicos.c:
+	* unix/vgrindefs:
+	* win/Dbg_cf.h:
+	* win/debugger.c:
+	* win/etest.tcl:
+	* win/expAlloc.c:
+	* win/expDString.c:
+	* win/expWin.h:
+	* win/expWinCLib.c:
+	* win/expWinCommand.c:
+	* win/expWinLog.c:
+	* win/expWinPort.h:
+	* win/expWinProcess.c:
+	* win/expWinSlave.h:
+	* win/expWinSlaveDbg.c:
+	* win/expWinSlaveDrv.c:
+	* win/expWinSlaveKey.c:
+	* win/expWinSpawnChan.c:
+	* win/expWinTrap.c:
+	* win/expWinTty.c:
+	* win/expWinTty.h:
+	* win/expect.rc:
+	* win/expectlib.rc:
+	* win/makefile:
+	* win/msjexhnd.cpp:
+	* win/msjexhnd.h:
+	* win/panic.c:
+	* win/pkgIndex.tcl:
+	* win/tclHash.c:
+	* win/testa2.c:
+	* win/testcalc.c:
+	* win/testcalc.h:
+	* win/testcat.c:
+	* win/testcat.mak:
+	* win/testclib.c:
+	* win/testclib2.c:
+	* win/testconsout.c:
+	* win/testcrash.c:
+	* win/testmodem.c:
+	* win/tests/all:
+	* win/tests/basic.test:
+	* win/tests/cmd.test:
+	* win/tests/crash.tcl:
+	* win/tests/crash.test:
+	* win/tests/defs:
+	* win/tests/emacs.test:
+	* win/tests/ftp.test:
+	* win/tests/modemtest.exp:
+	* win/tests/pipe.test:
+	* win/tests/script.test:
+	* win/tests/suite.tcl:
+	* win/tests/telnet.test:
+	* win/tests/test.pl:
+	* win/tests/test_suite.tcl:
+	* win/tests/testtcl:
+	* win/tests/trap.tcl:
+	* win/tests/trap.test:
+	* win/tests/trap2.tcl:
+	* win/testsig.c:
+	* win/testwprog.c:
+	* win/testwstation.c:
+	* win/testwstation.tcl:
+		snap29 "import"
+
+	* exp_clib.c:
+		<eol> mishandling repaired
+
+	* mac/README.mac.txt:
+		a notice of nothing.
+
+	* exp_clib.c:
+		umm.. fixed bad fix...  ignore last mistake ;)
+
+	* compat/exp_memmove.c (new):
+	* compat/exp_select.c (new):
+	* compat/exp_strf.c (new):
+	* doc/expect.man (new):
+	* doc/expectk.man (new):
+	* doc/libexpect.man (new):
+	* exp_memmove.c (deleted):
+	* exp_select.c (deleted):
+	* exp_strf.c (deleted):
+	* expect.man (deleted):
+	* expectk.man (deleted):
+	* libexpect.man (deleted):
+		moved from root
+
+
 2001-09-12  David Gravereaux <davygrvy@pobox.com>
 
 	* Created the 'telco-tec-win32-branch' from the HEAD.
