@@ -24,7 +24,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinConsoleDebuggerBreakPoints.cpp,v 1.1.2.8 2002/03/12 07:09:36 davygrvy Exp $
+ * RCS: @(#) $Id: expWinConsoleDebuggerBreakPoints.cpp,v 1.1.2.9 2002/03/13 03:52:57 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -102,7 +102,7 @@ void
 ConsoleDebugger::OnBeep(Process *proc, ThreadInfo *threadInfo,
     Breakpoint *brkpt, PDWORD returnValue, DWORD direction)
 {
-    CHAR buf[2];
+    CHAR buf[2] = {0,0};
 
     if (direction == BREAK_IN) {
 	// Modify the arguments so a beep doesn't sound in the slave.
@@ -253,9 +253,9 @@ ConsoleDebugger::OnFillConsoleOutputCharacter(Process *proc,
 	    bufpos += postCols;
 	}
     }
-    if (GetConsoleScreenBufferInfo(MasterHConsole, &info) == FALSE) {
+    if (GetConsoleScreenBufferInfo(hMasterConsole, &info) == FALSE) {
 	char errbuf[200];
-	wsprintfA(errbuf, "handle=0x%08x", MasterHConsole);
+	wsprintfA(errbuf, "handle=0x%08x", hMasterConsole);
 	EXP_LOG2(MSG_DT_SCREENBUF, errbuf, ExpSyslogGetSysMsg(GetLastError()));
     } else {
 	CursorPosition = info.dwCursorPosition;

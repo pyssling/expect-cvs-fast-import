@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinConsoleDebugger.hpp,v 1.1.2.13 2002/03/12 18:14:59 davygrvy Exp $
+ * RCS: @(#) $Id: expWinConsoleDebugger.hpp,v 1.1.2.14 2002/03/13 03:52:57 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -81,7 +81,6 @@ private:
 	friend class ConsoleDebugger;
 	CreateProcessInfo *cp;
 	Process	    *proc;
-	//ExpSlaveDebugArg debugInfo;
     };
 
     class ThreadInfo {
@@ -168,16 +167,16 @@ private:
 
     //  Direct debug event handlers.
     //
-    void OnXFirstBreakpoint	    (Process *, LPDEBUG_EVENT);
-    void OnXSecondBreakpoint	    (Process *, LPDEBUG_EVENT);
-    void OnXBreakpoint		    (Process *, LPDEBUG_EVENT);
-    void OnXCreateProcess	    (Process *, LPDEBUG_EVENT);
-    void OnXCreateThread	    (Process *, LPDEBUG_EVENT);
-    void OnXDeleteThread	    (Process *, LPDEBUG_EVENT);
-    void OnXLoadDll		    (Process *, LPDEBUG_EVENT);
-    void OnXUnloadDll		    (Process *, LPDEBUG_EVENT);
-    void OnXSecondChanceException   (Process *, LPDEBUG_EVENT);
-    void OnXSingleStep		    (Process *, LPDEBUG_EVENT);
+    void OnXFirstBreakpoint	(Process *, LPDEBUG_EVENT);
+    void OnXSecondBreakpoint	(Process *, LPDEBUG_EVENT);
+    void OnXBreakpoint		(Process *, LPDEBUG_EVENT);
+    void OnXCreateProcess	(Process *, LPDEBUG_EVENT);
+    void OnXCreateThread	(Process *, LPDEBUG_EVENT);
+    void OnXDeleteThread	(Process *, LPDEBUG_EVENT);
+    void OnXLoadDll		(Process *, LPDEBUG_EVENT);
+    void OnXUnloadDll		(Process *, LPDEBUG_EVENT);
+    void OnXSecondChanceException (Process *, LPDEBUG_EVENT);
+    void OnXSingleStep		(Process *, LPDEBUG_EVENT);
 
     //  Our breakpoint handlers (indirect).  Called from OnXBreakpoint().
     //
@@ -198,12 +197,6 @@ private:
     void OnWriteConsoleOutputW	(Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
     void OnWriteConsoleOutputCharacterA	(Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
     void OnWriteConsoleOutputCharacterW	(Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
-    void OnExpGetExecutablePathA (Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
-    void OnExpGetExecutablePathW (Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
-    void OnSearchPathW		(Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
-    void OnlstrcpynW		(Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
-    void OnlstrrchrW		(Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
-    void OnGetFileAttributesW	(Process *, ThreadInfo *, Breakpoint *, PDWORD, DWORD);
 
     // Internal utilities
     //
@@ -211,7 +204,7 @@ private:
     void ProcessFree		(Process *);
     void CommonDebugger		();
     BOOL SetBreakpoint		(Process *, BreakInfo *);
-    Breakpoint * SetBreakpointAtAddr(Process *, BreakInfo *, PVOID);
+    Breakpoint *SetBreakpointAtAddr (Process *, BreakInfo *, PVOID);
     int LoadedModule		(Process *, HANDLE, LPVOID, int, LPVOID, DWORD);
     BOOL ReadSubprocessMemory	(Process *, LPVOID, LPVOID, DWORD);
     BOOL WriteSubprocessMemory	(Process *, LPVOID, LPVOID, DWORD);
@@ -224,9 +217,9 @@ private:
 
     // The arrays of functions where we set breakpoints
     //
-    BreakInfo	    BreakArrayKernel32[20];
-    BreakInfo	    BreakArrayUser32[2];
-    DllBreakpoints  BreakPoints[3];
+    BreakInfo	BreakArrayKernel32[20];
+    BreakInfo	BreakArrayUser32[2];
+    DllBreakpoints BreakPoints[3];
 
     // private vars
     //

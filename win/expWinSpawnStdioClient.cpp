@@ -22,21 +22,12 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinSpawnPipeClient.cpp,v 1.1.2.5 2002/03/12 07:09:36 davygrvy Exp $
+ * RCS: @(#) $Id: expWinSpawnStdioClient.cpp,v 1.1.2.1 2002/03/12 21:33:26 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
 #include "expWinSpawnClient.hpp"
 
-class ReadPipe : public CMclThreadHandler
-{
-public:
-    ReadPipe(CMclQueue<Message *> &_mQ);
-private:
-    virtual unsigned ThreadHandlerProc(void);
-    CMclQueue<Message *> &mQ;
-    HANDLE hStdIn;
-};
 
 
 SpawnStdioClient::SpawnStdioClient(const char *name, CMclQueue<Message *> &_mQ)
@@ -44,7 +35,21 @@ SpawnStdioClient::SpawnStdioClient(const char *name, CMclQueue<Message *> &_mQ)
 {
     hStdOut = GetStdHandle(STD_OUTPUT_HANDLE);
     hStdErr = GetStdHandle(STD_ERROR_HANDLE);
-    new CMclThread(new ReadPipe(_mQ));	    // <- fix this!  save `em somewhere.
+    reader = new ReadPipe(_mQ);
+    readThread = new CMclThread(reader);
+}
+
+SpawnStdioClient::~SpawnStdioClient()
+{
+    DWORD dwExit;
+
+    readThread->GetExitCode(&dwExit);
+    if (dwExit == STILL_ACTIVE) {
+	// by cute convention, terminate threads with a 666.
+	//
+	readThread->Terminate(666);
+    }
+    delete reader;
 }
 
 void
@@ -59,14 +64,13 @@ SpawnStdioClient::Write(Message *what)
     case Message::TYPE_ERROR:
 	where = hStdErr;
     }
-
     WriteFile(where, what->bytes, what->length, &dwWritten, 0L);
 }
 
 ReadPipe::ReadPipe(CMclQueue<Message *> &_mQ)
     : mQ(_mQ)
 {
-    hStdIn  = GetStdHandle(STD_INPUT_HANDLE);
+    hStdIn = GetStdHandle(STD_INPUT_HANDLE);
 }
 
 #define READ_BUFFER_SIZE    128

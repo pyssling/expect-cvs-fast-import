@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinConsoleDebugger.cpp,v 1.1.2.10 2002/03/12 18:14:59 davygrvy Exp $
+ * RCS: @(#) $Id: expWinConsoleDebugger.cpp,v 1.1.2.11 2002/03/13 03:52:57 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -171,6 +171,9 @@ ConsoleDebugger::ConsoleDebugger (int _argc, char * const *_argv, CMclQueue<Mess
 
     BreakPoints[2].dllName = 0L;
     BreakPoints[2].breakInfo = 0L;
+
+    MasterHConsole = CreateFile("CONOUT$", GENERIC_READ|GENERIC_WRITE,
+	    FILE_SHARE_READ|FILE_SHARE_WRITE, 0L, OPEN_EXISTING, 0, 0L);
 }
 
 ConsoleDebugger::~ConsoleDebugger()
@@ -266,10 +269,6 @@ ConsoleDebugger::ProcessNew(void)
     proc->pSubprocessMemory = 0;
     proc->pSubprocessBuffer = 0;
     proc->pMemoryCacheBase = 0;
-//    proc->funcTable = new Tcl_HashTable;
-//    Tcl_InitHashTable(proc->funcTable, TCL_STRING_KEYS);
-//    proc->moduleTable = new Tcl_HashTable;
-//    Tcl_InitHashTable(proc->moduleTable, TCL_ONE_WORD_KEYS);
     proc->exeModule = 0L;
     proc->nextPtr = ProcessList;
     ProcessList = proc;
@@ -296,7 +295,7 @@ ConsoleDebugger::ProcessFree(Process *proc)
     ThreadInfo *tcurr, *tnext;
     Breakpoint *bcurr, *bnext;
     Process *pcurr, *pprev;
-    
+
     for (tcurr = proc->threadList; tcurr != 0L; tcurr = tnext) {
 	tnext = tcurr->nextPtr;
 	proc->threadCount--;
@@ -307,11 +306,6 @@ ConsoleDebugger::ProcessFree(Process *proc)
 	bnext = bcurr->nextPtr;
 	delete bcurr;
     }
-//    Tcl_DeleteHashTable(proc->funcTable);
-//    delete proc->funcTable;
-//    Tcl_DeleteHashTable(proc->moduleTable);
-//    delete proc->moduleTable;
-
     for (pprev = 0L, pcurr = ProcessList; pcurr != 0L;
 	 pcurr = pcurr->nextPtr)
     {
@@ -324,6 +318,7 @@ ConsoleDebugger::ProcessFree(Process *proc)
 	    break;
 	}
     }
+    CloseHandle(proc->hProcess);
 
     delete proc;
 }
