@@ -24,7 +24,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinConsoleDebuggerBreakPoints.cpp,v 1.1.2.3 2002/03/08 23:20:49 davygrvy Exp $
+ * RCS: @(#) $Id: expWinConsoleDebuggerBreakPoints.cpp,v 1.1.2.4 2002/03/09 01:17:29 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -714,7 +714,7 @@ ConsoleDebugger::OnWriteConsoleW(Process *proc, ThreadInfo *threadInfo,
 
     // Convert to ASCII and write the intercepted data to the pipe.
     //
-    w = WideCharToMultiByte(CP_ACP, 0, p, n, a, asize, NULL, NULL);
+    w = WideCharToMultiByte(CP_ACP, 0, p, n, a, asize, 0L, 0L);
 //    bRet = ExpWriteMaster(UseSocket, HMaster, a, w, &proc->overlapped);
 
     if (p != buf) {
@@ -1023,7 +1023,7 @@ ConsoleDebugger::OnWriteConsoleOutputCharacterW(Process *proc,
 //    ResetEvent(proc->overlapped.hEvent);
 
     // Convert to ASCI and Write the intercepted data to the pipe.
-    w = WideCharToMultiByte(CP_ACP, 0, p, n, a, asize, NULL, NULL);
+    w = WideCharToMultiByte(CP_ACP, 0, p, n, a, asize, 0L, 0L);
 //    b = ExpWriteMaster(UseSocket, HMaster, a, w, &proc->overlapped);
 
     if (p != buf) {

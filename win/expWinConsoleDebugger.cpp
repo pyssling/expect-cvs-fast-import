@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinConsoleDebugger.cpp,v 1.1.2.2 2002/03/08 23:20:49 davygrvy Exp $
+ * RCS: @(#) $Id: expWinConsoleDebugger.cpp,v 1.1.2.3 2002/03/09 01:17:29 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -191,9 +191,9 @@ ConsoleDebugger::ThreadHandlerProc(void)
     result = ExpWinCreateProcess(
 	    _argc,
 	    _argv,
-	    NULL,
-	    NULL,
-	    NULL,
+	    0L,
+	    0L,
+	    0L,
 	    FALSE,
 	    FALSE,
 	    TRUE, /* debug */
@@ -260,16 +260,16 @@ ConsoleDebugger::ProcessNew(void)
 {
     Process *proc;
     proc = new Process;
-    proc->threadList = NULL;
+    proc->threadList = 0L;
     proc->threadCount = 0;
-    proc->brkptList = NULL;
-    proc->lastBrkpt = NULL;
+    proc->brkptList = 0L;
+    proc->lastBrkpt = 0L;
     proc->offset = 0;
     proc->nBreakCount = 0;
     proc->consoleHandlesMax = 0;
     proc->isConsoleApp = FALSE;
     proc->isShell = FALSE;
-    proc->hProcess = NULL;
+    proc->hProcess = 0L;
     proc->pSubprocessMemory = 0;
     proc->pSubprocessBuffer = 0;
     proc->pMemoryCacheBase = 0;
@@ -277,7 +277,7 @@ ConsoleDebugger::ProcessNew(void)
     Tcl_InitHashTable(proc->funcTable, TCL_STRING_KEYS);
     proc->moduleTable = new Tcl_HashTable;
     Tcl_InitHashTable(proc->moduleTable, TCL_ONE_WORD_KEYS);
-    proc->exeModule = NULL;
+    proc->exeModule = 0L;
     proc->nextPtr = ProcessList;
     ProcessList = proc;
     return proc;
@@ -304,13 +304,13 @@ ConsoleDebugger::ProcessFree(Process *proc)
     Breakpoint *bcurr, *bnext;
     Process *pcurr, *pprev;
     
-    for (tcurr = proc->threadList; tcurr != NULL; tcurr = tnext) {
+    for (tcurr = proc->threadList; tcurr != 0L; tcurr = tnext) {
 	tnext = tcurr->nextPtr;
 	proc->threadCount--;
 	CloseHandle(tcurr->hThread);
 	delete tcurr;
     }
-    for (bcurr = proc->brkptList; bcurr != NULL; bcurr = bnext) {
+    for (bcurr = proc->brkptList; bcurr != 0L; bcurr = bnext) {
 	bnext = bcurr->nextPtr;
 	delete bcurr;
     }
@@ -319,11 +319,11 @@ ConsoleDebugger::ProcessFree(Process *proc)
     Tcl_DeleteHashTable(proc->moduleTable);
     delete proc->moduleTable;
 
-    for (pprev = NULL, pcurr = ProcessList; pcurr != NULL;
+    for (pprev = 0L, pcurr = ProcessList; pcurr != 0L;
 	 pcurr = pcurr->nextPtr)
     {
 	if (pcurr == proc) {
-	    if (pprev == NULL) {
+	    if (pprev == 0L) {
 		ProcessList = pcurr->nextPtr;
 	    } else {
 		pprev->nextPtr = pcurr->nextPtr;
@@ -360,10 +360,10 @@ ConsoleDebugger::CommonDebugger()
     Process *proc;
     DWORD n, i;
 
-    n = GetEnvironmentVariable("Path", NULL, 0);
-    n += GetEnvironmentVariable("_NT_SYMBOL_PATH", NULL, 0) + 1;
-    n += GetEnvironmentVariable("_NT_ALT_SYMBOL_PATH", NULL, 0) + 1;
-    n += GetEnvironmentVariable("SystemRoot", NULL, 0) + 1;
+    n = GetEnvironmentVariable("Path", 0L, 0);
+    n += GetEnvironmentVariable("_NT_SYMBOL_PATH", 0L, 0) + 1;
+    n += GetEnvironmentVariable("_NT_ALT_SYMBOL_PATH", 0L, 0) + 1;
+    n += GetEnvironmentVariable("SystemRoot", 0L, 0) + 1;
 
     SymbolPath = new char [n];
 
@@ -492,7 +492,7 @@ ConsoleDebugger::CommonDebugger()
 #endif
 	    err = debEvent.u.ExitProcess.dwExitCode;
 	    ProcessFree(proc);
-	    if (ProcessList == NULL) {
+	    if (ProcessList == 0L) {
 		// When the last process exits, we exit.
 		return;
 	    }
@@ -563,7 +563,7 @@ ConsoleDebugger::OnXFirstBreakpoint(Process *proc, LPDEBUG_EVENT pDebEvent)
 #if 0
     fprintf(stderr, "OnXFirstBreakpoint: proc=0x%08x\n", proc);
 #endif
-    for (tinfo = proc->threadList; tinfo != NULL; tinfo = tinfo->nextPtr) {
+    for (tinfo = proc->threadList; tinfo != 0L; tinfo = tinfo->nextPtr) {
 	if (pDebEvent->dwThreadId == tinfo->dwThreadId) {
 	    break;
 	}
@@ -587,7 +587,7 @@ ConsoleDebugger::OnXFirstBreakpoint(Process *proc, LPDEBUG_EVENT pDebEvent)
 	if (tclEntry == 0L) {
 	    proc->nBreakCount++;	/* Don't stop at second breakpoint */
 //	    EXP_LOG0(MSG_DT_NOVIRT);
-	    EXP_LOG("Unable to find entry for VirtualAlloc", NULL);
+	    EXP_LOG("Unable to find entry for VirtualAlloc", 0L);
 	    return;
 	}
 	addr = (DWORD) Tcl_GetHashValue(tclEntry);
@@ -607,11 +607,11 @@ ConsoleDebugger::OnXFirstBreakpoint(Process *proc, LPDEBUG_EVENT pDebEvent)
 	base = FirstContext.Eip;
 	if (!ReadSubprocessMemory(proc, (PVOID) base, FirstPage, sizeof(InjectCode))) {
 //	    EXP_LOG0(MSG_DT_CANTREADSPMEM);
-	    EXP_LOG("Error reading subprocess memory", NULL);
+	    EXP_LOG("Error reading subprocess memory", 0L);
 	}
 	if (!WriteSubprocessMemory(proc, (PVOID) base, &code, sizeof(InjectCode))) {
 //	    EXP_LOG0(MSG_DT_CANTWRITESPMEM);
-    	    EXP_LOG("Error writing subprocess memory", NULL);
+    	    EXP_LOG("Error writing subprocess memory", 0L);
 	}
     }
     return;
@@ -657,7 +657,7 @@ ConsoleDebugger::OnXSecondBreakpoint(Process *proc, LPDEBUG_EVENT pDebEvent)
     base = FirstContext.Eip;
     if (!WriteSubprocessMemory(proc, (PVOID) base, FirstPage, sizeof(InjectCode))) {
 //	EXP_LOG0(MSG_DT_CANTWRITESPMEM);
-//	EXP_LOG("Error writing subprocess memory", NULL);
+//	EXP_LOG("Error writing subprocess memory", 0L);
     }
     SetThreadContext(FirstThread, &FirstContext);
 
@@ -726,12 +726,12 @@ ConsoleDebugger::OnXSecondChanceException(Process *proc,
 	return;
     }
 
-    for (tinfo = proc->threadList; tinfo != NULL; tinfo = tinfo->nextPtr) {
+    for (tinfo = proc->threadList; tinfo != 0L; tinfo = tinfo->nextPtr) {
 	if (pDebEvent->dwThreadId == tinfo->dwThreadId) {
 	    break;
 	}
     }
-    assert(tinfo != NULL);
+    assert(tinfo != 0L);
 
     context.ContextFlags = CONTEXT_FULL;
     GetThreadContext(tinfo->hThread, &context);
@@ -772,7 +772,7 @@ ConsoleDebugger::OnXSecondChanceException(Process *proc,
     frame.AddrStack.Segment = 0;
     frame.AddrStack.Offset = context.Esp;
 
-    frame.FuncTableEntry = NULL;
+    frame.FuncTableEntry = 0L;
     frame.Params[0] = context.Eax;
     frame.Params[1] = context.Ecx;
     frame.Params[2] = context.Edx;
@@ -791,11 +791,11 @@ ConsoleDebugger::OnXSecondChanceException(Process *proc,
     while (tclEntry) {
 	modPtr = (Module *) Tcl_GetHashValue(tclEntry);
 	if (! modPtr->loaded) {
-	    modPtr->dbgInfo = MapDebugInformation(modPtr->hFile, NULL,
+	    modPtr->dbgInfo = MapDebugInformation(modPtr->hFile, 0L,
 		SymbolPath, (DWORD)modPtr->baseAddr);
 
 	    SymLoadModule(proc->hProcess, modPtr->hFile,
-		NULL, NULL, (DWORD) modPtr->baseAddr, 0);
+		0L, 0L, (DWORD) modPtr->baseAddr, 0);
 	    modPtr->loaded = TRUE;
 	}
 
@@ -817,9 +817,9 @@ ConsoleDebugger::OnXSecondChanceException(Process *proc,
         pSymbol->MaxNameLength = 512;
 
 	b = StackWalk(IMAGE_FILE_MACHINE_I386, proc->hProcess,
-	    tinfo->hThread, &frame, &context, NULL,
+	    tinfo->hThread, &frame, &context, 0L,
 	    SymFunctionTableAccess, SymGetModuleBase,
-	    NULL);
+	    0L);
 
 	if (b == FALSE || frame.AddrPC.Offset == 0) {
 	    break;
@@ -918,12 +918,12 @@ ConsoleDebugger::OnXDeleteThread(Process *proc, LPDEBUG_EVENT pDebEvent)
     ThreadInfo *threadInfo;
     ThreadInfo *prev;
 
-    prev = NULL;
+    prev = 0L;
     for (threadInfo = proc->threadList; threadInfo;
 	 prev = threadInfo, threadInfo = threadInfo->nextPtr)
     {
 	if (threadInfo->dwThreadId == pDebEvent->dwThreadId) {
-	    if (prev == NULL) {
+	    if (prev == 0L) {
 		proc->threadList = threadInfo->nextPtr;
 	    } else {
 		prev->nextPtr = threadInfo->nextPtr;
@@ -1192,7 +1192,7 @@ ConsoleDebugger::OnXUnloadDll(Process *proc, LPDEBUG_EVENT pDebEvent)
     tclEntry = Tcl_FindHashEntry(proc->moduleTable,
 	(const char *) pDebEvent->u.UnloadDll.lpBaseOfDll);
 
-    if (tclEntry != NULL) {
+    if (tclEntry != 0L) {
 	modPtr = (Module *) Tcl_GetHashValue(tclEntry);
 	if (modPtr->hFile) {
 	    CloseHandle(modPtr->hFile);
@@ -1228,7 +1228,7 @@ ConsoleDebugger::SetBreakpoint(Process *proc, BreakInfo *info)
     PVOID funcPtr;
 
     tclEntry = Tcl_FindHashEntry(proc->funcTable, info->funcName);
-    if (tclEntry == NULL) {
+    if (tclEntry == 0L) {
 //	EXP_LOG("Unable to set breakpoint at %s", info->funcName);
 	return FALSE;
     }
@@ -1273,7 +1273,7 @@ ConsoleDebugger::SetBreakpointAtAddr(Process *proc, BreakInfo *info, PVOID funcP
     bpt->codeReturnPtr = (PVOID) (proc->offset + (DWORD) proc->pSubprocessMemory);
     bpt->origRetAddr = 0;
     bpt->breakInfo = info;
-    bpt->threadInfo = NULL;
+    bpt->threadInfo = 0L;
     proc->offset += 2;
     bpt->nextPtr = proc->brkptList;
     proc->brkptList = bpt;
@@ -1351,7 +1351,7 @@ ConsoleDebugger::ReadSubprocessMemory(ExpProcess *proc, LPVOID addr, LPVOID buf,
 	    }
 
 	    if (!ReadProcessMemory(hProcess, (LPVOID) base, proc->pMemoryCache,
-		PAGESIZE, NULL)) {
+		PAGESIZE, 0L)) {
 		ret = FALSE;
 	    }
     
@@ -1395,7 +1395,7 @@ ConsoleDebugger::ReadSubprocessMemory(Process *proc, LPVOID addr, LPVOID buf, DW
 	VirtualProtectEx(proc->hProcess, addr, len, PAGE_READONLY, &oldProtection);
     }
     
-    ret = ReadProcessMemory(proc->hProcess, addr, buf, len, NULL);
+    ret = ReadProcessMemory(proc->hProcess, addr, buf, len, 0L);
     if (ret == FALSE) {
 	error = GetLastError();
     }
@@ -1454,7 +1454,7 @@ ConsoleDebugger::WriteSubprocessMemory(Process *proc, LPVOID addr, LPVOID buf, D
 	}
     }
     
-    if (!WriteProcessMemory(hProcess, addr, buf, len, NULL)) {
+    if (!WriteProcessMemory(hProcess, addr, buf, len, 0L)) {
 	ret = FALSE;
 	err = GetLastError();
     }
@@ -1560,7 +1560,7 @@ ConsoleDebugger::OnXBreakpoint(Process *proc, LPDEBUG_EVENT pDebEvent)
 		&dw, sizeof(DWORD));
 	    bpt->codePtr = brkpt->codeReturnPtr;
 	    bpt->returning = TRUE;
-	    bpt->codeReturnPtr = NULL;	/* Doesn't matter */
+	    bpt->codeReturnPtr = 0L;	/* Doesn't matter */
 	    bpt->breakInfo = brkpt->breakInfo;
 	    bpt->threadInfo = tinfo;
 	    bpt->nextPtr = proc->brkptList;
@@ -1696,7 +1696,7 @@ ConsoleDebugger::LoadedModule(Process *proc, HANDLE hFile, LPVOID modname,
     Tcl_HashEntry *tclEntry;
     int isNew;
     char mbstr[512];
-    char *s = NULL;
+    char *s = 0L;
     Module *modPtr;
 
     if (modname) {
@@ -1735,8 +1735,8 @@ ConsoleDebugger::LoadedModule(Process *proc, HANDLE hFile, LPVOID modname,
     modPtr->hFile = hFile;
     modPtr->baseAddr = baseAddr;
     modPtr->modName = s;
-    modPtr->dbgInfo = NULL;
-    if (proc->exeModule == NULL) {
+    modPtr->dbgInfo = 0L;
+    if (proc->exeModule == 0L) {
 	proc->exeModule = modPtr;
     }
 
