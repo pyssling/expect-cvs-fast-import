@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinConsoleDebugger.hpp,v 1.1.2.3 2002/03/07 03:25:43 davygrvy Exp $
+ * RCS: @(#) $Id: expWinConsoleDebugger.hpp,v 1.1.2.4 2002/03/08 23:20:49 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -61,24 +61,24 @@ private:
 
     class CreateProcessInfo {
 	friend class ConsoleDebugger;
-	TCHAR		    appName[8192];
-	TCHAR		    cmdLine[8192];
+	TCHAR	    appName[8192];
+	TCHAR	    cmdLine[8192];
 	SECURITY_ATTRIBUTES procAttrs;
 	SECURITY_ATTRIBUTES threadAttrs;
-	BOOL		    bInheritHandles;
-	DWORD		    dwCreationFlags;
-	LPVOID		    lpEnvironment;
-	TCHAR		    currDir[8192];
-	STARTUPINFO	    si;
+	BOOL	    bInheritHandles;
+	DWORD	    dwCreationFlags;
+	LPVOID	    lpEnvironment;
+	TCHAR	    currDir[8192];
+	STARTUPINFO si;
 	PROCESS_INFORMATION pi;
-	PVOID		    piPtr;  // Pointer to PROCESS_INFORMATION in slave.
-	DWORD		    flags;
+	PVOID	    piPtr;  // Pointer to PROCESS_INFORMATION in slave.
+	DWORD	    flags;
     };
 
     class CreateProcessThreadArgs {
 	friend class ConsoleDebugger;
-	CreateProcessInfo   *cp;
-	Process		    *proc;
+	CreateProcessInfo *cp;
+	Process	    *proc;
 	//ExpSlaveDebugArg debugInfo;
     };
 
@@ -108,9 +108,9 @@ private:
     };
 
     class DllBreakpoints {
-	friend class	ConsoleDebugger;
-	const char	*dllName;
-	BreakInfo	*breakInfo;
+	friend class ConsoleDebugger;
+	const char  *dllName;
+	BreakInfo   *breakInfo;
     };
 
     class Breakpoint {
@@ -127,10 +127,10 @@ private:
 
     class Module {
 	friend class ConsoleDebugger;
-	BOOL   loaded;
-	HANDLE hFile;
-	LPVOID baseAddr;
-	PCHAR  modName;
+	BOOL	    loaded;
+	HANDLE	    hFile;
+	LPVOID	    baseAddr;
+	PCHAR	    modName;
 	PIMAGE_DEBUG_INFORMATION dbgInfo;
     };
 
@@ -221,14 +221,14 @@ private:
 
     // private vars
     //
-    Process *ProcessList;   // Top of linked list of Process instances.
-    HANDLE  HConsole;	    // Master console handle (us).
-    COORD   ConsoleSize;    // Size of the console in the slave.
-    COORD   CursorPosition; // Coordinates of the cursor in the slave.
-    BOOL    CursorKnown;    // Do we know where the remote cursor is?
-    char    *SymbolPath;    // Storage for setting OS kernel symbols path.
-    int	    _argc;	    // Debugged process commandline count
-    char * const * _argv;   // Debugged process commandline args
+    Process	*ProcessList;   // Top of linked list of Process instances.
+    HANDLE	HConsole;	// Master console handle (us).
+    COORD	ConsoleSize;    // Size of the console in the slave.
+    COORD	CursorPosition; // Coordinates of the cursor in the slave.
+    BOOL	CursorKnown;    // Do we know where the remote cursor is?
+    char	*SymbolPath;    // Storage for setting OS kernel symbols path.
+    int		_argc;		// Debugee process commandline count
+    char * const * _argv;	// Debugee process commandline args
 };
 
 #endif // INC_expWinConsoleDebugger_hpp__
