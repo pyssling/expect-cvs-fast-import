@@ -1,4 +1,4 @@
-// RCS: @(#) $Id: tcl.rc,v 1.7 2001/10/01 20:57:20 hobbs Exp $
+// RCS: @(#) $Id: expect.rc,v 1.1.2.1.2.1 2002/02/10 04:00:24 davygrvy Exp $
 //
 // Version Resource Script
 //
@@ -21,34 +21,36 @@
 LANGUAGE LANG_ENGLISH, SUBLANG_DEFAULT
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 	EXP_MAJOR_VERSION,EXP_MINOR_VERSION,EXP_RELEASE_LEVEL,EXP_RELEASE_SERIAL
- PRODUCTVERSION EXP_MAJOR_VERSION,EXP_MINOR_VERSION,EXP_RELEASE_LEVEL,EXP_RELEASE_SERIAL
- FILEFLAGSMASK 	0x3fL
-#ifdef DEBUG
- FILEFLAGS 	VS_FF_DEBUG
+    FILEVERSION 	EXP_MAJOR_VERSION,EXP_MINOR_VERSION,EXP_RELEASE_LEVEL,EXP_RELEASE_SERIAL
+    PRODUCTVERSION EXP_MAJOR_VERSION,EXP_MINOR_VERSION,EXP_RELEASE_LEVEL,EXP_RELEASE_SERIAL
+    FILEFLAGSMASK 	0x3fL
+#if defined(DEBUG)
+    FILEFLAGS 	VS_FF_DEBUG
+#elif EXP_RELEASE_LEVEL != TCL_FINAL_RELEASE
+    FILEFLAGS 	VS_FF_PRERELEASE
 #else
- FILEFLAGS 	VS_FF_PRERELEASE /*0x0L*/
+    FILEFLAGS 	0x0L
 #endif
- FILEOS 	VOS__WINDOWS32
- FILETYPE 	VFT_DLL
- FILESUBTYPE 	0x0L
-BEGIN
-    BLOCK "StringFileInfo"
+    FILEOS 	VOS__WINDOWS32
+    FILETYPE 	VFT_DLL
+    FILESUBTYPE 	0x0L
     BEGIN
-        BLOCK "040904b0" /* LANG_ENGLISH/SUBLANG_ENGLISH_US, Unicode CP */
-        BEGIN
-            VALUE "FileDescription", "Expect DLL\0"
-            VALUE "OriginalFilename", "expect" STRINGIFY(EXP_MAJOR_VERSION) STRINGIFY(EXP_MINOR_VERSION) SUFFIX ".dll\0"
-            VALUE "CompanyName", "Teleindustrie, LLC\0"
-            VALUE "FileVersion", EXP_PATCH_LEVEL
-            VALUE "LegalCopyright", "Copyright \251 Teleindustrie, LLC 2002\0"
-            VALUE "ProductName", "Expect " EXP_VERSION " for Win32\0"
-            VALUE "ProductVersion", EXP_PATCH_LEVEL
-	    VALUE "Comments", "Expect was written for Unix by Don Libes at NIST.  This is a Win32 port.\0"
-        END
+	BLOCK "StringFileInfo"
+	BEGIN
+	    BLOCK "040904b0" /* LANG_ENGLISH/SUBLANG_ENGLISH_US, Unicode CP */
+	    BEGIN
+		VALUE "FileDescription", "Expect DLL\0"
+		VALUE "OriginalFilename", "expect" STRINGIFY(EXP_MAJOR_VERSION) STRINGIFY(EXP_MINOR_VERSION) SUFFIX ".dll\0"
+		VALUE "CompanyName", "Teleindustrie, LLC\0"
+		VALUE "FileVersion", EXP_PATCH_LEVEL
+		VALUE "LegalCopyright", "Copyright \251 Teleindustrie, LLC 2002\0"
+		VALUE "ProductName", "Expect " EXP_VERSION " for Win32\0"
+		VALUE "ProductVersion", EXP_PATCH_LEVEL
+		VALUE "Comments", "Expect was written for Unix by Don Libes at NIST.  This is the Win32 port.\0"
+	    END
+	END
+	BLOCK "VarFileInfo"
+	BEGIN
+	    VALUE "Translation", 0x409, 1200
+	END
     END
-    BLOCK "VarFileInfo"
-    BEGIN
-        VALUE "Translation", 0x409, 1200
-    END
-END
