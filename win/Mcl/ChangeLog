@@ -1,3 +1,8 @@
+2002-06-24  David Gravereaux <davygrvy@pobox.com>
+
+	* src/CMclMailbox.cpp: A nasty bug found and fixed.  Author knows
+	of it, too.
+
 2001-11-18  David Gravereaux <davygrvy@pobox.com>
 
 	* src/CMclMailbox.cpp:  2001-11-07 eratta change.  See
