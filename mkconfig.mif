@@ -1,10 +1,10 @@
 #==============================================================================
 #
 #  Edit for your local configuration.  This should be the only file
-#  that needs editing to build [Tcl/Tk].
+#  that needs editing to build Expect.
 #
 #==============================================================================
-# RCS: @(#) $Id: mkconfig.mif,v 1.1.2.2 2001/09/15 01:56:54 davygrvy Exp $
+# RCS: @(#) $Id: mkconfig.mif,v 1.1.2.1 2001/09/26 13:25:20 davygrvy Exp $
 #==============================================================================
 
 
@@ -17,10 +17,36 @@
 CVSCMD		= c:\dev\wincvs\cvs.exe
 CVS_RSH		= c:\cygwin\bin\ssh.exe
 
+
 #==============================================
-# Where should we install to ?
+# Where is Tcl ?
 #==============================================
-INSTALLDIR	= c:\program files\tcl
+TCLROOT		= C:\program Files\Tcl
+
+
+#==============================================
+# Does the above Tcl path point to the install
+# or sources ?
+#==============================================
+ISTCLINSTALL	= 1
+
+
+#==============================================
+# Where should we install to ?  Use $(TCLROOT)
+# when ISTCLINSTALL == 1
+#==============================================
+INSTALLDIR	= $(TCLROOT)
+
+
+#==============================================
+# What Tcl version are we grabbing ?
+#==============================================
+TCLMAJOR	= 8
+TCLMINOR	= 4
+
+TCL_VERSION	= $(TCLMAJOR)$(TCLMINOR)
+TCL_DOTVERSION	= $(TCLMAJOR).$(TCLMINOR)
+
 
 #==============================================
 # Toolset information
@@ -30,10 +56,14 @@ INSTALLDIR	= c:\program files\tcl
 TOOLSETvc32	= c:\dev\devstudio60
 TOOLSETvc32VER	= 6
 
-#### Borland C++ Builder
+#### Borland C++ Builder Commandline tools
 TOOLSETbc32	= c:\dev\bcc55
 TOOLSETbc32VER	= 55
 
-#### Watcom C/C++
+#### OpenWatcom C/C++
 TOOLSETwc32	= c:\dev\watcom
 TOOLSETwc32VER	= 11
+
+#### MinGW
+TOOLSETmgw32	= c:\dev\mingw
+TOOLSETmgw32VER	= 29535
