@@ -42,9 +42,9 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /c
-# ADD CPP /nologo /G5 /MD /W3 /GX /O1 /I "." /I "..\generic" /I "d:\tcl_workspace\tcl_head\generic" /I "d:\tcl_workspace\tcl_head\win" /I "$(IntDir)" /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "USE_TCL_STUBS" /D IDE_LATCHED=0 /YX /FD /c
+# ADD CPP /nologo /G5 /MD /W3 /GX /O1 /I "." /I "..\generic" /I "d:\tcl_workspace\tcl_head_stock\generic" /I "d:\tcl_workspace\tcl_head\win" /I "$(IntDir)" /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "USE_TCL_STUBS" /D IDE_LATCHED=0 /YX /FD /c
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
-# ADD RSC /l 0x409 /i "..\generic" /i "d:\tcl_workspace\tcl_head\generic" /i "$(IntDir)" /d "NDEBUG"
+# ADD RSC /l 0x409 /i "..\generic" /i "d:\tcl_workspace\tcl_head_stock\generic" /i "$(IntDir)" /d "NDEBUG"
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
@@ -67,9 +67,9 @@ LINK32=link.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /GZ /c
-# ADD CPP /nologo /MDd /W3 /Gm /GX- /ZI /Od /I "." /I "..\generic" /I "d:\tcl_workspace\tcl_head\generic" /I "d:\tcl_workspace\tcl_head\win" /I "$(IntDir)" /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "USE_TCL_STUBS" /D "BUILD_slavedriver" /FR /YX /FD /GZ /c
+# ADD CPP /nologo /MDd /W3 /Gm /ZI /Od /I "." /I "..\generic" /I "d:\tcl_workspace\tcl_head_stock\generic" /I "$(IntDir)" /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "USE_TCL_STUBS" /D "BUILD_slavedriver" /FR /YX /FD /GZ /c
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
-# ADD RSC /l 0x409 /i "..\generic" /i "d:\tcl_workspace\tcl_head\generic" /i "$(IntDir)" /d "_DEBUG"
+# ADD RSC /l 0x409 /i "..\generic" /i "d:\tcl_workspace\tcl_head_stock\generic" /i "$(IntDir)" /d "_DEBUG"
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo

@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinConsoleDebugger.cpp,v 1.1.2.15 2002/06/18 22:51:31 davygrvy Exp $
+ * RCS: @(#) $Id: expWinConsoleDebugger.cpp,v 1.1.2.16 2002/06/18 23:14:18 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -32,6 +32,16 @@
 #ifdef _MSC_VER
 #   pragma comment (lib, "imagehlp.lib")
 #endif
+
+#ifdef _M_IX86
+    // Breakpoint opcode on i386
+#   define BRK_OPCODE	    0xCC
+    // Single step flag
+#   define SINGLE_STEP_BIT  0x100
+#else
+#   error need opcodes for this hardware.
+#endif
+
 
 typedef LPVOID (__stdcall *PFNVIRTALLEX)(HANDLE,LPVOID,SIZE_T,DWORD,DWORD);
 
@@ -429,9 +439,9 @@ ConsoleDebugger::OnXFirstBreakpoint(Process *proc, LPDEBUG_EVENT pDebEvent)
     //
     MakeSubprocessMemory(proc, RETBUF_SIZE, &(proc->pSubprocessMemory));
 
-    // Fill the buffer with all breakpoints
+    // Fill the buffer with all breakpoint opcodes.
     //
-    memset(retbuf, 0xCC, RETBUF_SIZE);
+    memset(retbuf, BRK_OPCODE, RETBUF_SIZE);
     WriteSubprocessMemory(proc, proc->pSubprocessMemory, retbuf, RETBUF_SIZE);
 
     // Set all breakpoints
@@ -528,7 +538,7 @@ ConsoleDebugger::OnXSingleStep(Process *proc, LPDEBUG_EVENT pDebEvent)
 
     // Now, we need to restore the breakpoint that we had removed.
     //
-    code = 0xCC;
+    code = BRK_OPCODE;
     WriteSubprocessMemory(proc, proc->lastBrkpt->codePtr, &code, sizeof(BYTE));
 }
 
@@ -889,12 +899,7 @@ ConsoleDebugger::SetBreakpointAtAddr(Process *proc, BreakInfo *info, PVOID funcP
     proc->brkptList = bpt;
 
     ReadSubprocessMemory(proc, funcPtr, &bpt->code, sizeof(BYTE));
-#ifdef _M_IX86
-    // Breakpoint opcode on i386
-    code = 0xCC;
-#else
-#   error "need breakpoint opcode for this hardware"
-#endif
+    code = BRK_OPCODE;
     WriteSubprocessMemory(proc, funcPtr, &code, sizeof(BYTE));
     return bpt;
 }

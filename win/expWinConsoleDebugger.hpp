@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinConsoleDebugger.hpp,v 1.1.2.17 2002/03/16 00:37:01 davygrvy Exp $
+ * RCS: @(#) $Id: expWinConsoleDebugger.hpp,v 1.1.2.18 2002/06/18 22:51:31 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -32,14 +32,6 @@
 #include "expWinSlave.hpp"
 #include "TclHash.hpp"	    // for the hash table template.
 #include <imagehlp.h>
-
-
-#ifdef _M_IX86
-    // This only works on ix86
-#   define SINGLE_STEP_BIT 0x100;
-#else
-#   error "need platform step bit"
-#endif
 
 
 
@@ -79,7 +71,7 @@ private:
 				// Function to call when the breakpoint is hit.
 #	define BREAK_IN  1	// Call handler on the way in.
 #	define BREAK_OUT 2	// Call handler on the way out.
-	DWORD	    dwFlags;	// Bits for direction to call handler in.
+	DWORD   dwFlags;	// Bits for direction to call handler in.
     };
 
     class DllBreakpoints {
@@ -156,7 +148,7 @@ private:
             instr_CALL_EAX(0xD0FF), instr_INT_3(0xCC){}
     };
 #   else
-#	error "need correct opcodes for this hardware"
+#	error need correct stub loader opcodes for this hardware.
 #   endif
 #   include <poppack.h>
 
