@@ -1,5 +1,5 @@
 /* ----------------------------------------------------------------------------
- * SlaveDrvMain.cpp --
+ * expWinSlaveMain.cpp --
  *
  *	Program entry for the Win32 slave driver helper application.
  *
@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinSlaveMain.cpp,v 1.1.4.10 2002/03/12 07:09:36 davygrvy Exp $
+ * RCS: @(#) $Id: expWinSlaveMain.cpp,v 1.1.4.11 2002/03/12 07:59:14 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -30,12 +30,9 @@
 
 
 // local protos
-static SpawnClientTransport *SpawnOpenClientTransport(const char *name,
-	CMclQueue<Message *> &mQ);
-static ExpSlaveTrap *ExpWinSlaveOpenTrap(const char *meth, int argc,
-	char * const argv[], CMclQueue<Message *> &mQ);
-static int DoEvents(SpawnClientTransport *transport,
-	ExpSlaveTrap *masterCtrl, CMclQueue<Message *> &mQ, CMclEvent &sd);
+static SpawnClientTransport *SpawnOpenClientTransport(const char *, CMclQueue<Message *> &);
+static SlaveTrap *SlaveOpenTrap(const char *, int, char * const *, CMclQueue<Message *> &);
+static int DoEvents(SpawnClientTransport *, SlaveTrap *, CMclQueue<Message *> &, CMclEvent &);
 
 int
 main (void)
@@ -43,16 +40,22 @@ main (void)
     int argc;			    // Number of command-line arguments.
     char **argv;		    // Values of command-line arguments.
     SpawnClientTransport *tclient;  // class pointer of transport client.
-    ExpSlaveTrap *slaveCtrl;	    // trap method class pointer.
+    SlaveTrap *slaveCtrl;	    // trap method class pointer.
     CMclQueue<Message *> messageQ;  // Our message Queue we hand off to everyone.
     CMclEvent Shutdown;		    // global shutdown for the event queue.
     int code;			    // exitcode.
     CHAR *cmdLine;		    // commandline to use.
 
+    //  We need a few Tcl APIs in here.  Load it now.
+    //
+    DynloadTclStubs();
+
     //  Get our commandline.  MSVC++ doesn't like to debug spawned processes
     //  without a bit of help.  So help it out.
     //
-#define IDE_LATCHED 0
+#ifndef IDE_LATCHED
+#   define IDE_LATCHED 0
+#endif
 #if defined(_DEBUG) && IDE_LATCHED
     if (IsDebuggerPresent()) {
 #   ifdef _MSC_VER
@@ -85,12 +88,15 @@ main (void)
     //  Create the process to be intercepted within the trap method requested
     //  on the commandline.
     //
-    slaveCtrl = ExpWinSlaveOpenTrap(argv[2], argc-3, &argv[3], messageQ);
+    slaveCtrl = SlaveOpenTrap(argv[2], argc-3, &argv[3], messageQ);
 
     //  Process messages.
     //
     code = DoEvents(tclient, slaveCtrl, messageQ, Shutdown);
 
+    //  Close up.
+    //
+    ShutdownTcl();
     return code;
 }
 
@@ -108,20 +114,11 @@ main (void)
  */
 
 SpawnClientTransport *
-SpawnOpenClientTransport(const char *name, CMclQueue<Message *> &mQ)
+SpawnOpenClientTransport(const char *method, CMclQueue<Message *> &mQ)
 {
-    // If the first 2 chars are 'm' and 'b', then it's a mailbox.
-    //
-/*    if (name[0] == 'm' && name[1] == 'b') {
-	return new ExpSpawnMailboxClient(name, mQ);
-    }*/
-    /* 'sk' is a socket transport.  This is a no-op for now.
-    else*/
-    if (name[0] == 'p' && name[1] == 'i') {
-	return new SpawnPipeClient(name, mQ);
+    if (!strcmp(method, "stdio")) {
+	return new SpawnStdioClient(method, mQ);
     }
-    // TODO: we can add more transports here when the time is right
-    //
     else EXP_LOG1(MSG_IO_TRANSPRTARGSBAD, name);
 
     // not reached.
@@ -130,7 +127,7 @@ SpawnOpenClientTransport(const char *name, CMclQueue<Message *> &mQ)
 
 /*
  *----------------------------------------------------------------------
- *  ExpWinSlaveOpenTrap --
+ *  SlaveOpenTrap --
  *
  *	The factory method for creating the trap class instance.
  *
@@ -140,19 +137,14 @@ SpawnOpenClientTransport(const char *name, CMclQueue<Message *> &mQ)
  *----------------------------------------------------------------------
  */
 
-ExpSlaveTrap *
-ExpWinSlaveOpenTrap(const char *meth, int argc, char * const argv[],
+SlaveTrap *
+SlaveOpenTrap(const char *method, int argc, char * const argv[],
     CMclQueue<Message *> &mQ)
 {
-    if (!strcmp(meth, "dbg")) {
-	return new ExpSlaveTrapDbg(argc, argv, mQ);
+    if (!strcmp(method, "dbg")) {
+	return new SlaveTrapDbg(argc, argv, mQ);
     }
-    /* TODO: a simple pipe trap would be good.
-	[spawn -open <chanID>] does the same, though.
-    else if (!strcmp(meth, "pipe")) {
-	return new ExpSlaveTrapPipe(argc, argv);
-    }*/
-    else EXP_LOG1(MSG_IO_TRAPARGSBAD, meth);
+    else EXP_LOG1(MSG_IO_TRAPARGSBAD, method);
 
     // not reached.
     return 0L;
@@ -160,7 +152,7 @@ ExpWinSlaveOpenTrap(const char *meth, int argc, char * const argv[],
 
 /*
  *----------------------------------------------------------------------
- *  ExpWinMasterDoEvents --
+ *  DoEvents --
  *
  *	Process all events for the slavedrv application.  We are the
  *	master.  The slave is the process we are trapping.
@@ -173,7 +165,7 @@ ExpWinSlaveOpenTrap(const char *meth, int argc, char * const argv[],
 
 int
 DoEvents(SpawnClientTransport *transport,
-    ExpSlaveTrap *masterCtrl, CMclQueue<Message *> &mQ, CMclEvent &sd)
+    SlaveTrap *slaveCtrl, CMclQueue<Message *> &mQ, CMclEvent &sd)
 {
     Message *msg;
 
@@ -189,6 +181,7 @@ DoEvents(SpawnClientTransport *transport,
 	case Message::TYPE_INSTREAM:
 	    //  Send data into the slave.
 	    //
+	    slaveCtrl->Write(msg);
 	    break;
 
 	case Message::TYPE_FUNCTION:

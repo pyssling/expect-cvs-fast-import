@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinMessage.hpp,v 1.1.2.2 2002/03/12 04:37:39 davygrvy Exp $
+ * RCS: @(#) $Id: expWinSpawnClient.hpp,v 1.1.2.1 2002/03/12 07:09:36 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -46,10 +46,10 @@ private:
     CMclQueue<Message *> &mQ;
 };
 
-class SpawnPipeClient : public SpawnClientTransport
+class SpawnStdioClient : public SpawnClientTransport
 {
 public:
-    SpawnPipeClient(const char *name, CMclQueue<Message *> &_mQ);
+    SpawnStdioClient(const char *name, CMclQueue<Message *> &_mQ);
     virtual void Write(Message *);
 private:
     CMclQueue<Message *> &mQ;
