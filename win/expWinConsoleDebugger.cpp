@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinConsoleDebugger.cpp,v 1.1.2.19 2002/06/21 03:01:50 davygrvy Exp $
+ * RCS: @(#) $Id: expWinConsoleDebugger.cpp,v 1.1.2.20 2002/06/21 22:04:24 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -359,7 +359,7 @@ again:
 			!= (injectorStub.operand_PUSH_value - sizeof(BYTE)))
 		{
 		    --(proc->nBreakCount);
-		    OnXBreakpoint(proc, &debEvent);
+		    dwContinueStatus = DBG_EXCEPTION_NOT_HANDLED;
 		    break;
 		}
 		OnXThirdBreakpoint(proc, &debEvent); break;
@@ -458,33 +458,11 @@ skip:
 void
 ConsoleDebugger::OnXFirstBreakpoint(Process *proc, LPDEBUG_EVENT pDebEvent)
 {
-#   define RETBUF_SIZE 2048
-    BYTE retbuf[RETBUF_SIZE];
     ThreadInfo *tinfo;
-    BreakInfo *binfo;
-    int i;
 
     for (tinfo = proc->threadList; tinfo != 0L; tinfo = tinfo->nextPtr) {
 	if (pDebEvent->dwThreadId == tinfo->dwThreadId) {
 	    break;
-	}
-    }
-
-    // Set up the memory that will serve as the place for our
-    // intercepted function return points.
-    //
-    MakeSubprocessMemory(proc, RETBUF_SIZE, &(proc->pSubprocessMemory));
-
-    // Fill the buffer with all breakpoint opcodes.
-    //
-    memset(retbuf, BRK_OPCODE, RETBUF_SIZE);
-    WriteSubprocessMemory(proc, proc->pSubprocessMemory, retbuf, RETBUF_SIZE);
-
-    // Set all Console API breakpoints.
-    //
-    for (i = 0; BreakPoints[i].dllName; i++) {
-	for (binfo = BreakPoints[i].breakInfo; binfo->funcName; binfo++) {
-	    SetBreakpoint(proc, binfo);
 	}
     }
 
@@ -502,7 +480,6 @@ ConsoleDebugger::OnXFirstBreakpoint(Process *proc, LPDEBUG_EVENT pDebEvent)
     WriteSubprocessMemory(proc, pStartAddress, &bpOpcode, sizeof(BYTE));
 
     return;
-#   undef RETBUF_SIZE
 }
 
 /*
@@ -531,6 +508,10 @@ ConsoleDebugger::OnXSecondBreakpoint(Process *proc, LPDEBUG_EVENT pDebEvent)
 	    break;
 	}
     }
+
+    // Put the first opcode at the entry point back in place.
+    WriteSubprocessMemory(proc, pStartAddress,
+	    &originalExeEntryPointOpcode, sizeof(BYTE));
 
     //  Make some memory for our stub that we place into the processes' address
     //  space.  This stub (or set of opcodes) calls LoadLibrary() to bring in our
@@ -579,6 +560,10 @@ ConsoleDebugger::OnXThirdBreakpoint(Process *proc, LPDEBUG_EVENT pDebEvent)
 {
     CONTEXT now;
     ThreadInfo *tinfo;
+#   define RETBUF_SIZE 2048
+    BYTE retbuf[RETBUF_SIZE];
+    BreakInfo *binfo;
+    int i;
 
     for (tinfo = proc->threadList; tinfo != 0L; tinfo = tinfo->nextPtr) {
 	if (pDebEvent->dwThreadId == tinfo->dwThreadId) {
@@ -592,9 +577,7 @@ ConsoleDebugger::OnXThirdBreakpoint(Process *proc, LPDEBUG_EVENT pDebEvent)
     // Eax should not be zero, if the injector loaded.
     // It should be the handle of the injector dll.
 
-    WriteSubprocessMemory(proc, pStartAddress,
-	    &originalExeEntryPointOpcode, sizeof(BYTE));
-
+    preStubContext.Eip -= sizeof(BYTE);
     SetThreadContext(tinfo->hThread, &preStubContext);
 
     // We should now remove the memory allocated in the sub process for
@@ -602,6 +585,27 @@ ConsoleDebugger::OnXThirdBreakpoint(Process *proc, LPDEBUG_EVENT pDebEvent)
     //
     RemoveSubprocessMemory(proc, pInjectorStub);
 
+
+
+    // Set up the memory that will serve as the place for our
+    // intercepted function return points.
+    //
+    MakeSubprocessMemory(proc, RETBUF_SIZE, &(proc->pSubprocessMemory));
+
+    // Fill the buffer with all breakpoint opcodes.
+    //
+    memset(retbuf, BRK_OPCODE, RETBUF_SIZE);
+    WriteSubprocessMemory(proc, proc->pSubprocessMemory, retbuf, RETBUF_SIZE);
+
+    // Set all Console API breakpoints.
+    //
+    for (i = 0; BreakPoints[i].dllName; i++) {
+	for (binfo = BreakPoints[i].breakInfo; binfo->funcName; binfo++) {
+	    SetBreakpoint(proc, binfo);
+	}
+    }
+
+#   undef RETBUF_SIZE
     return;
 }
 /*

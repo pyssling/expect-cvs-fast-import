@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinConsoleDebugger.hpp,v 1.1.2.21 2002/06/21 03:01:51 davygrvy Exp $
+ * RCS: @(#) $Id: expWinConsoleDebugger.hpp,v 1.1.2.22 2002/06/21 22:04:24 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -147,7 +147,8 @@ private:
             instr_PUSH(0x68), instr_MOV_EAX(0xB8),
             instr_CALL_EAX(0xD0FF), instr_INT_3(0xCC)
 	{
-	    strcpy(data_DllName, "D:\\expect_wslive\\expect_win32_take2\\win\\Debug\\injector.dll");
+		// D:\\expect_wslive\\expect_win32_take2\\win\\Release\\ ....
+	    strcpy(data_DllName, "injector.dll");
 	}
     };
 #   else

@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinSpawnStdioClient.cpp,v 1.1.2.3 2002/06/20 21:52:53 davygrvy Exp $
+ * RCS: @(#) $Id: expWinSpawnStdioClient.cpp,v 1.1.2.4 2002/06/21 03:01:51 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -59,8 +59,8 @@ SpawnStdioClient::Write(Message *what)
 
     switch (what->type) {
     case Message::TYPE_NORMAL:
-    case Message::TYPE_WARNING:
 	where = hStdOut; break;
+    case Message::TYPE_WARNING:
     case Message::TYPE_ERROR:
 	where = hStdErr;
     }

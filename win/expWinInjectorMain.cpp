@@ -23,7 +23,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinInjectorMain.cpp,v 1.1.2.8 2002/06/21 03:01:51 davygrvy Exp $
+ * RCS: @(#) $Id: expWinInjectorMain.cpp,v 1.1.2.9 2002/06/21 22:04:24 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -114,21 +114,20 @@ DllMain (HINSTANCE hInst, ULONG ulReason, LPVOID lpReserved)
 
     switch (ulReason) {
     case DLL_PROCESS_ATTACH:
-	/*MessageBox(NULL, "hi mom!", "lala", MB_OK|MB_SETFOREGROUND);*/
-	//DisableThreadLibraryCalls(hInst);
-	//console = CreateFile("CONIN$", GENERIC_WRITE,
-	//	FILE_SHARE_WRITE, 0L, OPEN_EXISTING, 0, 0L);
-	//interrupt = new CMclEvent();
-	//inject = new Injector(console, interrupt);
-	//injectorThread = new CMclThread(inject);
+	DisableThreadLibraryCalls(hInst);
+	console = CreateFile("CONIN$", GENERIC_WRITE,
+		FILE_SHARE_WRITE, 0L, OPEN_EXISTING, 0, 0L);
+	interrupt = new CMclEvent();
+	inject = new Injector(console, interrupt);
+	injectorThread = new CMclThread(inject);
 	break;
     case DLL_PROCESS_DETACH:
-	//interrupt->Set();
-	//injectorThread->Wait(INFINITE);
-	//CloseHandle(console);
-	//delete interrupt;
-	//delete inject;
-	//delete injectorThread;
+	interrupt->Set();
+	injectorThread->Wait(INFINITE);
+	CloseHandle(console);
+	delete interrupt;
+	delete inject;
+	delete injectorThread;
 	break;
     }
     return TRUE;
