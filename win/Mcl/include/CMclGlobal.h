@@ -50,7 +50,7 @@ class CMclMailbox;
 // SCODE is the return value to check,
 // STATUS is the variable in which to store an error code if an error is detected...
 #if __CMCL_THROW_EXCEPTIONS__
-#define CMCL_CHECK_CREATION_STATUS(SCODE,STATUS) {}
+#define CMCL_CHECK_CREATION_STATUS(SCODE,STATUS) if (((SCODE)!=NO_ERROR)&&((SCODE)!=ERROR_ALREADY_EXISTS)) { CMclThrowError(SCODE); }
 #else
 #define CMCL_CHECK_CREATION_STATUS(SCODE,STATUS) if (((SCODE)!=NO_ERROR)&&((SCODE)!=ERROR_ALREADY_EXISTS)) { STATUS = (SCODE); return; }
 #endif
