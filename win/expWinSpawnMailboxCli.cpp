@@ -28,9 +28,10 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinMailboxCli.cpp,v 1.1.2.1 2001/11/07 10:01:57 davygrvy Exp $
+ * RCS: @(#) $Id: expWinSpawnMailboxCli.cpp,v 1.1.2.1 2001/11/09 01:17:40 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
+
 #include "expWinInt.h"
 
 
@@ -41,7 +42,7 @@ ExpSpawnMailboxCli::ExpSpawnMailboxCli(const char *name)
     DWORD err;
 
     /* Connect to the out-going. */
-    wsprintf(boxName, _T("%sTo"), name);
+    wsprintf(boxName, "%sTo", name);
     MasterToExpect = new CMclMailbox(boxName);
 
     /* Check status. */
@@ -56,7 +57,7 @@ ExpSpawnMailboxCli::ExpSpawnMailboxCli(const char *name)
     }
 
     /* Connect to the in-coming. */
-    wsprintf(boxName, _T("%sFrom"), name);
+    wsprintf(boxName, "%sFrom", name);
     MasterFromExpect = new CMclMailbox(boxName);
 
     /* Check status. */

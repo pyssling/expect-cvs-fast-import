@@ -1,7 +1,7 @@
 /* ----------------------------------------------------------------------------
  * SlaveDrvMain.c --
  *
- *	Program entry for the slave driver.
+ *	Program entry for the Win32 slave driver helper application.
  *
  * ----------------------------------------------------------------------------
  *
@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expSlaveDrvMain.c,v 1.1.2.2 2001/11/07 22:10:39 davygrvy Exp $
+ * RCS: @(#) $Id: expWinSlaveMain.cpp,v 1.1.2.1 2001/11/09 01:17:40 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -49,51 +49,49 @@
 static void SetArgv(int *argcPtr, char ***argvPtr);
 
 
-void
+int
 #ifdef _UNICODE
 wmain (void)
 #else
 main (void)
 #endif
 {
-    HANDLE hConsoleInW;	/* Master side (us), writeable input handle. */
-    HANDLE hConsoleOut;	/* Master side (us), readable output handle. */
-    ExpSlaveDebugArg debugInfo;
-    DWORD threadId;
-    int argc;			/* Number of command-line arguments. */
-    char **argv;		/* Values of command-line arguments. */
-    ExpSpawnTransportCli *tclient;  /* class pointer of transport client */
+    int argc;			    // Number of command-line arguments.
+    char **argv;		    // Values of command-line arguments.
+    ExpSpawnTransportCli *tclient;  // class pointer of transport client.
+    ExpSlaveTrap *masterCtrl;	    // trap method class pointer.
 
 
-    /* We use a few APIs from Tcl, dynamically load it now. */
+    //  We use a few APIs from Tcl, dynamically load it now.
     ExpDynloadTclStubs();
 
-    /* Select the unicode or ascii winprocs. Works in cooperation with
-     * Tcl_WinUtfToTChar() */
+    //  Select the unicode or ascii winprocs. Works in cooperation with
+    //  Tcl_WinUtfToTChar().
     ExpWinInit();
 
-    /* Use our custom commandline parser */
+    //  Use our custom commandline parser
     SetArgv(&argc, &argv);
 
-    if (argc < 2) {
+    if (argc < 4) {
 	EXP_LOG0(MSG_IO_ARGSWRONG);
     }
 
-    /*
-     * Open the client side of our IPC transport.
-     */
+    // Open the client side of our IPC transport.
     tclient = ExpWinSpawnOpenTransport(argv[1]);
 
+    //  Create the process to be intercepted within the trap method requested.
+    masterCtrl = ExpWinSlaveOpenTrap(argv[2], argc-3, &argv[3]);
 
-//    ExpConsoleOut = CreateFile(
-//	    "CONOUT$",
-//	    GENERIC_WRITE,
-//	    FILE_SHARE_WRITE,
-//	    NULL,
-//	    OPEN_EXISTING,
-//	    0,
-//	    NULL);
+    //  Process events until the slave closes.
+    //
+    //  We block on input/events coming from the slave and
+    //  input from the IPC coming from expect.
+    return ExpWinSlaveEvents(tclient, masterCtrl);
+}
 
+/*
+    HANDLE hConsoleInW;	// Master side (us), writeable input handle.
+    HANDLE hConsoleOut;	// Master side (us), readable output handle.
     if ((hConsoleInW = CreateFile(
 	    _T("CONIN$"),
 	    GENERIC_WRITE,
@@ -106,7 +104,6 @@ main (void)
 	EXP_LOG2(MSG_DT_CANTGETCONSOLEHANDLE, "CONIN$",
 		ExpSyslogGetSysMsg(GetLastError()));
     }
-
     if ((hConsoleOut = CreateFile(
 	    _T("CONOUT$"),
 	    GENERIC_READ|GENERIC_WRITE,
@@ -120,27 +117,7 @@ main (void)
 		ExpSyslogGetSysMsg(GetLastError()));
     }
 
-//    ExpConsoleInputMode = ENABLE_LINE_INPUT|ENABLE_ECHO_INPUT|
-//	ENABLE_PROCESSED_INPUT|ENABLE_MOUSE_INPUT;
-
-    debugInfo.argc = argc-2;
-    debugInfo.argv = &argv[2];
-
-//    debugInfo.passThrough = passThrough;
-//    debugInfo.useSocket = useSocket;
-    debugInfo.hConsole = hConsoleOut;
-//    debugInfo.hMaster = hMaster;
-    debugInfo.slaveStdin = NULL;
-//    debugInfo.slaveStdout = hSlaveOutW;
-//    debugInfo.slaveStderr = hSlaveOutW;
-    debugInfo.event = CreateEvent(NULL, TRUE, FALSE, NULL);
-    debugInfo.thread = CreateThread(NULL, 65536, ExpSlaveDebugThread,
-	(LPVOID) &debugInfo, 0, &threadId);
-
-    /*
-     *  Create the process to be intercepted.
-     */
-}
+*/
 
 /*
  *-------------------------------------------------------------------------

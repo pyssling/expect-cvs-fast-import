@@ -68,7 +68,7 @@ LINK32=link.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /GZ /c
-# ADD CPP /nologo /G5 /MDd /W3 /Gm /ZI /Od /I "D:\tcl_workspace\tcl_head\generic" /I "..\generic" /I "$(IntDir)" /D "_DEBUG" /D "WIN32" /D "_CONSOLE" /D "BUILD_exp" /D "USE_TCL_STUBS" /D "TCL_THREADS" /D "BUILD_spawndriver" /D "STATIC_BUILD" /YX"exp.h" /FD /GZ /c
+# ADD CPP /nologo /G5 /MDd /W3 /Gm /ZI /Od /I "D:\tcl_workspace\tcl_head\generic" /I "..\generic" /I "$(IntDir)" /D "_DEBUG" /D "WIN32" /D "_CONSOLE" /D "BUILD_exp" /D "USE_TCL_STUBS" /D "TCL_THREADS" /D "BUILD_spawndriver" /D "STATIC_BUILD" /FR /YX"exp.h" /FD /GZ /c
 # ADD BASE RSC /l 0x409 d "_DEBUG"
 # ADD RSC /l 0x409 /i "D:\tcl_workspace\tcl_head\generic" /i "..\generic" /i "$(INTDIR)" /d "_DEBUG"
 BSC32=bscmake.exe
@@ -142,6 +142,10 @@ SOURCE=.\expWinSlaveDrv.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\expWinSlaveEvents.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\expWinSlaveKey.c
 # End Source File
 # Begin Source File
@@ -150,11 +154,27 @@ SOURCE=.\expWinSlaveMain.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\expWinSlaveTrap.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\expWinSlaveTrapDbg.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\expWinSlaveTrapPipe.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\expWinSpawnCliTransport.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\expWinSpawnMailboxCli.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\expWinSpawnTransport.cpp
+SOURCE=.\expWinSpawnSocketCli.cpp
 # End Source File
 # End Group
 # Begin Group "Header Files"
