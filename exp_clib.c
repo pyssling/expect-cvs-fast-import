@@ -78,7 +78,7 @@ would appreciate credit if this program or parts of it are used.
  * See the file "license.terms" for information on usage and redistribution
  * of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  *
- * RCS: @(#) $Id: exp_clib.c,v 5.28.1.1.2.9 1999/07/07 19:49:30 libes Exp $
+ * RCS: @(#) $Id: exp_clib.c,v 5.28.1.1.2.10 1999/07/07 20:15:03 libes Exp $
  */
 
 #ifndef _STDLIB
@@ -166,7 +166,7 @@ extern unsigned long	strtoul _ANSI_ARGS_((CONST char *string,
  * *** 2. This in addition to changes to TclRegError makes the   ***
  * ***    code multi-thread safe.                                ***
  *
- * RCS: @(#) $Id: exp_clib.c,v 5.28.1.1.2.9 1999/07/07 19:49:30 libes Exp $
+ * RCS: @(#) $Id: exp_clib.c,v 5.28.1.1.2.10 1999/07/07 20:15:03 libes Exp $
  */
 
 #if 0
@@ -1794,7 +1794,7 @@ Tcl_ErrnoMsg(err)
 #ifdef ENXIO
 	case ENXIO: return "no such device or address";
 #endif
-#ifdef EOPNOTSUPP
+#if defined(EOPNOTSUPP) &&  (!defined(ENOTSUP) || (ENOTSUP != EOPNOTSUPP))
 	case EOPNOTSUPP: return "operation not supported on socket";
 #endif
 #ifdef EPERM
