@@ -1187,8 +1187,8 @@ EXP_LD_SEARCH_FLAGS=`echo ${EXP_CC_SEARCH_FLAGS} |sed -e "s|-Wl,||g" -e "s|,| |g
 
 # now broken out into EXP_AND_TCL_LIBS and EXP_AND_TK_LIBS.  Had to do this
 # in order to avoid repeating lib specs to which some systems object.
-EXP_AND_TCL_LIBS="$EXP_AND_TCL_LIBS $EXP_LD_SEARCH_FLAGS"
-EXP_AND_TK_LIBS="$EXP_AND_TK_LIBS $EXP_LD_SEARCH_FLAGS"
+EXP_AND_TCL_LIBS="$EXP_AND_TCL_LIBS $EXP_CC_SEARCH_FLAGS"
+EXP_AND_TK_LIBS="$EXP_AND_TK_LIBS $EXP_CC_SEARCH_FLAGS"
 
 #
 # Set up makefile substitutions
