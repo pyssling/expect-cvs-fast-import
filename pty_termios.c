@@ -380,7 +380,7 @@ exp_getptymaster()
 	} else if (grantpt(master)) {
 		static char buf[500];
 		exp_pty_error = buf;
-		sprintf(exp_pty_error,"grantpt(%d (%s)) failed - likely reason is that your system administrator (in a rage of blind passion to rid the system of security holes) removed setuid from the utility used internally by grantpt to change pty permissions.  Tell your system admin to reestablish setuid on the utility.  Get the utility name by running Expect under truss or trace.", errno, Tcl_ErrnoMsg(errno));
+		sprintf(exp_pty_error,"grantpt(%s) failed - likely reason is that your system administrator (in a rage of blind passion to rid the system of security holes) removed setuid from the utility used internally by grantpt to change pty permissions.  Tell your system admin to reestablish setuid on the utility.  Get the utility name by running Expect under truss or trace.", expErrnoMsg(errno));
 		close(master);
 		return(-1);
 	}
@@ -618,25 +618,25 @@ char *stty_args;
 	if (0 > (slave = open(slave_name, O_RDWR))) {
 		static char buf[500];
 		exp_pty_error = buf;
-		sprintf(exp_pty_error,"open(%s,rw) = %d (%s)",slave_name,slave,Tcl_ErrnoMsg(errno));
+		sprintf(exp_pty_error,"open(%s,rw) = %d (%s)",slave_name,slave,expErrnoMsg(errno));
 		return(-1);
 	}
 
 #if defined(HAVE_PTMX_BSD)
 	if (ioctl (slave, I_LOOK, buf) != 0)
 		if (ioctl (slave, I_PUSH, "ldterm")) {
-			expDiagLogPtrStrStr("ioctl(%s,I_PUSH,\"ldterm\") = %s\n",slave,Tcl_ErrnoMsg(errno));
+			expDiagLogPtrStrStr("ioctl(%s,I_PUSH,\"ldterm\") = %s\n",slave,expErrnoMsg(errno));
 	}
 #else
 #if defined(HAVE_PTMX)
 	if (ioctl(slave, I_PUSH, "ptem")) {
-		expDiagLogPtrStrStr("ioctl(%s,I_PUSH,\"ptem\") = %s\n",slave,Tcl_ErrnoMsg(errno));
+		expDiagLogPtrStrStr("ioctl(%s,I_PUSH,\"ptem\") = %s\n",slave,expErrnoMsg(errno));
 	}
 	if (ioctl(slave, I_PUSH, "ldterm")) {
-		expDiagLogPtrStrStr("ioctl(%s,I_PUSH,\"ldterm\") = %s\n",slave,Tcl_ErrnoMsg(errno));
+		expDiagLogPtrStrStr("ioctl(%s,I_PUSH,\"ldterm\") = %s\n",slave,expErrnoMsg(errno));
 	}
 	if (ioctl(slave, I_PUSH, "ttcompat")) {
-		expDiagLogPtrStrStr("ioctl(%s,I_PUSH,\"ttcompat\") = %s\n",slave,Tcl_ErrnoMsg(errno));
+		expDiagLogPtrStrStr("ioctl(%s,I_PUSH,\"ttcompat\") = %s\n",slave,expErrnoMsg(errno));
 	}
 #endif
 #endif
@@ -712,11 +712,11 @@ int fd;
 		(SELECT_MASK_TYPE *)&excep,
 		&t);
 	if (rc != 1) {
-		expDiagLogPtrStr("spawned process never started: %s\r\n",Tcl_ErrnoMsg(errno));
+		expDiagLogPtrStr("spawned process never started: %s\r\n",expErrnoMsg(errno));
 		return(-1);
 	}
 	if (ioctl(fd,TIOCREQCHECK,&ioctl_info) < 0) {
-		expDiagLogPtrStr("ioctl(TIOCREQCHECK) failed: %s\r\n",Tcl_ErrnoMsg(errno));
+		expDiagLogPtrStr("ioctl(TIOCREQCHECK) failed: %s\r\n",expErrnoMsg(errno));
 		return(-1);
 	}
 
@@ -744,7 +744,7 @@ int fd;
 	expDiagLogPtr("\n");
 
 	if (ioctl(fd, TIOCREQSET, &ioctl_info) < 0) {
-		expDiagLogPtrStr("ioctl(TIOCREQSET) failed: %s\r\n",Tcl_ErrnoMsg(errno));
+		expDiagLogPtrStr("ioctl(TIOCREQSET) failed: %s\r\n",expErrnoMsg(errno));
 		return(-1);
 	}
 	return(found);

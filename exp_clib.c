@@ -78,7 +78,7 @@ would appreciate credit if this program or parts of it are used.
  * See the file "license.terms" for information on usage and redistribution
  * of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  *
- * RCS: @(#) $Id: exp_clib.c,v 5.28.1.1.2.7 1999/06/29 04:35:46 libes Exp $
+ * RCS: @(#) $Id: exp_clib.c,v 5.28.1.1.2.8 1999/07/03 03:44:13 libes Exp $
  */
 
 #ifndef _STDLIB
@@ -117,6 +117,7 @@ extern unsigned long	strtoul _ANSI_ARGS_((CONST char *string,
 #endif
 
 #include "expect.h"
+static void TclRegError _ANSI_ARGS_((char *));
 
 /*
  * regexp code - from tcl8.0.4/generic/regexp.c
@@ -165,7 +166,7 @@ extern unsigned long	strtoul _ANSI_ARGS_((CONST char *string,
  * *** 2. This in addition to changes to TclRegError makes the   ***
  * ***    code multi-thread safe.                                ***
  *
- * RCS: @(#) $Id: regexp.c,v 1.2 1998/09/14 18:39:57 stanton Exp $
+ * RCS: @(#) $Id: exp_clib.c,v 5.28.1.1.2.8 1999/07/03 03:44:13 libes Exp $
  */
 
 #if 0
@@ -1445,6 +1446,7 @@ char *s2;
  *----------------------------------------------------------------------
  */
 
+static
 void
 TclRegError(string)
     char *string;			/* Error message. */
@@ -1489,10 +1491,7 @@ TclGetRegError()
  *----------------------------------------------------------------------
  */
 
-/* this must not be static because other parts of the Expect package
- * that we drag in refer to this - actually they refer to the one in the
- * Tcl library, but this suffices to pacify them.
- */
+static
 char *
 Tcl_ErrnoMsg(err)
     int err;			/* Error number (such as in errno variable). */
@@ -2308,6 +2307,7 @@ char *argv[];	/* some compiler complains about **argv? */
 		exp_init_pty();
 		exp_init_tty();
 		expDiagLogPtrSet(expDiagLogU);
+		expErrnoMsgSet(Tcl_ErrnoMsg);
 	}
 
 	if (!file || !argv) sysreturn(EINVAL);

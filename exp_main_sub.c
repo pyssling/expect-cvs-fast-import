@@ -504,6 +504,7 @@ Tcl_Interp *interp;
 	expDiagInit();
 	expLogInit();
 	expDiagLogPtrSet(expDiagLogU);
+	expErrnoMsgSet(Tcl_ErrnoMsg);
 
 	Tcl_CreateExitHandler(exp_exit_handlers,(ClientData)interp);
 
