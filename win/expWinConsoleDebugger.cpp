@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinConsoleDebugger.cpp,v 1.1.2.31 2002/06/29 00:44:35 davygrvy Exp $
+ * RCS: @(#) $Id: expWinConsoleDebugger.cpp,v 1.1.2.32 2003/08/25 23:17:49 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -1570,10 +1570,15 @@ ConsoleDebugger::OnXBreakpoint(Process *proc, LPDEBUG_EVENT pDebEvent)
 	}
     }
 
+    if (brkpt == 0L) {
+	// shouldn't happen, but does..
+	return;
+    }
+
     context.ContextFlags = CONTEXT_FULL;
     GetThreadContext(tinfo->hThread, &context);
 
-    if (! brkpt->returning) {
+    if (!brkpt->returning) {
 	Breakpoint *bpt;
 	// Get the arguments to the function and store them in the thread
 	// specific data structure.
