@@ -22,13 +22,11 @@
  *	    http://expect.nist.gov/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinDynloadTclStubs.c,v 1.1.2.3 2001/11/07 10:04:57 davygrvy Exp $
+ * RCS: @(#) $Id: expWinDynloadTclStubs.c,v 1.1.4.1 2001/12/22 05:22:01 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
-//#include "expWinInt.h"
-#include "tclPort.h"
-#include "expWin.h"
+#include "expWinInt.h"
 
 void
 ExpDynloadTclStubs (void)

@@ -1,5 +1,4 @@
 #include "expWinInt.h"
-#include "expWin.h"
 
 static ExpWinProcs asciiProcs = {
     0,

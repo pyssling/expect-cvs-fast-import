@@ -12,10 +12,7 @@
  *
  */
 
-#include "tcl.h"
-#include "tclPort.h"
-#include "expWin.h"
-#include "expWinSlave.h"
+#include "expWinInt.h"
 
 EXP_KEY ExpModifierKeyArray[] = {
 /* Control */ { 17,  29, 0},

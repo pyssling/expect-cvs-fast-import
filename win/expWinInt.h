@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinInt.h,v 1.1.2.2 2001/11/09 01:17:40 davygrvy Exp $
+ * RCS: @(#) $Id: expWinInt.h,v 1.1.4.1 2002/02/10 02:59:46 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 #ifndef _EXPWININT
@@ -51,8 +51,11 @@
 #   define TCL_STORAGE_CLASS
 extern TCL_CPP void ExpInitWinProcessAPI (void);
 extern TCL_CPP void ExpDynloadTclStubs (void);
-#   include "expWinSlave.hpp"
-#   include "spawndrvmc.h"
+#   include "expWinSlave.h"
+#   ifdef _DEBUG
+#	include "MsvcDbgControl.h"
+#   endif
+/*#   include "spawndrvmc.h"*/
 #elif defined(BUILD_exp)
 #   define TCL_STORAGE_CLASS DLLEXPORT
 #else

@@ -66,7 +66,7 @@ LINK32=link.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /GZ /c
-# ADD CPP /nologo /G5 /MDd /W3 /Gm /GX /ZI /Od /I "." /I "..\generic" /I "d:\tcl_workspace\tcl_head\generic" /I "d:\tcl_workspace\tcl_head\win" /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D _WIN32_WINNT=0x0400 /D "USE_TCL_STUBS" /YX /FD /GZ /c
+# ADD CPP /nologo /G5 /MDd /W3 /Gm /GX /ZI /Od /I "." /I "..\generic" /I "d:\tcl_workspace\tcl_head\generic" /I "d:\tcl_workspace\tcl_head\win" /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "USE_TCL_STUBS" /D "BUILD_spawndriver" /YX /FD /GZ /c
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
 # ADD RSC /l 0x409 /d "_DEBUG"
 BSC32=bscmake.exe
@@ -84,15 +84,15 @@ LINK32=link.exe
 # Name "slavedrv - Win32 Debug"
 # Begin Source File
 
-SOURCE=.\expWin.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\expWinDynloadTclStubs.c
 # End Source File
 # Begin Source File
 
 SOURCE=.\ExpWinInit.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\expWinInt.h
 # End Source File
 # Begin Source File
 

@@ -55,14 +55,7 @@
  * normal headers 
  */
 
-#include "tcl.h"
-#include "tclPort.h"
-#include "expWin.h"
-#include "expWinSlave.h"
-
-#ifdef _DEBUG
-#include "MsvcDbgControl.h"
-#endif
+#include "expWinInt.h"
 
 #ifdef _MSC_VER
 #   pragma comment (lib, "tclstub" \
