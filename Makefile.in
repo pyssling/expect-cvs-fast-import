@@ -722,7 +722,7 @@ test:   expect
 	   echo "set srcdir" `pwd` >> .tmp ; \
 	else echo "set srcdir" $(srcdir) >> .tmp ; fi
 	echo "cd \$${srcdir}/tests" >> .tmp
-	echo "source all" >> .tmp
+	echo "source all.tcl" >> .tmp
 	rootme=`pwd`; export rootme; \
 	srcdir=${srcdir} ; export srcdir ; \
 	if [ -f ./expect ] ; then  \

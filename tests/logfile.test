@@ -4,7 +4,10 @@
 # built-in commands.  Sourcing this file into Tcl runs the tests and
 # generates output for errors.  No output means no errors were found.
 
-if {[string compare test [info procs test]] == 1} then {source defs}
+if {[lsearch [namespace children] ::tcltest] == -1} {
+    package require tcltest
+    namespace import ::tcltest::*
+}
 
 test logfile-1.1 {basic logfile} {
     set filename /tmp/logfile.[pid]
@@ -24,3 +27,6 @@ test logfile-1.1 {basic logfile} {
     # verify everything but "send" is logged
     regexp "via send_uservia send_stdoutvia send_ttyvia send_log" $buffer
 } {1}
+
+cleanupTests
+return

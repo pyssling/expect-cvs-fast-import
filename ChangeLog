@@ -1,3 +1,23 @@
+1999-08-31  Jennifer Hom  <jenn@scriptics.com>
+
+	* Makefile.in: Changed test target to source tests/all.tcl instead
+	of tests/all
+
+	* tests/README: Modified documentation to reflect the change from
+	usage of a defs file to the use of package tcltest to run the tests
+
+	* tests/all:
+	* tests/defs:
+	* tests/all.tcl:
+	* tests/cat.test:
+	* tests/expect.test:
+	* tests/logfile.test:
+	* tests/pid.test:
+	* tests/send.test:
+	* tests/spawn.test
+	* tests/stty.test: Modified test files to use package tcltest, 
+	removed tests/all and tests/defs, and added tests/all.tcl 
+
 1999-06-22    <stanton@scriptics.com>
 
 	* expect.c: Fixed bug in token parsing where index was not being

@@ -4,7 +4,10 @@
 # built-in commands.  Sourcing this file into Tcl runs the tests and
 # generates output for errors.  No output means no errors were found.
 
-if {[string compare test [info procs test]] == 1} then {source defs}
+if {[lsearch [namespace children] ::tcltest] == -1} {
+    package require tcltest
+    namespace import ::tcltest::*
+}
 
 catch {unset x}
 
@@ -127,3 +130,6 @@ test expect-1.9 {match null inline} {
 } {1}
 
 file delete -force $filename
+
+cleanupTests
+return
