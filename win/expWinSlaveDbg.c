@@ -45,7 +45,6 @@
  * same headers 
  */
 
-#include "tclInt.h"
 #include "tclPort.h"
 #include "expWin.h"
 #include "expWinSlave.h"
