@@ -12,7 +12,7 @@
  *
  */
 
-#include "tcl.h"
+#define STRICT    /* ask windows.h to agressive about the HANDLE type */
 #include "tclPort.h"
 #include "expWin.h"
 #include "spawndrvmc.h"
@@ -95,7 +95,7 @@ ExpSyslog TCL_VARARGS_DEF(DWORD,arg1)
 	case FACILITY_MAILBOX:
 	    errData[cnt++] = _T("MailBoxing IPC"); break;
 	case FACILITY_IO:
-	    errData[cnt++] = _T("I/O [general]"); break;
+	    errData[cnt++] = _T("I/O general"); break;
 	case FACILITY_DBGTRAP:
 	    errData[cnt++] = _T("Debug/Trap"); break;
     }

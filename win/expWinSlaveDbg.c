@@ -45,9 +45,11 @@
  * same headers 
  */
 
+#define STRICT    /* ask windows.h to agressive about the HANDLE type */
 #include "tclPort.h"
 #include "expWin.h"
 #include "expWinSlave.h"
+#include "spawndrvmc.h"
 #include <imagehlp.h>
 #include <stddef.h>
 #include <assert.h>
@@ -72,15 +74,11 @@
 #define EXP_FLAG_PI			0x80
 
 #ifndef UNICODE
-#  define ExpCreateProcessInfo	ExpCreateProcessInfoA
-//#  define OnWriteConsoleOutput	OnWriteConsoleOutputA
-//#  define ReadSubprocessString	ReadSubprocessStringA
-#  define StartSubprocess	StartSubprocessA
+//#  define ExpCreateProcessInfo	ExpCreateProcessInfoA
+//#  define StartSubprocess	StartSubprocessA
 #else
-#  define ExpCreateProcessInfo	ExpCreateProcessInfoW
-//#  define OnWriteConsoleOutput	OnWriteConsoleOutputW
-//#  define ReadSubprocessString	ReadSubprocessStringW
-#  define StartSubprocess	StartSubprocessW
+//#  define ExpCreateProcessInfo	ExpCreateProcessInfoW
+//#  define StartSubprocess	StartSubprocessW
 #endif
 
 typedef struct _ExpProcess ExpProcess;
@@ -220,8 +218,8 @@ static void		CreateVtSequence(ExpProcess *, COORD newPos, DWORD n);
 static BOOL		SetBreakpoint(ExpProcess *, ExpBreakInfo *);
 static ExpBreakpoint *	SetBreakpointAtAddr(ExpProcess *, ExpBreakInfo *,
 			    PVOID funcPtr);
-static void		StartSubprocessA(ExpProcess *, ExpThreadInfo *);
-static void		StartSubprocessW(ExpProcess *, ExpThreadInfo *);
+//static void		StartSubprocessA(ExpProcess *, ExpThreadInfo *);
+//static void		StartSubprocessW(ExpProcess *, ExpThreadInfo *);
 static void		RefreshScreen(LPWSAOVERLAPPED over);
 
 static void		OnBeep(ExpProcess *,
@@ -625,13 +623,14 @@ ExpCommonDebugger()
 
 	if (!proc && debEvent.dwDebugEventCode != CREATE_PROCESS_DEBUG_EVENT) {
 	    char buf[50];
-	    sprintf(buf, "%d/%d (%d)", 
+	    wsprintfA(buf, "%d/%d (%d)", 
 		    debEvent.dwProcessId, debEvent.dwThreadId,
 		    debEvent.dwDebugEventCode);
-	    //EXP_LOG1("Unexpected debug event for %s", buf);
+	    EXP_LOG1(MSG_DT_UNEXPECTEDDBGEVENT, buf);
 	    if (debEvent.dwDebugEventCode == EXCEPTION_DEBUG_EVENT) {
-		//EXP_LOG("ExceptionCode: 0x%08x",
-			//debEvent.u.Exception.ExceptionRecord.ExceptionCode);
+		char buf[50];
+		wsprintfA(buf, "0x%08x", debEvent.u.Exception.ExceptionRecord.ExceptionCode);
+		EXP_LOG1(MSG_DT_EXCEPTIONDBGEVENT, buf);
 		dwContinueStatus = DBG_EXCEPTION_NOT_HANDLED;
 	    }
 	    goto skip;
@@ -1041,7 +1040,7 @@ OnXFirstBreakpoint(ExpProcess *proc, LPDEBUG_EVENT pDebEvent)
 	tclEntry = Tcl_FindHashEntry(proc->funcTable, "VirtualAlloc");
 	if (tclEntry == NULL) {
 	    proc->nBreakCount++;	/* Don't stop at second breakpoint */
-	    //EXP_LOG("Unable to find entry for VirtualAlloc", NULL);
+	    EXP_LOG0(MSG_DT_NOVIRT);
 	    return;
 	}
 	addr = (DWORD) Tcl_GetHashValue(tclEntry);
@@ -1060,10 +1059,10 @@ OnXFirstBreakpoint(ExpProcess *proc, LPDEBUG_EVENT pDebEvent)
 
 	base = FirstContext.Eip;
 	if (!ReadSubprocessMemory(proc, (PVOID) base, FirstPage, sizeof(InjectCode))) {
-	    //EXP_LOG("Error reading subprocess memory", NULL);
+	    EXP_LOG0(MSG_DT_CANTREADSPMEM);
 	}
 	if (!WriteSubprocessMemory(proc, (PVOID) base, &code, sizeof(InjectCode))) {
-	    //EXP_LOG("Error reading subprocess memory", NULL);
+	    EXP_LOG0(MSG_DT_CANTWRITESPMEM);
 	}
     }
     return;
@@ -1108,7 +1107,7 @@ OnXSecondBreakpoint(ExpProcess *proc, LPDEBUG_EVENT pDebEvent)
 
     base = FirstContext.Eip;
     if (!WriteSubprocessMemory(proc, (PVOID) base, FirstPage, sizeof(InjectCode))) {
-	//EXP_LOG("Error writing subprocess memory", NULL);
+	EXP_LOG0(MSG_DT_CANTWRITESPMEM);
     }
     SetThreadContext(FirstThread, &FirstContext);
 

@@ -13,6 +13,7 @@
  *
  */
 
+#define STRICT    /* ask windows.h to agressive about the HANDLE type */
 #include "tclPort.h"
 #include "expWin.h"
 

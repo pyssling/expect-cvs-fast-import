@@ -48,7 +48,7 @@ MessageId=0x2
 Severity=Success
 Facility=Catagories
 Language=English
-I/O (General)
+General I/O
 .
 
 MessageId=0x3
@@ -185,7 +185,13 @@ Language=English
 %1 : %2 (%3,%4): Can't open argv[1], "%5", for read/write.  CreateFile() returned: %6
 .
 
-
+MessageId=0x2
+Severity=Error
+Facility=NamedPipe
+SymbolicName=MSG_NP_BADTYPE
+Language=English
+%1 : %2 (%3,%4): NamedPipe specified as, "%5", was found not to be a pipe filetype.
+.
 
 
 MessageId=0x1
@@ -229,4 +235,52 @@ Facility=DbgTrap
 SymbolicName=MSG_DT_CANTGETCONSOLEHANDLE
 Language=English
 %1 : %2 (%3,%4): Can't open a console handle. CreateFile("%5") returned: %6
+.
+
+MessageId=0x2
+Severity=Warning
+Facility=DbgTrap
+SymbolicName=MSG_DT_UNEXPECTEDDBGEVENT
+Language=English
+%1 : %2 (%3,%4): Unexpected debug event for %5
+.
+
+MessageId=0x3
+Severity=Warning
+Facility=DbgTrap
+SymbolicName=MSG_DT_EXCEPTIONDBGEVENT
+Language=English
+%1 : %2 (%3,%4): Exception code is %5
+.
+
+MessageId=0x4
+Severity=Warning
+Facility=DbgTrap
+SymbolicName=MSG_DT_NOVIRT
+Language=English
+%1 : %2 (%3,%4): Unable to find entry for VirtualAlloc
+.
+
+MessageId=0x5
+Severity=Warning
+Facility=DbgTrap
+SymbolicName=MSG_DT_CANTREADSPMEM
+Language=English
+%1 : %2 (%3,%4): Error reading from subprocess memory
+.
+
+MessageId=0x6
+Severity=Warning
+Facility=DbgTrap
+SymbolicName=MSG_DT_CANTWRITESPMEM
+Language=English
+%1 : %2 (%3,%4): Error writing to subprocess memory
+.
+
+MessageId=0x7
+Severity=Warning
+Facility=DbgTrap
+SymbolicName=MSG_DT_SCREENBUF
+Language=English
+%1 : %2 (%3,%4): Call to GetConsoleScreenBufferInfo() failed with %5, %6
 .

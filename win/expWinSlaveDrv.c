@@ -55,6 +55,7 @@
  * normal headers 
  */
 
+#define STRICT    /* ask windows.h to agressive about the HANDLE type */
 #include "tclPort.h"
 #include "expWin.h"
 #include "expWinSlave.h"
@@ -251,6 +252,9 @@ main(argc, argv)
 	if (hMaster == INVALID_HANDLE_VALUE) {
 	    EXP_LOG2(MSG_NP_CANTOPEN, argv[1], ExpSyslogGetSysMsg(GetLastError()));
 	}
+	if (GetFileType(hMaster) != FILE_TYPE_PIPE) {
+	    EXP_LOG1(MSG_NP_BADTYPE, argv[1]);
+	}
     } else {
 	SOCKET fdmaster;
 	dwResult = WSAStartup(WINSOCK_VERSION, &SockData);
@@ -440,8 +444,8 @@ ExpProcessInput(HANDLE hMaster, HANDLE hConsoleInW, HANDLE hConsoleOut,
 		 */
 		if( WaitForSingleObject(hShutdown, 0) == WAIT_OBJECT_0 )
 		{
-		    fd_set		   monitor;
-		    int			   sts;
+		    fd_set monitor;
+		    int	sts;
 		    /*
 		     * This means that all of the other threads have shut down cleanly.
 		     */
