@@ -34,7 +34,7 @@ echo "configuring Expect $EXP_MAJOR_VERSION.$EXP_MINOR_VERSION.$EXP_MICRO_VERSIO
 AC_CHECK_PROG(found,autoconf,yes,no,)
 found=no
 AC_MSG_CHECKING([configure up to date])
-for i in `(cd ${srcdir} ; ls -tr configure configure.in Makefile.in)` ; do
+for i in `cd ${srcdir} ; ls -tr configure configure.in Makefile.in` ; do
   newest=$i
 done
 if test "configure" = "$newest" ; then
