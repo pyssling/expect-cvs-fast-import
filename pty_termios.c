@@ -27,10 +27,11 @@ would appreciate credit if you use this file or parts of it.
 */
 extern char *TclGetRegError();
 
-/* Linux systems can be configured to have both.  I don't know which is */
-/* better, let's try PTMX */
+/* Linux and Digital systems can be configured to have both.
+According to Ashley Pittman <ashley@ilo.dec.com>, Digital works better
+with openpty which supports 4000 while ptmx supports 60. */
 #if defined(HAVE_OPENPTY) && defined(HAVE_PTMX)
-#undef HAVE_OPENPTY
+#undef HAVE_PTMX
 #endif
 
 #if defined(HAVE_PTYM) && defined(HAVE_PTMX)

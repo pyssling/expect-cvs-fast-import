@@ -3,6 +3,11 @@ support are in ChangeLog. - Don
 
 Date	Version	Description
 -------	-------	------------------------------------------------------
+		Ashley Pittman <ashley@ilo.dec.com> noted that digital unix
+		V5.0 prefers openpty (4000 ptys) over ptmx (60 ptys), so I'm
+		reversing the login in pty_termios.c.  This also controls
+		linux, but no linux hackers have weighed in on this subject			yet.
+
 		Andrew Tannenbaum <trb@world.std.com> noted exp_internal
 		command was broken.
 
