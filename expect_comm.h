@@ -10,6 +10,8 @@ would appreciate credit if this program or parts of it are used.
 #ifndef _EXPECT_COMM_H
 #define _EXPECT_COMM_H
 
+#include <tcl.h>
+
 #include <stdio.h>
 #include <setjmp.h>
 
