@@ -24,7 +24,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinConsoleDebuggerBreakPoints.cpp,v 1.1.2.13 2002/06/22 14:02:03 davygrvy Exp $
+ * RCS: @(#) $Id: expWinConsoleDebuggerBreakPoints.cpp,v 1.1.2.14 2002/06/29 00:44:36 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -1309,6 +1309,28 @@ ConsoleDebugger::OnWriteFile(Process *proc,
     ThreadInfo *threadInfo, Breakpoint *brkpt, PDWORD returnValue,
     DWORD direction)
 {
+    HANDLE hFile;		    // handle to file
+    PCHAR lpBuffer;		    // data buffer
+    DWORD nNumberOfBytesToWrite;    // number of bytes to write
+//    LPOVERLAPPED lpOverlapped;	    // overlapped buffer
+    PVOID ptr;
+
+    hFile = (HANDLE) threadInfo->args[0];
+
     // TODO: is this a console handle in the slave?
-    __asm nop;
+    return;
+
+    // Get number of bytes written, if available.
+    ptr = (PVOID) threadInfo->args[4];
+    if (ptr == 0L) {
+	nNumberOfBytesToWrite = threadInfo->args[2];
+    } else {
+	ReadSubprocessMemory(proc, ptr, &nNumberOfBytesToWrite, sizeof(DWORD));
+    }
+
+    ptr = (PVOID) threadInfo->args[1];
+    lpBuffer = new CHAR [nNumberOfBytesToWrite];
+    ReadSubprocessMemory(proc, ptr, lpBuffer, nNumberOfBytesToWrite);
+
+    delete lpBuffer;
 }
