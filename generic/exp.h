@@ -22,12 +22,13 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: exp.h,v 1.1.4.6 2002/02/10 13:40:47 davygrvy Exp $
+ * RCS: @(#) $Id: exp.h,v 1.1.4.7 2002/02/11 02:19:53 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
 #ifndef _EXP
 #define _EXP
+
 
 #ifndef _TCL
 #   include "tcl.h"
@@ -75,16 +76,6 @@
  */
 #ifndef RC_INVOKED
 
-#ifdef TIME_WITH_SYS_TIME
-#   include <sys/time.h>
-#   include <time.h>
-#else
-#   ifdef HAVE_SYS_TIME_H
-#	include <sys/time.h>
-#   else
-#	include <time.h>
-#   endif
-#endif
 
 #undef TCL_STORAGE_CLASS
 #if defined(BUILD_spawndriver)
@@ -100,15 +91,15 @@
 #endif
 
 
-/*
- * Fix the Borland bug that's in Tcl.
- */
+/* BEGIN -- Tcl header file bugs */
+
+/* Fix the Borland bug in tcl.h */
 #ifndef TCL_EXTERN
 #   undef DLLIMPORT
 #   undef DLLEXPORT
-#   if (defined(__WIN32__) &&  (defined(_MSC_VER) || (__BORLANDC__ >= 0x0550) || \
-	    (defined(__GNUC__) && defined(__DECLSPEC_SUPPORTED)))) || \
-	    (defined(MAC_TCL) && FUNCTION_DECLSPEC)
+#   if (defined(__WIN32__) &&  (defined(_MSC_VER) || (__BORLANDC__ >= 0x0550) \
+	    || (defined(__GNUC__) && defined(__DECLSPEC_SUPPORTED)))) \
+	    || (defined(MAC_TCL) && FUNCTION_DECLSPEC)
 #	define DLLIMPORT __declspec(dllimport)
 #	define DLLEXPORT __declspec(dllexport)
 #   elif defined(__BORLANDC__)
@@ -119,24 +110,33 @@
 #	define DLLIMPORT
 #	define DLLEXPORT
 #   endif
-    /*
-     * Make sure name mangling won't happen when the c++ language extensions
-     * are used.
-     */
+    /* Avoid name mangling. */
 #   ifdef __cplusplus
 #	define TCL_CPP "C"
 #   else
 #	define TCL_CPP
 #   endif
-    /*
-     * Pre 5.5 Borland requires the attributes be placed after the return type.
-     */
+    /* Pre 5.5 Borland requires the attributes be placed after the return type. */
 #   if OLD_BORLAND
 #	define TCL_EXTERN(rtnType) extern TCL_CPP rtnType TCL_STORAGE_CLASS
 #   else
 #	define TCL_EXTERN(rtnType) extern TCL_CPP TCL_STORAGE_CLASS rtnType
 #   endif
 #endif
+
+
+/* needed by some exports */
+#ifdef TIME_WITH_SYS_TIME
+#   include <sys/time.h>
+#   include <time.h>
+#else
+#   ifdef HAVE_SYS_TIME_H
+#	include <sys/time.h>
+#   else
+#	include <time.h>
+#   endif
+#endif
+
 
 #define SCRIPTDIR	"example/"
 #define EXECSCRIPTDIR	"example/"
