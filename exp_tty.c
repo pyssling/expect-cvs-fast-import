@@ -34,8 +34,8 @@
 #include "exp_prog.h"
 #include "exp_rename.h"
 #include "exp_tty_in.h"
-#include "exp_log.h"
 #include "exp_command.h"
+#include "exp_log.h"
 
 static int is_raw = FALSE;
 static int is_noecho = FALSE;
@@ -637,7 +637,7 @@ char **argv;
 	systemStatus = system(buf);
 	signal(SIGCHLD, old);	/* restore signal handler */
 	expDiagLogU("system(");
-	expDiagLogU(buf)
+	expDiagLogU(buf);
 	expDiagLog(") = %d\r\n",i);
 
 	if (systemStatus == -1) {

@@ -277,7 +277,7 @@ ExpState *esPtr;
     Tcl_DecrRefCount(esPtr->buffer);
 
     if (esPtr->fg_armed) {
-	exp_event_disarm(esPtr);
+	exp_event_disarm_fg(esPtr);
 	esPtr->fg_armed = FALSE;
     }
 }
@@ -2039,9 +2039,9 @@ Exp_LogFileCmd(clientData, interp, argc, argv)
 	    return TCL_ERROR;
 	}
     } else if (chanName) {
-	Tcl_Channel channel = Tcl_GetChannel(interp,chanName,(int *)0);
-	if (!channel) return TCL_ERROR;
-	expLogChannelSet(channel);
+	if (TCL_ERROR == expLogChannelSet(interp,chanName)) {
+	    return TCL_ERROR;
+	}
     } else {
 	expLogCloseChannel();
 	if (logAll) {
@@ -2163,7 +2163,7 @@ char **argv;
 	if (!streq(*argv,"-f")) break;
 	argc--;argv++;
 	if (argc < 1) goto usage;
-	expDiagChannelClose();
+	expDiagChannelClose(interp);
 	if (TCL_OK != expDiagChannelOpen(interp,argv[0])) {
 	    return TCL_ERROR;
 	}
@@ -2175,7 +2175,7 @@ char **argv;
     
     /* if no -f given, close file */
     if (!newChannel) {
-	expDiagChannelClose();
+	expDiagChannelClose(interp);
     }
     expDiagToStderrSet(atoi(*argv));
     return(TCL_OK);

@@ -56,10 +56,6 @@ int exp_default_rm_nulls =	TRUE;
 #define EXPECT_OUT		"expect_out"
 
 typedef struct ThreadSpecificData {
-    /*
-     * List of all exp channels currently open.  This is per thread and is
-     * used to match up fd's to channels, which rarely occurs.
-     */
     int timeout;
 } ThreadSpecificData;
 

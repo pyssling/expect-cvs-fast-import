@@ -48,14 +48,21 @@ would appreciate credit if this program or parts of it are used.
 #if OBSOLETE
 #include "tclRegexp.h"
 #include "exp_regexp.h"
-#endif /* OBSOLETE */
 
 extern char *TclGetRegError();
 extern void TclRegError();
+#endif /* OBSOLETE */
+
+typedef struct ThreadSpecificData {
+    Tcl_Obj *cmdObjReturn;
+    Tcl_Obj *cmdObjInterpreter;
+} ThreadSpecificData;
+
+static Tcl_ThreadDataKey dataKey;
 
 #define INTER_OUT "interact_out"
 #define out(var,val) \
- expDiagLog("interact: set %s(%s) \",INTER_OUT,var); \
+ expDiagLog("interact: set %s(%s) \"",INTER_OUT,var); \
  expDiagLogU(expPrintify(val)); \
  expDiagLogU("\"\r\n"); \
  Tcl_SetVar2(interp,INTER_OUT,var,val,0);
@@ -524,7 +531,7 @@ update_interact_fds(interp,esPtrCount,esPtrToInput,esPtrs,input_base,
 Tcl_Interp *interp;
 int *esPtrCount;
 Tcl_HashTable **esPtrToInput;	/* map from ExpStates to "struct inputs" */
-ExpState *((*esPtrs)[]);
+ExpState ***esPtrs;
 struct input *input_base;
 int do_indirect;		/* if true do indirects */
 int *config_count;
@@ -636,6 +643,9 @@ Tcl_Interp *interp;
 int objc;
 Tcl_Obj *CONST objv[];		/* Argument objects. */
 {
+    ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
+
+    char *string;
     char *arg;	/* shorthand for current argv */
 #ifdef SIMPLE_EVENT
     int pid;
@@ -647,6 +657,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
     Tcl_HashTable *esPtrToInput = 0;	/* map from ExpState to "struct inputs" */
     ExpState **esPtrs;
     struct keymap *km;	/* ptr for above while parsing */
+    ExpState *u = 0;
     ExpState *esPtr = 0;
     Tcl_Obj *chanName = 0;
     int need_to_close_master = FALSE;	/* if an eof is received */
@@ -736,7 +747,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
     input_user->next = input_default;
 
     /* default and common -eof action */
-    action_eof.statement = return_cmd;
+    action_eof.statement = tsdPtr->cmdObjReturn;
     action_eof.tty_reset = FALSE;
     action_eof.iread = FALSE;
     action_eof.iwrite = FALSE;
@@ -747,7 +758,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
      */
 
     for (;objc>0;objc--,objv++) {
-	string = Tcl_GetString(objv);
+	string = Tcl_GetString(*objv);
 	if (string[0] == '-') {
 	    static char *switches[] = {
 		"--",		"-exact",	"-re",		"-input",
@@ -757,7 +768,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 		"-eof",		"-timeout",	"-timestamp",	"-nobrace"
 	    };
 	    enum switches {
-		EXP_SWITCH_DASH,	EXP_SwITCH_EXACT,
+		EXP_SWITCH_DASH,	EXP_SWITCH_EXACT,
 		EXP_SWITCH_REGEXP,	EXP_SWITCH_INPUT,
 		EXP_SWITCH_OUTPUT,	EXP_SWITCH_USER,
 		EXP_SWITCH_OPPOSITE,	EXP_SWITCH_SPAWN_ID,
@@ -775,7 +786,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 	     * get an invalid switch.
 	     */
 
-	    if (Tcl_GetIndexFromObj(interp, objv, switches, "switch", 0,
+	    if (Tcl_GetIndexFromObj(interp, *objv, switches, "switch", 0,
 		    &index) != TCL_OK) {
 		return TCL_ERROR;
 	    }
@@ -817,7 +828,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 			exp_error(interp,"-input needs argument");
 			return(TCL_ERROR);
 		    }
-		    inp->i_list = exp_new_i_complex(interp,*objv,
+		    inp->i_list = exp_new_i_complex(interp,Tcl_GetString(*objv),
 			    EXP_TEMPORARY,inter_updateproc);
 		    break;
 		case EXP_SWITCH_OUTPUT: {
@@ -838,7 +849,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 			exp_error(interp,"-output needs argument");
 			return(TCL_ERROR);
 		    }
-		    outp->i_list = exp_new_i_complex(interp,*objv,
+		    outp->i_list = exp_new_i_complex(interp,Tcl_GetString(*objv),
 			    EXP_TEMPORARY,inter_updateproc);
 
 		    outp->action_eof = &action_eof;
@@ -900,7 +911,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 		case EXP_SWITCH_IREAD:
 		    next_iread = TRUE;
 		    break;
-		    case EXP_SWITCH_IWRITE
+		case EXP_SWITCH_IWRITE:
 			next_iwrite= TRUE;
 		    break;
 		case EXP_SWITCH_EOF: {
@@ -985,7 +996,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 	     * Match keywords exactly, otherwise they are patterns.
 	     */
 
-	    if (Tcl_GetIndexFromObj(interp, objv, options, "option",
+	    if (Tcl_GetIndexFromObj(interp, *objv, options, "option",
 		    1 /* exact */, &index) != TCL_OK) {
 		goto pattern;
 	    }
@@ -1095,9 +1106,9 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 
 	km->action.statement = *objv;
 	expDiagLogU("defining key ");
-	expDiagLogU(km->keys);
+	expDiagLogU(Tcl_GetString(km->keys));
 	expDiagLogU(", action ");
-	expDiagLogU(km->action.statement?expPrintify(km->action.statement):interpreter_cmd);
+	expDiagLogU(km->action.statement?expPrintify(Tcl_GetString(km->action.statement)):"interpreter");
 	expDiagLogU("\r\n");
 
 	/* imply a "-input" */
@@ -1115,7 +1126,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 	    }
 	    o->i_list = exp_new_i_simple(esPtr,EXP_TEMPORARY);
 	} else {
-	    o->i_list = exp_new_i_complex(interp,chanName,
+	    o->i_list = exp_new_i_complex(interp,Tcl_GetString(chanName),
 		    EXP_TEMPORARY,inter_updateproc);
 	}
 	o->next = 0;	/* no one else */
@@ -1125,7 +1136,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 
     if (!input_default->output) {
 	struct output *o = new(struct output);
-	o->i_list = exp_new_i_simple(expStdinoutGet,EXP_TEMPORARY);/* stdout by default */
+	o->i_list = exp_new_i_simple(expStdinoutGet(),EXP_TEMPORARY);/* stdout by default */
 	o->next = 0;	/* no one else */
 	o->action_eof = &action_eof;
 	input_default->output = o;
@@ -1140,10 +1151,10 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 
 	/* replace with arg to -u */
 	input_user->i_list = exp_new_i_complex(interp,
-		replace_user_by_process,
+		Tcl_GetString(replace_user_by_process),
 		EXP_TEMPORARY,inter_updateproc);
 	input_default->output->i_list = exp_new_i_complex(interp,
-		replace_user_by_process,
+		Tcl_GetString(replace_user_by_process),
 		EXP_TEMPORARY,inter_updateproc);
     }
 
@@ -1166,7 +1177,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 	} else {
 	    /* discard old one and install new one */
 	    exp_free_i(interp,input_default->i_list,inter_updateproc);
-	    input_default->i_list = exp_new_i_complex(interp,master_string,
+	    input_default->i_list = exp_new_i_complex(interp,Tcl_GetString(chanName),
 		    EXP_TEMPORARY,inter_updateproc);
 	}
     }
@@ -1215,7 +1226,6 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
     /* loop waiting (in event handler) for input */
     for (;;) {
 	int te;	/* result of Tcl_Eval */
-	ExpState *u;
 	int rc;	/* return code from ready.  This is further refined by matcher. */
 	int cc;			/* # of chars from read() */
 	struct action *action = 0;
@@ -1346,7 +1356,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 	/* put regexp result in variables */
 	if (km && km->re) {
 	    char name[20], value[20];
-	    regexp *re = km->re;
+	    Tcl_RegExp *re = km->re;
 	    char match_char;/* place to hold char temporarily */
 					/* uprooted by a NULL */
 
@@ -1386,7 +1396,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 	    print = skip + match_length;
 	} else print = skip;
 
-	expEcho(u,km,skip,match);
+	expEcho(u,km,skip,match_length);
 	oldprinted = u->printed;
 
 	/*
@@ -1403,6 +1413,9 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 		struct exp_state_list *fdp;
 		for (fdp = outp->i_list->state_list;fdp;fdp=fdp->next) {
 		    /* send to channel (and log if chan is stdout or devtty) */
+		    /*
+		     * Following should eventually be rewritten to ...WriteCharsAnd...
+		     */
 		    int wc = expWriteBytesAndLogIfTtyU(fdp->esPtr,
 			    Tcl_GetString(u->buffer) + u->printed,
 			    print - u->printed);
@@ -1455,15 +1468,17 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 	    skip += match_length;
 	    size -= skip;
 	    if (size) {
-		memcpy(u->buffer, u->buffer + skip, size);
+		string = Tcl_GetString(u->buffer);
+		memmove(string, string + skip, size);
 	    }
 	} else {
+	    string = Tcl_GetString(u->buffer);
 	    if (skip) {
 		size -= skip;
-		memcpy(u->buffer, u->buffer + skip, size);
+		memcpy(string, string + skip, size);
 	    }
 	}
-	Tcl_SetObjLength(size);
+	Tcl_SetObjLength(u->buffer,size);
 
 	/* now update printed based on total amount skipped */
 
@@ -2078,24 +2093,23 @@ got_action:
 	}
 }
 #endif /* SIMPLE_EVENT */
-    }
  done:
 #ifdef SIMPLE_EVENT
-	/* force child to exit upon eof from master */
-	if (pid == 0) {
-		exit(SPAWNED_PROCESS_DIED);
-	}
+    /* force child to exit upon eof from master */
+    if (pid == 0) {
+	exit(SPAWNED_PROCESS_DIED);
+    }
 #endif /* SIMPLE_EVENT */
 
-	if (need_to_close_master) exp_close(interp,u);
+    if (need_to_close_master) exp_close(interp,u);
 
-	if (tty_changed) exp_tty_set(interp,&tty_old,was_raw,was_echo);
-	if (esPtrs) ckfree((char *)esPtrs);
-	if (esPtrToInput) Tcl_DeleteHashTable(esPtrToInput);
-	free_input(interp,input_base);
-	free_action(action_base);
+    if (tty_changed) exp_tty_set(interp,&tty_old,was_raw,was_echo);
+    if (esPtrs) ckfree((char *)esPtrs);
+    if (esPtrToInput) Tcl_DeleteHashTable(esPtrToInput);
+    free_input(interp,input_base);
+    free_action(action_base);
 
-	return(status);
+    return(status);
 }
 
 /* version of Tcl_Eval for interact */ 
@@ -2120,7 +2134,7 @@ ExpState *esPtr;
     }
 
     if (action->statement) {
-	status = Tcl_Eval(interp,action->statement);
+	status = Tcl_EvalObjEx(interp,action->statement,0);
     } else {
 	expStdoutLogU("\r\n",1);
 	status = exp_interpreter(interp);
@@ -2200,5 +2214,12 @@ void
 exp_init_interact_cmds(interp)
 Tcl_Interp *interp;
 {
-	exp_create_commands(interp,cmd_data);
+    ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
+
+    exp_create_commands(interp,cmd_data);
+
+    tsdPtr->cmdObjReturn = Tcl_NewStringObj("return",6);
+    Tcl_IncrRefCount(tsdPtr->cmdObjReturn);
+    tsdPtr->cmdObjInterpreter = Tcl_NewStringObj("interpreter",11);
+    Tcl_IncrRefCount(tsdPtr->cmdObjInterpreter);
 }

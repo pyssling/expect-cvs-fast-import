@@ -55,15 +55,10 @@ static Tcl_ThreadDataKey dataKey;
 static int default_mask = TCL_READABLE | TCL_EXCEPTION;
 
 void
-exp_event_disarm(esPtr,proc)
+exp_event_disarm_bg(esPtr)
 ExpState *esPtr;
-Tcl_FileProc *proc;
 {
-    Tcl_DeleteChannelHandler(esPtr->channel,proc,(ClientData)esPtr);
-
-    /* remember that ChannelHandler has been disabled so that */
-    /* it can be turned on for fg expect's as well as bg */
-    esPtr->fg_armed = FALSE;
+    Tcl_DeleteChannelHandler(esPtr->channel,exp_background_channelhandler),(ClientData)esPtr);
 }
 
 static void
@@ -106,7 +101,7 @@ ExpState *esPtr;
 	    break;
 	case armed:
 	    esPtr->bg_status = unarmed;
-	    exp_event_disarm(esPtr,exp_background_channelhandler);
+	    exp_event_disarm_bg(esPtr);
 	    break;
 	case disarm_req_while_blocked:
 	case unarmed:
@@ -127,7 +122,7 @@ ExpState *esPtr;
 	case disarm_req_while_blocked:
 	case armed:
 	    esPtr->bg_status = unarmed;
-	    exp_event_disarm(esPtr,exp_background_channelhandler);
+	    exp_event_disarm_bg(esPtr);
 	    break;
 	case unarmed:
 	    /* do nothing */
@@ -158,7 +153,7 @@ exp_block_background_channelhandler(esPtr)
 ExpState *esPtr;
 {
     esPtr->bg_status = blocked;
-    exp_event_disarm(esPtr,exp_background_channelhandler);
+    exp_event_disarm_bg(esPtr);
 }
 
 
@@ -180,7 +175,17 @@ int mask;
 
     tsdPtr->ready_esPtr = (ExpState *)clientData;
     tsdPtr->ready_mask = mask;
-    exp_event_disarm(tsdPtr->ready_esPtr,exp_channelhandler);
+    exp_event_disarm_fg(tsdPtr->ready_esptr);
+}
+
+void
+exp_event_disarm_fg(esPtr)
+{
+    Tcl_DeleteChannelHandler(esPtr->channel,exp_channelhandler,(ClientData)esPtr);
+
+    /* remember that ChannelHandler has been disabled so that */
+    /* it can be turned on for fg expect's as well as bg */
+    esPtr->fg_armed = FALSE;
 }
 
 /* returns status, one of EOF, TIMEOUT, ERROR or DATA */
@@ -276,7 +281,7 @@ int key;
 	    }
 
 	    /* not found */
-	    exp_event_disarm(esPtr);
+	    exp_event_disarm_fg(esPtr);
 	    tsdPtr->ready_esPtr = 0;
 	    continue;
 	    found:

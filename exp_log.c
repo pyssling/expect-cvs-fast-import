@@ -19,14 +19,15 @@
 #include "expect_comm.h"
 #include "exp_int.h"
 #include "exp_rename.h"
+#include "exp_command.h"
 #include "exp_log.h"
 
 typedef struct ThreadSpecificData {
-    Tcl_Channel *diagChannel;
+    Tcl_Channel diagChannel;
     Tcl_DString diagFilename;
     int diagToStderr;
 
-    Tcl_Channel *logChannel;
+    Tcl_Channel logChannel;
     Tcl_DString logFilename;	/* if no name, then it came from -open or -leaveopen */
     int logAppend;
     int logLeaveOpen;
@@ -85,7 +86,7 @@ expWriteBytesAndLogIfTtyU(esPtr,buf,lenBytes)
     int wc;
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
 
-    wc = Tcl_Write(fdp->esPtr->channel,buf,lenBytes);
+    wc = Tcl_Write(esPtr->channel,buf,lenBytes);
 
     if (tsdPtr->logChannel && ((esPtr->fdout == 1) || expDevTtyIs(esPtr))) {
 	Tcl_Write(tsdPtr->logChannel,buf,lenBytes);
@@ -106,9 +107,9 @@ char *buf;
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
 
-    expDiagWriteChars(string,-1);
+    expDiagWriteChars(buf,-1);
     if (tsdPtr->logChannel) {
-	Tcl_WriteChars(tsdPtr->logChannel, string, -1);
+	Tcl_WriteChars(tsdPtr->logChannel, buf, -1);
     }
 }
 
@@ -199,7 +200,7 @@ expErrorLog TCL_VARARGS_DEF(char *,arg1)
 
     expDiagWriteChars(bigbuf,-1);
     fprintf(stderr,bigbuf);
-    if (tsdPtr->logChannel) Tcl_WriteChars(logChannel,bigbuf,-1);
+    if (tsdPtr->logChannel) Tcl_WriteChars(tsdPtr->logChannel,bigbuf,-1);
     
     va_end(args);
 }
@@ -212,10 +213,12 @@ void
 expErrorLogU(buf)
 char *buf;
 {
+    ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
+
     int length = strlen(buf);
     fwrite(buf,1,length,stderr);
     expDiagWriteChars(buf,-1);
-    if (tsdPtr->logChannel) Tcl_WriteChars(logChannel,buf,-1);
+    if (tsdPtr->logChannel) Tcl_WriteChars(tsdPtr->logChannel,buf,-1);
 }
 
 
@@ -287,16 +290,15 @@ expDiagChannelGet()
     return tsdPtr->diagChannel;
 }
 
-int
-expDiagChannelClose()
+void
+expDiagChannelClose(interp)
     Tcl_Interp *interp;
-    Tcl_Channel channel;
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
 
     if (tsdPtr->diagChannel) return;
-    Tcl_UnregisterChannel(tsdPtr->diagChannel);
-    Tcl_DStringFree(tsdPtr->diagFilename);
+    Tcl_UnregisterChannel(interp,tsdPtr->diagChannel);
+    Tcl_DStringFree(&tsdPtr->diagFilename);
     tsdPtr->diagChannel = 0;
 }
 
@@ -305,42 +307,43 @@ expDiagChannelClose()
    this is kind of useless - but we might change this someday */
 int
 expDiagChannelOpen(interp,filename)
+    Tcl_Interp *interp;
     char *filename;
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
     char *newfilename;
 
     Tcl_ResetResult(interp);
-    newfilename = Tcl_TranslateFileName(interp,filename,tsdPtr->diagFilename);
+    newfilename = Tcl_TranslateFileName(interp,filename,&tsdPtr->diagFilename);
     if (!newfilename) return TCL_ERROR;
 
     /* Tcl_TildeSubst doesn't store into dstring */
     /* if no ~, so force string into dstring */
     /* this is only needed so that next time around */
     /* we can get dstring for -info if necessary */
-    if (Tcl_DStringValue(tsdPtr->diagFilename)[0] == '\0') {
-	Tcl_DStringAppend(tsdPtr->diagFilename,argv[0],-1);
+    if (Tcl_DStringValue(&tsdPtr->diagFilename)[0] == '\0') {
+	Tcl_DStringAppend(&tsdPtr->diagFilename,filename,-1);
     }
 
     tsdPtr->diagChannel = Tcl_OpenFileChannel(interp,newfilename,"a",0777);
     if (!tsdPtr->diagChannel) {
-	Tcl_DStringFree(tsdPtr->diagFilename);
+	Tcl_DStringFree(&tsdPtr->diagFilename);
 	return TCL_ERROR;
     }
-    Tcl_RegisterChannel(interp,diagChannel);
-    Tcl_SetChannelOption(interp,diagChannel,"-buffering","none");
+    Tcl_RegisterChannel(interp,tsdPtr->diagChannel);
+    Tcl_SetChannelOption(interp,tsdPtr->diagChannel,"-buffering","none");
     return TCL_OK;
 }
 
 void
-expDiagWriteObj(str)
-    char *str;
+expDiagWriteObj(obj)
+    Tcl_Obj *obj;
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
 
     if (!tsdPtr->diagChannel) return;
 
-    Tcl_WriteObj(tsdPtr->diagChannel,str);
+    Tcl_WriteObj(tsdPtr->diagChannel,obj);
 }
 
 /* write 8-bit bytes */
@@ -353,7 +356,7 @@ expDiagWriteBytes(str,len)
 
     if (!tsdPtr->diagChannel) return;
 
-    Tcl_Write(tsdPtr->diagChannel,str,len)
+    Tcl_Write(tsdPtr->diagChannel,str,len);
 }
 
 /* write UTF chars */
@@ -374,26 +377,25 @@ expDiagFilename()
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
 
-    return Tcl_DStringValue(tsdPtr->diagFilename);
+    return Tcl_DStringValue(&tsdPtr->diagFilename);
 }
 
 void
-expLogChannelClose()
+expLogChannelClose(interp)
     Tcl_Interp *interp;
-    Tcl_Channel channel;
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
 
     if (tsdPtr->logChannel) return;
 
-    if (Tcl_DStringLength(tsdPtr->logFilename)) {
+    if (Tcl_DStringLength(&tsdPtr->logFilename)) {
 	/* it's a channel that we created */
-	Tcl_UnregisterChannel(tsdPtr->logChannel);
-	Tcl_DStringFree(tsdPtr->logFilename);
+	Tcl_UnregisterChannel(interp,tsdPtr->logChannel);
+	Tcl_DStringFree(&tsdPtr->logFilename);
     } else {
 	/* it's a channel that tcl::open created */
 	if (!tsdPtr->logLeaveOpen) {
-	    Tcl_UnregisterChannel(tsdPtr->logChannel);
+	    Tcl_UnregisterChannel(interp,tsdPtr->logChannel);
 	}
     }
     tsdPtr->logChannel = 0;
@@ -411,27 +413,29 @@ expLogChannelOpen(interp,filename,append)
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
     char *newfilename;
-    mode = (append?"a":"w");
+    char mode[2] = "w";   /* doing it this way forces the null terminator */
+
+    if (append) mode[0] = 'a';
 
     Tcl_ResetResult(interp);
-    newfilename = Tcl_TranslateFileName(interp,filename,tsdPtr->logFilename);
+    newfilename = Tcl_TranslateFileName(interp,filename,&tsdPtr->logFilename);
     if (!newfilename) return TCL_ERROR;
 
     /* Tcl_TildeSubst doesn't store into dstring */
     /* if no ~, so force string into dstring */
     /* this is only needed so that next time around */
     /* we can get dstring for -info if necessary */
-    if (Tcl_DStringValue(tsdPtr->logFilename)[0] == '\0') {
-	Tcl_DStringAppend(tsdPtr->logFilename,argv[0],-1);
+    if (Tcl_DStringValue(&tsdPtr->logFilename)[0] == '\0') {
+	Tcl_DStringAppend(&tsdPtr->logFilename,filename,-1);
     }
 
     tsdPtr->logChannel = Tcl_OpenFileChannel(interp,newfilename,mode,0777);
     if (!tsdPtr->logChannel) {
-	Tcl_DStringFree(tsdPtr->logFilename);
+	Tcl_DStringFree(&tsdPtr->logFilename);
 	return TCL_ERROR;
     }
-    Tcl_RegisterChannel(interp,logChannel);
-    Tcl_SetChannelOption(interp,logChannel,"-buffering","none");
+    Tcl_RegisterChannel(interp,tsdPtr->logChannel);
+    Tcl_SetChannelOption(interp,tsdPtr->logChannel,"-buffering","none");
     return TCL_OK;
 }
 
@@ -442,7 +446,7 @@ expLogAppendGet()
     return tsdPtr->logAppend;
 }
 
-int
+void
 expLogAppendSet(app)
     int app;
 {
@@ -457,7 +461,7 @@ expLogAllGet()
     return tsdPtr->logAll;
 }
 
-int
+void
 expLogAllSet(app)
     int app;
 {
@@ -469,15 +473,15 @@ int
 expLogToStdoutGet()
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
-    return tsdPtr->logToStdout;
+    return tsdPtr->logUser;
 }
 
-int
+void
 expLogToStdoutSet(app)
     int app;
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
-    tsdPtr->logToStdout = app;
+    tsdPtr->logUser = app;
 }
 
 int
@@ -487,7 +491,7 @@ expLogLeaveOpenGet()
     return tsdPtr->logLeaveOpen;
 }
 
-int
+void
 expLogLeaveOpenSet(app)
     int app;
 {
@@ -502,19 +506,7 @@ expLogChannelGet()
     return tsdPtr->logChannel;
 }
 
-/* to set to a pre-opened channel (presumably by tcl::open)
-void
-expLogChannelSet(channel)
-    Tcl_Channel channel;
-{
-    ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
-
-    /* indicate it is from Tcl, by zeroing the name */
-    Tcl_DStringSetLength(tsdPtr->logFilename,0);
-
-    tsdPtr->logChannel = channel;
-}
-
+/* to set to a pre-opened channel (presumably by tcl::open) */
 int
 expLogChannelSet(interp,name)
     Tcl_Channel *channel;
