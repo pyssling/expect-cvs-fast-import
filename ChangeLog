@@ -1,3 +1,18 @@
+1999-06-22    <stanton@scriptics.com>
+
+	* expect.c: Fixed bug in token parsing where index was not being
+	incremented properly.
+
+	* configure.in: Changed version number to 5.31.
+
+	* aclocal.m4: Fixed CY_AC_LOAD_TKCONFIG so it tests for Tk_Init
+	instead of Tk_Main (which is only a macro in 8.1 and later).  Also
+	added TCL_BUILD_LIB_SPEC to the set of flags used in this test to
+	avoid linker errors.	
+
+	* Dbgconfig.in: move CY_*_TCLCONFIG tests below AC_PROG_CC so it
+	will work with gcc
+
 Thu Mar 20 14:27:45 1997  Geoffrey Noer  <noer@cygnus.com>
 
 	* configure.in: don't check if stty reads stdout for
