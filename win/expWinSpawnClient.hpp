@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinSpawnClient.hpp,v 1.1.2.2 2002/03/12 21:34:16 davygrvy Exp $
+ * RCS: @(#) $Id: expWinSpawnClient.hpp,v 1.1.2.3 2002/03/15 07:41:45 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -35,16 +35,6 @@ public:
     virtual void Write(Message *) = 0;
 };
 
-class SpawnMailboxClient : public SpawnClientTransport
-{
-public:
-    SpawnMailboxClient(const char *name, CMclQueue<Message *> &_mQ);
-    virtual void Write(Message *);
-private:
-    CMclMailbox *MasterToExpect;
-    CMclMailbox *MasterFromExpect;
-    CMclQueue<Message *> &mQ;
-};
 
 class ReadPipe : public CMclThreadHandler
 {

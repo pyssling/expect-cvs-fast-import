@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinConsoleDebugger.cpp,v 1.1.2.17 2002/06/20 06:43:55 davygrvy Exp $
+ * RCS: @(#) $Id: expWinConsoleDebugger.cpp,v 1.1.2.18 2002/06/20 21:52:53 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -330,7 +330,7 @@ again:
 	    case 1:
 		OnXFirstBreakpoint(proc, &debEvent); break;
 	    case 2:
-//		OnXSecondBreakpoint(proc, &debEvent); break;
+		OnXSecondBreakpoint(proc, &debEvent); break;
 	    case 3:
 		OnXBreakpoint(proc, &debEvent);
 	    }
@@ -451,7 +451,7 @@ ConsoleDebugger::OnXFirstBreakpoint(Process *proc, LPDEBUG_EVENT pDebEvent)
 	    SetBreakpoint(proc, binfo);
 	}
     }
-/*
+
     //  Make some memory for our stub that we place into the slave's address
     //  space and cause it to run it as if was part of the slave's application.
     //  This stub (or set of opcodes) calls LoadLibrary() to bring in our
@@ -459,10 +459,10 @@ ConsoleDebugger::OnXFirstBreakpoint(Process *proc, LPDEBUG_EVENT pDebEvent)
     //
     MakeSubprocessMemory(proc, sizeof(LOADLIBRARY_STUB), &pInjectorStub,
 	    PAGE_EXECUTE_READWRITE);
-    injectStub.operand_PUSH_value = (DWORD) pInjectorStub +
+    injectorStub.operand_PUSH_value = (DWORD) pInjectorStub +
 	    offsetof(LOADLIBRARY_STUB, data_DllName);
-    injectStub.operand_MOV_EAX = (DWORD) GetProcAddress(GetModuleHandle(
-	    "KERNEL32.DLL"),"LoadLibraryA");
+    injectorStub.operand_MOV_EAX = (DWORD) GetProcAddress(GetModuleHandle(
+	    "KERNEL32.DLL"), "LoadLibraryA");
     WriteSubprocessMemory(proc, pInjectorStub, &injectorStub,
 	    sizeof(LOADLIBRARY_STUB));
 
@@ -477,7 +477,7 @@ ConsoleDebugger::OnXFirstBreakpoint(Process *proc, LPDEBUG_EVENT pDebEvent)
     CONTEXT stubContext = preStubContext;
     stubContext.Eip = (DWORD) pInjectorStub;
     SetThreadContext(tinfo->hThread, &stubContext);
-*/
+
     return;
 #   undef RETBUF_SIZE
 }
@@ -499,7 +499,8 @@ ConsoleDebugger::OnXFirstBreakpoint(Process *proc, LPDEBUG_EVENT pDebEvent)
 void
 ConsoleDebugger::OnXSecondBreakpoint(Process *proc, LPDEBUG_EVENT pDebEvent)
 {
-/*    ThreadInfo *tinfo;
+    ThreadInfo *tinfo;
+    CONTEXT now;
 
     for (tinfo = proc->threadList; tinfo != 0L; tinfo = tinfo->nextPtr) {
 	if (pDebEvent->dwThreadId == tinfo->dwThreadId) {
@@ -507,13 +508,19 @@ ConsoleDebugger::OnXSecondBreakpoint(Process *proc, LPDEBUG_EVENT pDebEvent)
 	}
     }
 
+    now.ContextFlags = CONTEXT_FULL;
+    GetThreadContext(tinfo->hThread, &now);
+    
+    // Eax should not be zero, if the injector loaded.
+    // It should be the handle of the injector dll.
+
     SetThreadContext(tinfo->hThread, &preStubContext);
 
     // We should now remove the memory allocated in the sub process and
     // remove our stub.
     //
-    RemoveSubprocessMemory(proc, pStubInjector);
-*/
+    RemoveSubprocessMemory(proc, pInjectorStub);
+
     return;
 }
 
@@ -845,7 +852,8 @@ ConsoleDebugger::OnXUnloadDll(Process *proc, LPDEBUG_EVENT pDebEvent)
  *
  * ConsoleDebugger::OnXDebugString --
  *
- *	This routine is called when a OUTPUT_DEBUG_STRING_EVENT is seen.
+ *	This routine is called when a OUTPUT_DEBUG_STRING_EVENT
+ *	happens.
  *
  * Results:
  *	None
@@ -1043,7 +1051,7 @@ ConsoleDebugger::WriteSubprocessMemory(Process *proc, LPVOID addr, LPVOID buf, D
     } else {
 	// if guarded memory, change protection temporarily.
 	//
-	if (!(mbi.Protect & PAGE_READWRITE)) {
+	if (!(mbi.Protect & PAGE_READWRITE || mbi.Protect & PAGE_EXECUTE_READWRITE)) {
 	    if (!VirtualProtectEx(proc->hProcess, addr, len, PAGE_READWRITE,
 		    &oldProtection)) {
 		return FALSE;
@@ -1308,11 +1316,14 @@ ConsoleDebugger::LoadedModule(Process *proc, HANDLE hFile, LPVOID modname,
 }
 
 void
-ConsoleDebugger::WriteMaster(CHAR *buf, DWORD len)
+ConsoleDebugger::WriteMasterCopy(CHAR *buf, DWORD len)
 {
     Message *msg;
+    DWORD i;
+
     msg = new Message;
-    msg->bytes = (BYTE *) _strdup(buf);
+    msg->bytes = new CHAR [len];
+    for (i = 0; i < len; i++) msg->bytes[i] = buf[i];
     msg->length = len;
     msg->type = Message::TYPE_NORMAL;
     mQ.Put(msg);
@@ -1324,7 +1335,7 @@ ConsoleDebugger::WriteMasterWarning(CHAR *buf, DWORD len)
 {
     Message *msg;
     msg = new Message;
-    msg->bytes = (BYTE *) buf;
+    msg->bytes = buf;
     msg->length = len;
     msg->type = Message::TYPE_WARNING;
     mQ.Put(msg);
@@ -1433,7 +1444,7 @@ ConsoleDebugger::RefreshScreen(void)
 	    CursorPosition.X+1);
     CursorKnown = TRUE;
 
-    WriteMaster(buf, bufpos);
+    WriteMasterCopy(buf, bufpos);
     bufpos = 0;
 
 //    if (GetConsoleScreenBufferInfo(HConsole, &info) != FALSE) {
@@ -1475,7 +1486,7 @@ ConsoleDebugger::RefreshScreen(void)
     bufpos += wsprintf(&buf[bufpos], "\033[%d;%dH", CursorPosition.Y+1,
 	    CursorPosition.X+1);
     CursorKnown = TRUE;
-    WriteMaster(buf, bufpos);
+    WriteMasterCopy(buf, bufpos);
 }
 */
 

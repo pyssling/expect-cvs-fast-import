@@ -29,7 +29,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinSlaveTrapDbg.cpp,v 1.1.4.9 2002/03/13 03:52:57 davygrvy Exp $
+ * RCS: @(#) $Id: expWinSlaveTrapDbg.cpp,v 1.1.4.10 2002/03/15 07:41:45 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -46,5 +46,6 @@ SlaveTrapDbg::SlaveTrapDbg(int argc, char * const argv[], CMclQueue<Message *> &
 void SlaveTrapDbg::Write(Message *msg)
 {
     // inject it from here.. how?
-    delete [] msg->bytes;
+    delete msg;
+;
 }

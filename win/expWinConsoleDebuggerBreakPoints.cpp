@@ -24,7 +24,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinConsoleDebuggerBreakPoints.cpp,v 1.1.2.10 2002/03/15 07:41:45 davygrvy Exp $
+ * RCS: @(#) $Id: expWinConsoleDebuggerBreakPoints.cpp,v 1.1.2.11 2002/06/18 22:51:31 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -75,7 +75,7 @@ ConsoleDebugger::CreateVtSequence(Process *proc, COORD newPos, DWORD n)
     newPos.Y += (SHORT) (n / ConsoleSize.X);
     CursorPosition = newPos;
 
-    WriteMaster(buf, count);
+    WriteMasterCopy(buf, count);
 }
 
 /*
@@ -129,7 +129,7 @@ ConsoleDebugger::OnBeep(Process *proc, ThreadInfo *threadInfo,
     } else if (direction == BREAK_OUT) {
 	if (*returnValue == 0) {
 	    buf[0] = 7; // ASCII beep
-	    WriteMaster(buf, 1);
+	    WriteMasterCopy(buf, 1);
 	}
     }
 }
@@ -283,7 +283,7 @@ ConsoleDebugger::OnFillConsoleOutputCharacter(Process *proc,
 	bufpos += strlen(&buf[bufpos]);
 	CursorKnown = TRUE;
     }
-    WriteMaster(buf, bufpos);
+    WriteMasterCopy(buf, bufpos);
 }
 
 /*
@@ -477,7 +477,7 @@ ConsoleDebugger::OnScrollConsoleScreenBuffer(Process *proc,
 	count = strlen(&buf[count]);
 	wsprintf(&buf[count], "\033[%d;%dr", 1, ConsoleSize.Y);
 	count += strlen(&buf[count]);
-	WriteMaster(buf, count);
+	WriteMasterCopy(buf, count);
     } else {
 //	RefreshScreen(&proc->overlapped);
     }
@@ -594,7 +594,7 @@ ConsoleDebugger::OnSetConsoleCursorPosition(Process *proc,
     CursorPosition = *((PCOORD) &threadInfo->args[1]);
 
     count = wsprintf(buf, "\033[%d;%dH", CursorPosition.Y+1, CursorPosition.X+1);
-    WriteMaster(buf, count);
+    WriteMasterCopy(buf, count);
 }
 
 /*
@@ -729,7 +729,7 @@ ConsoleDebugger::OnWriteConsoleA(Process *proc, ThreadInfo *threadInfo,
 
     ptr = (PVOID) threadInfo->args[1];
     ReadSubprocessMemory(proc, ptr, p, n * sizeof(CHAR));
-    WriteMaster(p, n);
+    WriteMasterCopy(p, n);
 
     if (p != buf) {
 	delete [] p;
@@ -788,7 +788,7 @@ ConsoleDebugger::OnWriteConsoleW(Process *proc, ThreadInfo *threadInfo,
     // Convert to ASCII and write the intercepted data to the pipe.
     //
     w = WideCharToMultiByte(CP_ACP, 0, p, n, a, asize, 0L, 0L);
-    WriteMaster(a, w);
+    WriteMasterCopy(a, w);
 
     if (p != buf) {
 	delete [] p, a;
@@ -865,7 +865,7 @@ ConsoleDebugger::OnWriteConsoleOutputA(Process *proc,
 	for (x = 0; x <= writeRegion.Right - writeRegion.Left; x++, pcb++) {
 	    *p++ = pcb->Char.AsciiChar;
 	    if (p == end) {
-		WriteMaster(buf, maxbuf);
+		WriteMasterCopy(buf, maxbuf);
 		p = buf;
 	    }
 	}
@@ -875,7 +875,7 @@ ConsoleDebugger::OnWriteConsoleOutputA(Process *proc,
 	CreateVtSequence(proc, curr, n);
 
 	maxbuf = p - buf;
-	WriteMaster(buf, maxbuf);
+	WriteMasterCopy(buf, maxbuf);
 	buf[maxbuf] = 0;
     }
 
@@ -951,7 +951,7 @@ ConsoleDebugger::OnWriteConsoleOutputW(Process *proc,
 	for (x = 0; x <= writeRegion.Right - writeRegion.Left; x++, pcb++) {
 	    *p++ = (CHAR) (pcb->Char.UnicodeChar & 0xff);
 	    if (p == end) {
-		WriteMaster((char *)buf, maxbuf);
+		WriteMasterCopy((char *)buf, maxbuf);
 		p = buf;
 	    }
 	}
@@ -961,7 +961,7 @@ ConsoleDebugger::OnWriteConsoleOutputW(Process *proc,
 	CreateVtSequence(proc, curr, n);
 
 	maxbuf = p - buf;
-	WriteMaster((char *)buf, maxbuf);
+	WriteMasterCopy((char *)buf, maxbuf);
 	buf[maxbuf] = 0;
     }
 
@@ -1016,7 +1016,7 @@ ConsoleDebugger::OnWriteConsoleOutputCharacterA(Process *proc,
 
     ptr = (PVOID) threadInfo->args[1];
     ReadSubprocessMemory(proc, ptr, p, n * sizeof(CHAR));
-    WriteMaster(p, n);
+    WriteMasterCopy(p, n);
 
     if (p != buf) {
 	delete [] p;
@@ -1083,7 +1083,7 @@ ConsoleDebugger::OnWriteConsoleOutputCharacterW(Process *proc,
 
     // Convert to ASCI and Write the intercepted data to the pipe.
     w = WideCharToMultiByte(CP_ACP, 0, p, n, a, asize, 0L, 0L);
-    WriteMaster(a, w);
+    WriteMasterCopy(a, w);
 
     if (p != buf) {
 	delete [] p, a;

@@ -23,7 +23,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinInjectorMain.cpp,v 1.1.2.6 2002/06/20 20:08:56 davygrvy Exp $
+ * RCS: @(#) $Id: expWinInjectorMain.cpp,v 1.1.2.7 2002/06/20 21:52:53 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -120,6 +120,7 @@ DllMain (HINSTANCE hInst, ULONG ulReason, LPVOID lpReserved)
 	interrupt = new CMclEvent();
 	inject = new Injector(console, interrupt);
 	injectorThread = new CMclThread(inject);
+	/*MessageBox(NULL, "hi mom!", "lala", MB_OK|MB_SETFOREGROUND);*/
 	break;
     case DLL_PROCESS_DETACH:
 	interrupt->Set();

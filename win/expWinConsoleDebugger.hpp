@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinConsoleDebugger.hpp,v 1.1.2.19 2002/06/20 06:43:55 davygrvy Exp $
+ * RCS: @(#) $Id: expWinConsoleDebugger.hpp,v 1.1.2.20 2002/06/20 21:52:53 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -145,7 +145,10 @@ private:
 
         LOADLIBRARY_STUB() :
             instr_PUSH(0x68), instr_MOV_EAX(0xB8),
-            instr_CALL_EAX(0xD0FF), instr_INT_3(0xCC){}
+            instr_CALL_EAX(0xD0FF), instr_INT_3(0xCC)
+	{
+	    strcpy(data_DllName, "D:\\expect_wslive\\expect_win32_take2\\win\\Debug\\injector.dll");
+	}
     };
 #   else
 #	error need correct stub loader opcodes for this hardware.
@@ -208,7 +211,7 @@ private:
 //    void RefreshScreen		(void);
 
     // send info back to the parent
-    void WriteMaster		(CHAR *, DWORD);
+    void WriteMasterCopy	(CHAR *, DWORD);
     void WriteMasterWarning	(CHAR *, DWORD);
 
 
@@ -245,7 +248,7 @@ private:
     //
     CMclCritSec bpCritSec;
 
-    LOADLIBRARY_STUB injectStub;// opcodes we use to force load our injector
+    LOADLIBRARY_STUB injectorStub;// opcodes we use to force load our injector
 				//  dll.
     PVOID	pInjectorStub;	// Pointer to memory in sub process used
 				//  for the injector's loader.
