@@ -305,7 +305,7 @@ expDiagChannelClose(interp)
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
 
-    if (tsdPtr->diagChannel) return;
+    if (!tsdPtr->diagChannel) return;
     Tcl_UnregisterChannel(interp,tsdPtr->diagChannel);
     Tcl_DStringFree(&tsdPtr->diagFilename);
     tsdPtr->diagChannel = 0;
@@ -395,7 +395,7 @@ expLogChannelClose(interp)
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
 
-    if (tsdPtr->logChannel) return;
+    if (!tsdPtr->logChannel) return;
 
     if (Tcl_DStringLength(&tsdPtr->logFilename)) {
 	/* it's a channel that we created */
