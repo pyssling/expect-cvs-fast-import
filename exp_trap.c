@@ -200,8 +200,12 @@ int sig;
 	}
 #if 0
 	/* if we are doing an i_read, restart it */
-	if (env_valid && (sig != 0)) longjmp(env,2);
-#endif
+#ifdef HAVE_SIGLONGJMP
+      if (env_valid && (sig != 0)) siglongjmp(env,2);
+#else
+      if (env_valid && (sig != 0)) longjmp(env,2);
+#endif  /* HAVE_SIGLONGJMP */
+#endif /* 0 */
 }
 
 /*ARGSUSED*/

@@ -497,7 +497,12 @@ tty.  It looks like this:
 
 #include <setjmp.h>
 
+#ifdef HAVE_SIGLONGJMP
+static sigjmp_buf env;                /* for interruptable read() */
+#else
 static jmp_buf env;		/* for interruptable read() */
+#endif  /* HAVE_SIGLONGJMP */
+
 static int reading;		/* while we are reading */
 				/* really, while "env" is valid */
 static int deferred_interrupt = FALSE;	/* if signal is received, but not */
@@ -507,8 +512,14 @@ static int deferred_interrupt = FALSE;	/* if signal is received, but not */
 static void
 sigchld_handler()
 {
-    if (reading) longjmp(env,1);
-    deferred_interrupt = TRUE;
+  if (reading) {
+#ifdef HAVE_SIGLONGJMP
+     siglongjmp(env,1);
+#else
+    longjmp(env,1);
+#endif  /* HAVE_SIGLONGJMP */
+  }
+  deferred_interrupt = TRUE;
 }
 
 #define EXP_CHILD_EOF -100
@@ -532,7 +543,11 @@ int flags;
 
     if (deferred_interrupt) return(cc);
 
+#ifdef HAVE_SIGLONGJMP
+    if (0 == sigsetjmp(env,1)) {
+#else
     if (0 == setjmp(env)) {
+#endif  /* HAVE_SIGLONGJMP */
 	reading = TRUE;
 	cc = Tcl_ReadChars(channel,obj,size,flags);
     }

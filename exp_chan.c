@@ -496,8 +496,12 @@ expCreateChannel(interp,fdin,fdout,pid)
     esPtr->fdin = fdin;
     esPtr->fdout = fdout;
 
-    expCloseOnExec(fdin);
-    if (fdin != fdout) expCloseOnExec(fdout);
+    /* set close-on-exec for everything but std channels */
+    /* (system and stty commands need access to std channels) */
+    if (fdin != 0 && fdin != 2) {
+      expCloseOnExec(fdin);
+      if (fdin != fdout) expCloseOnExec(fdout);
+    }
 
     esPtr->fdBusy = FALSE;
     esPtr->channel = Tcl_CreateChannel(channelTypePtr, esPtr->name,

@@ -592,16 +592,16 @@ fi
 found=no
 echo $ac_n "checking configure up to date""... $ac_c" 1>&6
 echo "configure:595: checking configure up to date" >&5
-for i in `cd ${srcdir} ; ls -tr configure configure.in Makefile.in` ; do
+for i in `ls -tr ${srcdir}/configure ${srcdir}/configure.in ${srcdir}/Makefile.in` ; do
   newest=$i
 done
-if test "configure" = "$newest" ; then
+if test "$srcdir/configure" = "$newest" ; then
   echo "$ac_t""yes" 1>&6
 else
   echo "$ac_t""no" 1>&6
 fi
-if test $found = "no" -a "$newest" != "configure" ; then
-  echo "configure: warning: configure appears to be old (configure.in and/or Makefile.in are newer) and the autoconf program to fix this situation was not found.  If you've no idea what this means, enter the command \"touch configure\" and restart configure." 1>&2
+if test $found = "no" -a "$newest" != "$srcdir/configure" ; then
+  echo "configure: warning: $srcdir/configure appears to be old ($srcdir/configure.in and/or $srcdir/Makefile.in are newer) and the autoconf program to fix this situation was not found.  If you've no idea what this means, enter the command \"touch $srcdir/configure\" and restart $srcdir/configure." 1>&2
   exit
 fi
 
@@ -4737,14 +4737,65 @@ else
   echo "$ac_t""no" 1>&6
 fi
 
+echo $ac_n "checking for siglongjmp""... $ac_c" 1>&6
+echo "configure:4742: checking for siglongjmp" >&5
+if eval "test \"`echo '$''{'ac_cv_func_siglongjmp'+set}'`\" = set"; then
+  echo $ac_n "(cached) $ac_c" 1>&6
+else
+  cat > conftest.$ac_ext <<EOF
+#line 4747 "configure"
+#include "confdefs.h"
+/* System header to define __stub macros and hopefully few prototypes,
+    which can conflict with char siglongjmp(); below.  */
+#include <assert.h>
+/* Override any gcc2 internal prototype to avoid an error.  */
+/* We use char because int might match the return type of a gcc2
+    builtin and then its argument prototype would still apply.  */
+char siglongjmp();
+
+int main() {
+
+/* The GNU C library defines this for functions which it implements
+    to always fail with ENOSYS.  Some functions are actually named
+    something starting with __ and the normal name is an alias.  */
+#if defined (__stub_siglongjmp) || defined (__stub___siglongjmp)
+choke me
+#else
+siglongjmp();
+#endif
+
+; return 0; }
+EOF
+if { (eval echo configure:4770: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+  rm -rf conftest*
+  eval "ac_cv_func_siglongjmp=yes"
+else
+  echo "configure: failed program was:" >&5
+  cat conftest.$ac_ext >&5
+  rm -rf conftest*
+  eval "ac_cv_func_siglongjmp=no"
+fi
+rm -f conftest*
+fi
+
+if eval "test \"`echo '$ac_cv_func_'siglongjmp`\" = yes"; then
+  echo "$ac_t""yes" 1>&6
+  cat >> confdefs.h <<\EOF
+#define HAVE_SIGLONGJMP 1
+EOF
+
+else
+  echo "$ac_t""no" 1>&6
+fi
+
 
 # dnl check for memcpy by hand
 # because Unixware 2.0 handles it specially and refuses to compile
 # autoconf's automatic test that is a call with no arguments
 echo $ac_n "checking for memcpy""... $ac_c" 1>&6
-echo "configure:4746: checking for memcpy" >&5
+echo "configure:4797: checking for memcpy" >&5
 cat > conftest.$ac_ext <<EOF
-#line 4748 "configure"
+#line 4799 "configure"
 #include "confdefs.h"
 
 int main() {
@@ -4754,7 +4805,7 @@ memcpy(s1,s2,0);
 
 ; return 0; }
 EOF
-if { (eval echo configure:4758: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:4809: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   echo "$ac_t""yes" 1>&6
 	cat >> confdefs.h <<\EOF
@@ -4776,13 +4827,13 @@ rm -f conftest*
 # and if so that WNOHANG is not defined.  The only place I've
 # seen this is ISC.
 echo $ac_n "checking if WNOHANG requires _POSIX_SOURCE""... $ac_c" 1>&6
-echo "configure:4780: checking if WNOHANG requires _POSIX_SOURCE" >&5
+echo "configure:4831: checking if WNOHANG requires _POSIX_SOURCE" >&5
 if test "$cross_compiling" = yes; then
   { echo "configure: error: Expect can't be cross compiled" 1>&2; exit 1; }
 
 else
   cat > conftest.$ac_ext <<EOF
-#line 4786 "configure"
+#line 4837 "configure"
 #include "confdefs.h"
 
 #include <sys/wait.h>
@@ -4794,7 +4845,7 @@ main() {
 #endif
 }
 EOF
-if { (eval echo configure:4798: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:4849: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   echo "$ac_t""yes" 1>&6
 	cat >> confdefs.h <<\EOF
@@ -4814,14 +4865,14 @@ fi
 
 
 echo $ac_n "checking if any value exists for WNOHANG""... $ac_c" 1>&6
-echo "configure:4818: checking if any value exists for WNOHANG" >&5
+echo "configure:4869: checking if any value exists for WNOHANG" >&5
 rm -rf wnohang
 if test "$cross_compiling" = yes; then
   { echo "configure: error: Expect can't be cross compiled" 1>&2; exit 1; }
 
 else
   cat > conftest.$ac_ext <<EOF
-#line 4825 "configure"
+#line 4876 "configure"
 #include "confdefs.h"
 
 #include <stdio.h>
@@ -4837,7 +4888,7 @@ main() {
 #endif
 }
 EOF
-if { (eval echo configure:4841: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:4892: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   echo "$ac_t""yes" 1>&6
 	cat >> confdefs.h <<EOF
@@ -4870,9 +4921,9 @@ fi
 #--------------------------------------------------------------------
 
 echo $ac_n "checking union wait""... $ac_c" 1>&6
-echo "configure:4874: checking union wait" >&5
+echo "configure:4925: checking union wait" >&5
 cat > conftest.$ac_ext <<EOF
-#line 4876 "configure"
+#line 4927 "configure"
 #include "confdefs.h"
 #include <sys/types.h> 
 #include <sys/wait.h>
@@ -4884,7 +4935,7 @@ WIFEXITED(x);		/* Generates compiler error if WIFEXITED
 
 ; return 0; }
 EOF
-if { (eval echo configure:4888: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:4939: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   tcl_ok=yes
 else
@@ -4914,7 +4965,7 @@ fi
 # Pattern matching on int could be loosened.
 # Can't use ac_header_egrep since that doesn't see prototypes with K&R cpp.
 echo $ac_n "checking mask type of select""... $ac_c" 1>&6
-echo "configure:4918: checking mask type of select" >&5
+echo "configure:4969: checking mask type of select" >&5
 if egrep "select\(size_t, int" /usr/include/sys/time.h >/dev/null 2>&1; then
   echo "$ac_t""int" 1>&6
   cat >> confdefs.h <<\EOF
@@ -4928,13 +4979,13 @@ fi
 
 # FIXME: check if alarm exists
 echo $ac_n "checking if signals need to be re-armed""... $ac_c" 1>&6
-echo "configure:4932: checking if signals need to be re-armed" >&5
+echo "configure:4983: checking if signals need to be re-armed" >&5
 if test "$cross_compiling" = yes; then
   echo "configure: warning: Expect can't be cross compiled" 1>&2
 
 else
   cat > conftest.$ac_ext <<EOF
-#line 4938 "configure"
+#line 4989 "configure"
 #include "confdefs.h"
 
 #include <signal.h>
@@ -4973,7 +5024,7 @@ main()
 	}
 }
 EOF
-if { (eval echo configure:4977: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:5028: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   echo "$ac_t""yes" 1>&6
 	cat >> confdefs.h <<\EOF
@@ -5004,7 +5055,7 @@ cat >> conftest.sed <<CONFEOF
 # so check for it.  Unfortunately, there is no header so the only
 # reasonable way to make sure is to look it we are on a Convex.
 echo $ac_n "checking if on Convex""... $ac_c" 1>&6
-echo "configure:5008: checking if on Convex" >&5
+echo "configure:5059: checking if on Convex" >&5
 convex=0
 case "${host}" in
   c[12]-*-*)		convex=1;;
@@ -5023,7 +5074,7 @@ fi
 EXP_LDFLAGS="$LDFLAGS"
 
 echo $ac_n "checking if on NeXT""... $ac_c" 1>&6
-echo "configure:5027: checking if on NeXT" >&5
+echo "configure:5078: checking if on NeXT" >&5
 if test -r /NextApps ; then
   echo "$ac_t""yes" 1>&6
   # "-m" flag suppresses complaints about multiple strtod
@@ -5034,7 +5085,7 @@ fi
 
 
 echo $ac_n "checking if on HP""... $ac_c" 1>&6
-echo "configure:5038: checking if on HP" >&5
+echo "configure:5089: checking if on HP" >&5
 if test "x`(uname) 2>/dev/null`" = xHP-UX; then
   echo "$ac_t""yes" 1>&6
   hp=1
@@ -5044,7 +5095,7 @@ else
 fi
 
 echo $ac_n "checking sane default stty arguments""... $ac_c" 1>&6
-echo "configure:5048: checking sane default stty arguments" >&5
+echo "configure:5099: checking sane default stty arguments" >&5
 DEFAULT_STTY_ARGS="sane"
 
 if test $mach -eq 1 ; then
@@ -5062,7 +5113,7 @@ echo "$ac_t""$DEFAULT_STTY_ARG" 1>&6
 # work, but ac_test_program does.
 #
 echo $ac_n "checking for HP style pty allocation""... $ac_c" 1>&6
-echo "configure:5066: checking for HP style pty allocation" >&5
+echo "configure:5117: checking for HP style pty allocation" >&5
 # following test fails on DECstations and other things that don't grok -c
 # but that's ok, since they don't have PTYMs anyway
 if test -r /dev/ptym/ptyp0 2>/dev/null ; then
@@ -5076,9 +5127,9 @@ else
 fi
 
 echo $ac_n "checking for HP style pty trapping""... $ac_c" 1>&6
-echo "configure:5080: checking for HP style pty trapping" >&5
+echo "configure:5131: checking for HP style pty trapping" >&5
 cat > conftest.$ac_ext <<EOF
-#line 5082 "configure"
+#line 5133 "configure"
 #include "confdefs.h"
 #include <sys/ptyio.h>
 EOF
@@ -5100,7 +5151,7 @@ rm -f conftest*
 
 
 echo $ac_n "checking for AIX new-style pty allocation""... $ac_c" 1>&6
-echo "configure:5104: checking for AIX new-style pty allocation" >&5
+echo "configure:5155: checking for AIX new-style pty allocation" >&5
 if test -r /dev/ptc -a -r /dev/pts ; then
     echo "$ac_t""yes" 1>&6
     cat >> confdefs.h <<\EOF
@@ -5112,7 +5163,7 @@ else
 fi
 
 echo $ac_n "checking for SGI old-style pty allocation""... $ac_c" 1>&6
-echo "configure:5116: checking for SGI old-style pty allocation" >&5
+echo "configure:5167: checking for SGI old-style pty allocation" >&5
 if test -r /dev/ptc -a ! -r /dev/pts ; then
     echo "$ac_t""yes" 1>&6
     cat >> confdefs.h <<\EOF
@@ -5129,7 +5180,7 @@ fi
 # anyway.  So we chose these, which have a special numbering scheme.
 #
 echo $ac_n "checking for SCO style pty allocation""... $ac_c" 1>&6
-echo "configure:5133: checking for SCO style pty allocation" >&5
+echo "configure:5184: checking for SCO style pty allocation" >&5
 sco_ptys=""
 case "${host}" in
   *-sco3.2v[45]*)	sco_clist_ptys=1 svr4_ptys_broken=1;;
@@ -5146,7 +5197,7 @@ else
 fi
 
 echo $ac_n "checking for SVR4 style pty allocation""... $ac_c" 1>&6
-echo "configure:5150: checking for SVR4 style pty allocation" >&5
+echo "configure:5201: checking for SVR4 style pty allocation" >&5
 if test -r /dev/ptmx -a "x$svr4_ptys_broken" = x ; then
   echo "$ac_t""yes" 1>&6
   cat >> confdefs.h <<\EOF
@@ -5155,12 +5206,12 @@ EOF
 
   # aargg. Some systems need libpt.a to use /dev/ptmx
   echo $ac_n "checking for ptsname""... $ac_c" 1>&6
-echo "configure:5159: checking for ptsname" >&5
+echo "configure:5210: checking for ptsname" >&5
 if eval "test \"`echo '$''{'ac_cv_func_ptsname'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 5164 "configure"
+#line 5215 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char ptsname(); below.  */
@@ -5183,7 +5234,7 @@ ptsname();
 
 ; return 0; }
 EOF
-if { (eval echo configure:5187: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:5238: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func_ptsname=yes"
 else
@@ -5205,12 +5256,12 @@ fi
 
   # I've never seen Tcl or Tk include -lpt so don't bother with explicit test
   echo $ac_n "checking for ptsname""... $ac_c" 1>&6
-echo "configure:5209: checking for ptsname" >&5
+echo "configure:5260: checking for ptsname" >&5
 if eval "test \"`echo '$''{'ac_cv_func_ptsname'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 5214 "configure"
+#line 5265 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char ptsname(); below.  */
@@ -5233,7 +5284,7 @@ ptsname();
 
 ; return 0; }
 EOF
-if { (eval echo configure:5237: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:5288: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func_ptsname=yes"
 else
@@ -5254,12 +5305,12 @@ EXP_AND_TCL_LIBS="${EXP_AND_TCL_LIBS} -lpt"
 fi
 
   echo $ac_n "checking for ptsname""... $ac_c" 1>&6
-echo "configure:5258: checking for ptsname" >&5
+echo "configure:5309: checking for ptsname" >&5
 if eval "test \"`echo '$''{'ac_cv_func_ptsname'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 5263 "configure"
+#line 5314 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char ptsname(); below.  */
@@ -5282,7 +5333,7 @@ ptsname();
 
 ; return 0; }
 EOF
-if { (eval echo configure:5286: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:5337: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func_ptsname=yes"
 else
@@ -5309,7 +5360,7 @@ fi
 # In OSF/1 case, SVR4 are somewhat different.
 # Gregory Depp <depp@osf.org> 17Aug93
 echo $ac_n "checking for OSF/1 style pty allocation""... $ac_c" 1>&6
-echo "configure:5313: checking for OSF/1 style pty allocation" >&5
+echo "configure:5364: checking for OSF/1 style pty allocation" >&5
 if test -r /dev/ptmx_bsd ; then
     cat >> confdefs.h <<\EOF
 #define HAVE_PTMX_BSD 1
@@ -5323,12 +5374,12 @@ fi
 tcgetattr=0
 tcsetattr=0
 echo $ac_n "checking for tcgetattr""... $ac_c" 1>&6
-echo "configure:5327: checking for tcgetattr" >&5
+echo "configure:5378: checking for tcgetattr" >&5
 if eval "test \"`echo '$''{'ac_cv_func_tcgetattr'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 5332 "configure"
+#line 5383 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char tcgetattr(); below.  */
@@ -5351,7 +5402,7 @@ tcgetattr();
 
 ; return 0; }
 EOF
-if { (eval echo configure:5355: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:5406: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func_tcgetattr=yes"
 else
@@ -5371,12 +5422,12 @@ else
 fi
 
 echo $ac_n "checking for tcsetattr""... $ac_c" 1>&6
-echo "configure:5375: checking for tcsetattr" >&5
+echo "configure:5426: checking for tcsetattr" >&5
 if eval "test \"`echo '$''{'ac_cv_func_tcsetattr'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 5380 "configure"
+#line 5431 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char tcsetattr(); below.  */
@@ -5399,7 +5450,7 @@ tcsetattr();
 
 ; return 0; }
 EOF
-if { (eval echo configure:5403: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:5454: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func_tcsetattr=yes"
 else
@@ -5431,13 +5482,13 @@ fi
 
 # first check for the pure bsd
 echo $ac_n "checking for struct sgttyb""... $ac_c" 1>&6
-echo "configure:5435: checking for struct sgttyb" >&5
+echo "configure:5486: checking for struct sgttyb" >&5
 if test "$cross_compiling" = yes; then
   { echo "configure: error: Expect can't be cross compiled" 1>&2; exit 1; }
 
 else
   cat > conftest.$ac_ext <<EOF
-#line 5441 "configure"
+#line 5492 "configure"
 #include "confdefs.h"
 
 #include <sgtty.h>
@@ -5447,7 +5498,7 @@ main()
   exit(0);
 }
 EOF
-if { (eval echo configure:5451: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:5502: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   echo "$ac_t""yes" 1>&6
         cat >> confdefs.h <<\EOF
@@ -5476,13 +5527,13 @@ if test $mach -eq 0 ; then
   # since that just controls which of pty_XXXX.c file is use and
   # pty_termios.c is set up to handle pty_termio.
   echo $ac_n "checking for struct termio""... $ac_c" 1>&6
-echo "configure:5480: checking for struct termio" >&5
+echo "configure:5531: checking for struct termio" >&5
   if test "$cross_compiling" = yes; then
   { echo "configure: error: Expect can't be cross compiled" 1>&2; exit 1; }
 
 else
   cat > conftest.$ac_ext <<EOF
-#line 5486 "configure"
+#line 5537 "configure"
 #include "confdefs.h"
 #include <termio.h>
   main()
@@ -5491,7 +5542,7 @@ else
     exit(0);
   }
 EOF
-if { (eval echo configure:5495: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:5546: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   cat >> confdefs.h <<\EOF
 #define HAVE_TERMIO 1
@@ -5513,13 +5564,13 @@ fi
 
   # now check for the new style ttys (not yet posix)
   echo $ac_n "checking for struct termios""... $ac_c" 1>&6
-echo "configure:5517: checking for struct termios" >&5
+echo "configure:5568: checking for struct termios" >&5
   if test "$cross_compiling" = yes; then
   { echo "configure: error: Expect can't be cross compiled" 1>&2; exit 1; }
   
 else
   cat > conftest.$ac_ext <<EOF
-#line 5523 "configure"
+#line 5574 "configure"
 #include "confdefs.h"
 
   /* including termios.h on Solaris 5.6 fails unless inttypes.h included */
@@ -5533,7 +5584,7 @@ else
     exit(0);
   }
 EOF
-if { (eval echo configure:5537: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:5588: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   cat >> confdefs.h <<\EOF
 #define HAVE_TERMIOS 1
@@ -5555,13 +5606,13 @@ fi
 fi
 
 echo $ac_n "checking if TCGETS or TCGETA in termios.h""... $ac_c" 1>&6
-echo "configure:5559: checking if TCGETS or TCGETA in termios.h" >&5
+echo "configure:5610: checking if TCGETS or TCGETA in termios.h" >&5
 if test "$cross_compiling" = yes; then
   { echo "configure: error: Expect can't be cross compiled" 1>&2; exit 1; }
 
 else
   cat > conftest.$ac_ext <<EOF
-#line 5565 "configure"
+#line 5616 "configure"
 #include "confdefs.h"
 
 /* including termios.h on Solaris 5.6 fails unless inttypes.h included */
@@ -5577,7 +5628,7 @@ main() {
 #endif
 }
 EOF
-if { (eval echo configure:5581: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:5632: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   cat >> confdefs.h <<\EOF
 #define HAVE_TCGETS_OR_TCGETA_IN_TERMIOS_H 1
@@ -5597,13 +5648,13 @@ fi
 
 
 echo $ac_n "checking if TIOCGWINSZ in termios.h""... $ac_c" 1>&6
-echo "configure:5601: checking if TIOCGWINSZ in termios.h" >&5
+echo "configure:5652: checking if TIOCGWINSZ in termios.h" >&5
 if test "$cross_compiling" = yes; then
   { echo "configure: error: Expect can't be cross compiled" 1>&2; exit 1; }
 
 else
   cat > conftest.$ac_ext <<EOF
-#line 5607 "configure"
+#line 5658 "configure"
 #include "confdefs.h"
 
 /* including termios.h on Solaris 5.6 fails unless inttypes.h included */
@@ -5619,7 +5670,7 @@ main() {
 #endif
 }
 EOF
-if { (eval echo configure:5623: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:5674: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   cat >> confdefs.h <<\EOF
 #define HAVE_TIOCGWINSZ_IN_TERMIOS_H 1
@@ -5640,14 +5691,14 @@ fi
 
 # finally check for Cray style ttys
 echo $ac_n "checking for Cray-style ptys""... $ac_c" 1>&6
-echo "configure:5644: checking for Cray-style ptys" >&5
+echo "configure:5695: checking for Cray-style ptys" >&5
 SETUID=":"
 if test "$cross_compiling" = yes; then
   { echo "configure: error: Expect can't be cross compiled" 1>&2; exit 1; }
 
 else
   cat > conftest.$ac_ext <<EOF
-#line 5651 "configure"
+#line 5702 "configure"
 #include "confdefs.h"
 
 main(){
@@ -5659,7 +5710,7 @@ main(){
 }
 
 EOF
-if { (eval echo configure:5663: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:5714: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   PTY_TYPE=unicos
 	SETUID="chmod u+s"
@@ -5684,12 +5735,12 @@ select=0
 poll=0
 unset ac_cv_func_select
 echo $ac_n "checking for select""... $ac_c" 1>&6
-echo "configure:5688: checking for select" >&5
+echo "configure:5739: checking for select" >&5
 if eval "test \"`echo '$''{'ac_cv_func_select'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 5693 "configure"
+#line 5744 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char select(); below.  */
@@ -5712,7 +5763,7 @@ select();
 
 ; return 0; }
 EOF
-if { (eval echo configure:5716: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:5767: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func_select=yes"
 else
@@ -5732,12 +5783,12 @@ else
 fi
 
 echo $ac_n "checking for poll""... $ac_c" 1>&6
-echo "configure:5736: checking for poll" >&5
+echo "configure:5787: checking for poll" >&5
 if eval "test \"`echo '$''{'ac_cv_func_poll'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 5741 "configure"
+#line 5792 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char poll(); below.  */
@@ -5760,7 +5811,7 @@ poll();
 
 ; return 0; }
 EOF
-if { (eval echo configure:5764: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:5815: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func_poll=yes"
 else
@@ -5780,7 +5831,7 @@ else
 fi
 
 echo $ac_n "checking event handling""... $ac_c" 1>&6
-echo "configure:5784: checking event handling" >&5
+echo "configure:5835: checking event handling" >&5
 if test $select -eq 1 ; then
   EVENT_TYPE=select
   EVENT_ABLE=event
@@ -5802,12 +5853,12 @@ fi
 for ac_func in _getpty
 do
 echo $ac_n "checking for $ac_func""... $ac_c" 1>&6
-echo "configure:5806: checking for $ac_func" >&5
+echo "configure:5857: checking for $ac_func" >&5
 if eval "test \"`echo '$''{'ac_cv_func_$ac_func'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 5811 "configure"
+#line 5862 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char $ac_func(); below.  */
@@ -5830,7 +5881,7 @@ $ac_func();
 
 ; return 0; }
 EOF
-if { (eval echo configure:5834: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:5885: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func_$ac_func=yes"
 else
@@ -5857,12 +5908,12 @@ done
 for ac_func in getpty
 do
 echo $ac_n "checking for $ac_func""... $ac_c" 1>&6
-echo "configure:5861: checking for $ac_func" >&5
+echo "configure:5912: checking for $ac_func" >&5
 if eval "test \"`echo '$''{'ac_cv_func_$ac_func'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 5866 "configure"
+#line 5917 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char $ac_func(); below.  */
@@ -5885,7 +5936,7 @@ $ac_func();
 
 ; return 0; }
 EOF
-if { (eval echo configure:5889: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:5940: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func_$ac_func=yes"
 else
@@ -5912,7 +5963,7 @@ done
 
 # following test sets SETPGRP_VOID if setpgrp takes 0 args, else takes 2
 echo $ac_n "checking whether setpgrp takes no argument""... $ac_c" 1>&6
-echo "configure:5916: checking whether setpgrp takes no argument" >&5
+echo "configure:5967: checking whether setpgrp takes no argument" >&5
 if eval "test \"`echo '$''{'ac_cv_func_setpgrp_void'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -5920,7 +5971,7 @@ else
   { echo "configure: error: cannot check setpgrp if cross compiling" 1>&2; exit 1; }
 else
   cat > conftest.$ac_ext <<EOF
-#line 5924 "configure"
+#line 5975 "configure"
 #include "confdefs.h"
 
 #ifdef HAVE_UNISTD_H
@@ -5940,7 +5991,7 @@ main()
 }
 
 EOF
-if { (eval echo configure:5944: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:5995: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   ac_cv_func_setpgrp_void=no
 else
@@ -5968,13 +6019,13 @@ fi
 # check for timezones
 #
 echo $ac_n "checking for SV-style timezone""... $ac_c" 1>&6
-echo "configure:5972: checking for SV-style timezone" >&5
+echo "configure:6023: checking for SV-style timezone" >&5
 if test "$cross_compiling" = yes; then
   { echo "configure: error: Expect can't be cross compiled" 1>&2; exit 1; }
 
 else
   cat > conftest.$ac_ext <<EOF
-#line 5978 "configure"
+#line 6029 "configure"
 #include "confdefs.h"
 
 extern char *tzname[2];
@@ -5987,7 +6038,7 @@ main()
   exit(0);
 }
 EOF
-if { (eval echo configure:5991: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:6042: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   cat >> confdefs.h <<\EOF
 #define HAVE_SV_TIMEZONE 1
@@ -6033,7 +6084,7 @@ else
 #
 #no_tk=true
 echo $ac_n "checking for Tk private headers""... $ac_c" 1>&6
-echo "configure:6037: checking for Tk private headers" >&5
+echo "configure:6088: checking for Tk private headers" >&5
 # Check whether --with-tkinclude or --without-tkinclude was given.
 if test "${with_tkinclude+set}" = set; then
   withval="$with_tkinclude"
@@ -6104,17 +6155,17 @@ fi
 if test x"${ac_cv_c_tkh}" = x ; then
    ac_safe=`echo "tk.h" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for tk.h""... $ac_c" 1>&6
-echo "configure:6108: checking for tk.h" >&5
+echo "configure:6159: checking for tk.h" >&5
 if eval "test \"`echo '$''{'ac_cv_header_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 6113 "configure"
+#line 6164 "configure"
 #include "confdefs.h"
 #include <tk.h>
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:6118: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:6169: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
 if test -z "$ac_err"; then
   rm -rf conftest*
@@ -6213,7 +6264,7 @@ fi
 # also remove dots on systems that don't support filenames > 14
 # (are there systems which support shared libs and restrict filename lengths!?)
 echo $ac_n "checking for long file names""... $ac_c" 1>&6
-echo "configure:6217: checking for long file names" >&5
+echo "configure:6268: checking for long file names" >&5
 if eval "test \"`echo '$''{'ac_cv_sys_long_file_names'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -6270,7 +6321,7 @@ EXP_UNSHARED_LIB_FILE=libexpect${EXP_LIB_VERSION}${DBGX}.a
 # and expect without (and vice versa?)
 
 echo $ac_n "checking for type of library to build""... $ac_c" 1>&6
-echo "configure:6274: checking for type of library to build" >&5
+echo "configure:6325: checking for type of library to build" >&5
 if test "$enable_shared" = "yes" && test "x${TCL_SHLIB_SUFFIX}" != "x" ; then
   EXP_SHLIB_CFLAGS=$TCL_SHLIB_CFLAGS
   eval "EXP_SHARED_LIB_FILE=libexpect${TCL_SHARED_LIB_SUFFIX}"
@@ -6867,5 +6918,4 @@ if test "$no_recursion" != yes; then
     cd $ac_popdir
   done
 fi
-
 

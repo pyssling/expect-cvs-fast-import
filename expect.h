@@ -28,7 +28,7 @@ would appreciate credit if this program or parts of it are used.
  * See the file "license.terms" for information on usage and redistribution
  * of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  *
- * RCS: @(#) $Id: expect.h,v 5.28.1.1.2.2 1999/07/03 03:44:15 libes Exp $
+ * RCS: @(#) $Id: expect.h,v 5.28.1.1.2.3 1999/07/07 20:15:03 libes Exp $
  */
 
 #ifndef _TCL
@@ -338,7 +338,7 @@ typedef struct Tcl_RegExp_ *Tcl_RegExp;
  * Caveat:  this is V8 regexp(3) [actually, a reimplementation thereof],
  * not the System V one.
  *
- * RCS: @(#) $Id: expect.h,v 5.28.1.1.2.2 1999/07/03 03:44:15 libes Exp $
+ * RCS: @(#) $Id: expect.h,v 5.28.1.1.2.3 1999/07/07 20:15:03 libes Exp $
  */
 
 #ifndef _REGEXP
@@ -426,7 +426,12 @@ EXTERN int exp_ttycopy;			/* copy tty parms from /dev/tty */
 EXTERN int exp_ttyinit;			/* set tty parms to sane state */
 EXTERN int exp_console;			/* redirect console */
 
-EXTERN jmp_buf exp_readenv;		/* for interruptable read() */
+#ifdef HAVE_SIGLONGJMP
+sigjmp_buf exp_readenv;		/* for interruptable read() */
+#else
+jmp_buf exp_readenv;		/* for interruptable read() */
+#endif /* HAVE_SIGLONGJMP */
+
 EXTERN int exp_reading;			/* whether we can longjmp or not */
 #define EXP_ABORT	1		/* abort read */
 #define EXP_RESTART	2		/* restart read */

@@ -34,16 +34,16 @@ echo "configuring Expect $EXP_MAJOR_VERSION.$EXP_MINOR_VERSION.$EXP_MICRO_VERSIO
 AC_CHECK_PROG(found,autoconf,yes,no,)
 found=no
 AC_MSG_CHECKING([configure up to date])
-for i in `cd ${srcdir} ; ls -tr configure configure.in Makefile.in` ; do
+for i in `ls -tr ${srcdir}/configure ${srcdir}/configure.in ${srcdir}/Makefile.in` ; do
   newest=$i
 done
-if test "configure" = "$newest" ; then
+if test "$srcdir/configure" = "$newest" ; then
   AC_MSG_RESULT(yes)
 else
   AC_MSG_RESULT(no)
 fi
-if test $found = "no" -a "$newest" != "configure" ; then
-  AC_MSG_WARN([configure appears to be old (configure.in and/or Makefile.in are newer) and the autoconf program to fix this situation was not found.  If you've no idea what this means, enter the command \"touch configure\" and restart configure.])
+if test $found = "no" -a "$newest" != "$srcdir/configure" ; then
+  AC_MSG_WARN([$srcdir/configure appears to be old ($srcdir/configure.in and/or $srcdir/Makefile.in are newer) and the autoconf program to fix this situation was not found.  If you've no idea what this means, enter the command \"touch $srcdir/configure\" and restart $srcdir/configure.])
   exit
 fi
 
@@ -594,6 +594,7 @@ AC_CHECK_FUNC(sysconf, AC_DEFINE(HAVE_SYSCONF))
 AC_CHECK_FUNC(strftime, AC_DEFINE(HAVE_STRFTIME))
 AC_CHECK_FUNC(strchr, AC_DEFINE(HAVE_STRCHR))
 AC_CHECK_FUNC(timezone, AC_DEFINE(HAVE_TIMEZONE))
+AC_CHECK_FUNC(siglongjmp, AC_DEFINE(HAVE_SIGLONGJMP))
 
 # dnl check for memcpy by hand
 # because Unixware 2.0 handles it specially and refuses to compile

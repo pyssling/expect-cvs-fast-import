@@ -14,9 +14,6 @@ would appreciate credit if this program or parts of it are used.
 #include <errno.h>
 #include <ctype.h>	/* for isspace */
 #include <time.h>	/* for time(3) */
-#if 0
-#include <setjmp.h>
-#endif
 
 #include "expect_cf.h"
 
@@ -136,12 +133,6 @@ int cmdtype;
 
 static int i_read_errno;/* place to save errno, if i_read() == -1, so it
 			   doesn't get overwritten before we get to read it */
-#if 0
-static jmp_buf env;	/* for interruptable read() */
-			/* longjmp(env,1) times out the read */
-			/* longjmp(env,2) restarts the read */
-static int env_valid = FALSE;	/* whether we can longjmp or not */
-#endif
 
 #ifdef SIMPLE_EVENT
 static int alarm_fired;	/* if alarm occurs */

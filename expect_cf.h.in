@@ -43,6 +43,7 @@
 #undef HAVE_STRFTIME
 #undef HAVE_MEMMOVE
 #undef HAVE_TIMEZONE		/* timezone() a la Pyramid */
+#undef HAVE_SIGLONGJMP
 #undef HAVE_STRCHR
 
 #ifndef HAVE_STRCHR

@@ -78,7 +78,7 @@ would appreciate credit if this program or parts of it are used.
  * See the file "license.terms" for information on usage and redistribution
  * of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  *
- * RCS: @(#) $Id: exp_clib.c,v 5.28.1.1.2.10 1999/07/07 20:15:03 libes Exp $
+ * RCS: @(#) $Id: exp_clib.c,v 5.28.1.1.2.11 1999/08/04 22:10:17 libes Exp $
  */
 
 #ifndef _STDLIB
@@ -166,7 +166,7 @@ extern unsigned long	strtoul _ANSI_ARGS_((CONST char *string,
  * *** 2. This in addition to changes to TclRegError makes the   ***
  * ***    code multi-thread safe.                                ***
  *
- * RCS: @(#) $Id: exp_clib.c,v 5.28.1.1.2.10 1999/07/07 20:15:03 libes Exp $
+ * RCS: @(#) $Id: exp_clib.c,v 5.28.1.1.2.11 1999/08/04 22:10:17 libes Exp $
  */
 
 #if 0
@@ -2171,7 +2171,12 @@ int exp_console = FALSE;		/* redirect console */
 void (*exp_child_exec_prelude)() = 0;
 void (*exp_close_in_child)() = 0;
 
+#ifdef HAVE_SIGLONGJMP
+sigjmp_buf exp_readenv;		/* for interruptable read() */
+#else
 jmp_buf exp_readenv;		/* for interruptable read() */
+#endif /* HAVE_SIGLONGJMP */
+
 int exp_reading = FALSE;	/* whether we can longjmp or not */
 
 int exp_is_debugging = FALSE;
@@ -2752,7 +2757,11 @@ int n;			/* signal number, unused by us */
 	signal(SIGALRM,sigalarm_handler);
 #endif
 
+#ifdef HAVE_SIGLONGJMP
+	siglongjmp(exp_readenv,1);
+#else
 	longjmp(exp_readenv,1);
+#endif /* HAVE_SIGLONGJMP */
 }
 
 /* interruptable read */
@@ -2776,7 +2785,11 @@ int timeout;
 
 	/* restart read if setjmp returns 0 (first time) or 2 (EXP_RESTART). */
 	/* abort if setjmp returns 1 (EXP_ABORT). */
+#ifdef HAVE_SIGLONGJMP
+        if (EXP_ABORT != sigsetjmp(exp_readenv,1)) {
+#else
 	if (EXP_ABORT != setjmp(exp_readenv)) {
+#endif /* HAVE_SIGLONGJMP */
 		exp_reading = TRUE;
 		if (fd == -1) {
 			int c;

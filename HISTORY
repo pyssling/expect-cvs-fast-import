@@ -3,6 +3,41 @@ support are in ChangeLog. - Don
 
 Date	Version	Description
 -------	-------	------------------------------------------------------
+		Dave Morrison <drmorris@corp.phone.com> noted some printfs
+		in exp_log.c that misinterpreted embedded %'s with resulting
+		core dumps.
+
+		Dick Goodwin <goodwin@qosnetics.com> noted that "system echo
+		foo" returned with no apparent effect.  Due to closeonexec
+		in expect's channel driver.  Added skip if std channel.
+		Fixed similar bug in stty command.  Minor bug left in stty
+		which isn't passing output back from underlying exec.
+
+		Stacy W. Smith <stacy@ixc-comm.com> provided patch that uses
+		sigsetjmp instead of setjmp that he says fixes a problem he
+		encountered with C lib where it stopped timing out in expect()
+		as if the signals were corrupted.  The man page doesn't
+		explain the difference between these calls in a way that makes
+		sense as to why they should make a difference, but I'll the
+		names are certainly suggestive so I'll try it.  He says "it
+		  appears that the linux setjmp behaves a little differently
+		  compared to setjmp on some other OSs.  Specifically, setjmp
+		  on linux does not save the signal context.  It seems most
+		  BSDish OSs do save the signal context with setjmp.  On those
+		  machines, it appears setjmp(env) is equivalent to
+		  sigsetjmp(env,1) whereas on linux, setjmp(env) is equivalent
+		  to sigsetjmp(env,0).  My patch made a (probably bad)
+		  assumption that if siglongjmp() exists that we should use
+		  the sigXXX versions.  I specifically tested for siglongjmp 
+		  rather than sigsetjmp because on linux, sigsetjmp is just a
+		  #define for  __sigsetjmp.  It appears that linux will give
+		  the BSD behaviour if  __FAVOR_BSD is defined, but I didn't
+		  know what other implications that might have.
+
+		Michael Schumacher provided fix so that test for whether
+		configure was out-of-date worked when not using the default
+		build dir.
+
 11/1/99 5.31.3	Shlomi Mahlab <shlomi@seagull.co.il> noted all.tcl in CVS
 		but not distribution.
 

@@ -168,7 +168,7 @@ expStdoutLog TCL_VARARGS_DEF(int,arg1)
     (void) vsprintf(bigbuf,fmt,args);
     expDiagWriteBytes(bigbuf,-1);
     if (tsdPtr->logAll || (LOGUSER && tsdPtr->logChannel)) Tcl_WriteChars(tsdPtr->logChannel,bigbuf,-1);
-    if (LOGUSER) fprintf(stdout,bigbuf);
+    if (LOGUSER) fprintf(stdout,"%s",bigbuf);
     va_end(args);
 }
 
@@ -207,7 +207,7 @@ expErrorLog TCL_VARARGS_DEF(char *,arg1)
     (void) vsprintf(bigbuf,fmt,args);
 
     expDiagWriteChars(bigbuf,-1);
-    fprintf(stderr,bigbuf);
+    fprintf(stderr,"%s",bigbuf);
     if (tsdPtr->logChannel) Tcl_WriteChars(tsdPtr->logChannel,bigbuf,-1);
     
     va_end(args);
@@ -250,7 +250,7 @@ expDiagLog TCL_VARARGS_DEF(char *,arg1)
 
     expDiagWriteBytes(bigbuf,-1);
     if (tsdPtr->diagToStderr) {
-	fprintf(stderr,bigbuf);
+	fprintf(stderr,"%s",bigbuf);
 	if (tsdPtr->logChannel) Tcl_WriteChars(tsdPtr->logChannel,bigbuf,-1);
     }
 
@@ -271,7 +271,7 @@ expDiagLogU(str)
     expDiagWriteBytes(str,-1);
 
     if (tsdPtr->diagToStderr) {
-	fprintf(stderr,str);
+	fprintf(stderr,"%s",str);
 	if (tsdPtr->logChannel) Tcl_WriteChars(tsdPtr->logChannel,str,-1);
     }
 }

@@ -634,6 +634,7 @@ char **argv;
 	}
 
 	*(bufp-1) = '\0';
+
 	old = signal(SIGCHLD, SIG_DFL);
 	systemStatus = system(buf);
 	signal(SIGCHLD, old);	/* restore signal handler */

@@ -66,7 +66,12 @@ static char locksrc[50] = "/tmp/expect.pid"; /* pid is replaced by real pid */
 
 static int i_read_errno;/* place to save errno, if i_read() == -1, so it
 			   doesn't get overwritten before we get to read it */
+#ifdef HAVE_SIGLONGJMP
+static sigjmp_buf env;                /* for interruptable read() */
+#else
 static jmp_buf env;		/* for interruptable read() */
+#endif  /* HAVE_SIGLONGJMP */
+
 static int env_valid = FALSE;	/* whether we can longjmp or not */
 
 /* sigalarm_handler and i_read are here just for supporting the sanity */
@@ -89,7 +94,11 @@ int n;		/* unused, for compatibility with STDC */
 
 	/* check env_valid first to protect us from the alarm occurring */
 	/* in the window between i_read and alarm(0) */
+#ifdef HAVE_SIGLONGJMP
+	if (env_valid) siglongjmp(env,1);
+#else
 	if (env_valid) longjmp(env,1);
+#endif  /* HAVE_SIGLONGJMP */
 }
 
 /* interruptable read */
@@ -110,7 +119,11 @@ int timeout;
 
 	alarm(timeout);
 
+#ifdef HAVE_SIGLONGJMP
+	if (1 != sigsetjmp(env,1)) {
+#else
 	if (1 != setjmp(env)) {
+#endif  /* HAVE_SIGLONGJMP */
 		env_valid = TRUE;
 		cc = read(fd,buffer,length);
 	}

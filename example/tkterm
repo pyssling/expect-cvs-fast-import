@@ -165,7 +165,7 @@ if {$terminfo} {
     close $file
 
     set oldpath $env(PATH)
-    set env(PATH) "/usr/5bin:/usr/lib/terminfo"
+    set env(PATH) "$env(PATH):/usr/5bin:/usr/lib/terminfo"
     if 1==[catch {exec tic $ttsrc} msg] {
 	puts "WARNING: tic failed - if you don't have terminfo support on"
 	puts "your system, change \"set terminfo 1\" to \"set terminfo 0\"."
