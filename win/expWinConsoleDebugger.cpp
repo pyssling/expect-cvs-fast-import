@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinConsoleDebugger.cpp,v 1.1.2.14 2002/03/16 00:37:01 davygrvy Exp $
+ * RCS: @(#) $Id: expWinConsoleDebugger.cpp,v 1.1.2.15 2002/06/18 22:51:31 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -32,6 +32,8 @@
 #ifdef _MSC_VER
 #   pragma comment (lib, "imagehlp.lib")
 #endif
+
+typedef LPVOID (__stdcall *PFNVIRTALLEX)(HANDLE,LPVOID,SIZE_T,DWORD,DWORD);
 
 //  Constructor.
 ConsoleDebugger::ConsoleDebugger (int _argc, char * const *_argv, CMclQueue<Message *> &_mQ)
@@ -1283,8 +1285,6 @@ void
 ConsoleDebugger::MakeSubprocessMemory(Process *proc, SIZE_T amount,
     LPVOID *pBuff, DWORD access)
 {
-    typedef LPVOID (__stdcall *PFNVIRTALLEX)(HANDLE,LPVOID,SIZE_T,DWORD,DWORD);
-
     if (dwPlatformId == VER_PLATFORM_WIN32_NT) {
         // We're on NT, so use VirtualAllocEx to allocate memory in the other
         // process' address space.  Alas, we can't just call VirtualAllocEx
@@ -1334,7 +1334,7 @@ ConsoleDebugger::RemoveSubprocessMemory(Process *proc, LPVOID buff)
         static PFNVIRTALLEX pfnVirtualAllocEx = (PFNVIRTALLEX)
             GetProcAddress(GetModuleHandle("KERNEL32.DLL"),"VirtualAllocEx");
 
-	pfnVirtualAllocEx(proc->hProcess, buff, 0, MEM_RELEASE);
+	pfnVirtualAllocEx(proc->hProcess, buff, 0, MEM_RELEASE, 0);
     } else {
 	HANDLE hFileMapping;
 	if (spMemMapping.Extract(buff, &hFileMapping) != TCL_OK) {
