@@ -21,6 +21,6 @@ public:
     char *BuildCommandLine (int, char * const *);
 };
 
-void SetArgv (char *cmdLine, int *argcPtr, char ***argvPtr);
+void SetArgv (const char *cmdLine, int *argcPtr, char ***argvPtr);
 
 #endif

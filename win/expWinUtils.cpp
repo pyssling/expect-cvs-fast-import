@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinUtils.cpp,v 1.1.2.4 2002/03/12 01:38:19 davygrvy Exp $
+ * RCS: @(#) $Id: expWinUtils.cpp,v 1.1.2.5 2002/03/12 07:59:14 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -136,13 +136,15 @@ ArgMaker::BuildCommandLine(
 
 void
 SetArgv(
-    char *cmdLine,	// commandline string.
+    const char *cmdLine,// commandline string.
     int *argcPtr,	// Filled with number of argument strings.
     char ***argvPtr)	// Filled with argument strings in UTF (alloc'd with new).
 {
-    char *p, *arg, *argSpace;
+    char *arg, *argSpace;
     char **argv;
-    int argc, size, inquote, copy, slashes;
+    const char *p;
+    int inquote, copy, slashes;
+    size_t size, argc;
 
     // Precompute an overly pessimistic guess at the number of arguments
     // in the command line by counting non-space spans.
@@ -159,7 +161,7 @@ SetArgv(
 	    }
 	}
     }
-    argSpace = new char [size + strlen(cmdLine) + 1];
+    argSpace = new char [(size * sizeof(char *)) + strlen(cmdLine) + 1];
     argv = (char **) argSpace;
     argSpace += size * sizeof(char *);
     size--;
@@ -214,7 +216,7 @@ SetArgv(
 	*arg = '\0';
 	argSpace = arg + 1;
     }
-    argv[argc] = NULL;
+    argv[argc] = 0L;
 
     *argcPtr = argc;
     *argvPtr = argv;

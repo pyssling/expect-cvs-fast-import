@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinConsoleDebugger.cpp,v 1.1.2.11 2002/03/13 03:52:57 davygrvy Exp $
+ * RCS: @(#) $Id: expWinConsoleDebugger.cpp,v 1.1.2.13 2002/03/15 07:51:56 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -472,6 +472,7 @@ ConsoleDebugger::CommonDebugger()
 	    ProcessFree(proc);
 	    if (ProcessList == 0L) {
 		// When the last process exits, we exit.
+		NotifyDone();
 		return;
 	    }
 	    break;
@@ -1617,5 +1618,14 @@ ConsoleDebugger::WriteMaster(CHAR *buf, DWORD len)
     msg->bytes = (BYTE *) _strdup(buf);
     msg->length = len;
     msg->type = Message::TYPE_NORMAL;
+    mQ.Put(msg);
+}
+
+void
+ConsoleDebugger::NotifyDone()
+{
+    Message *msg;
+    msg = new Message;
+    msg->type = Message::TYPE_SLAVEDONE;
     mQ.Put(msg);
 }

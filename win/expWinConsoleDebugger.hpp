@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinConsoleDebugger.hpp,v 1.1.2.14 2002/03/13 03:52:57 davygrvy Exp $
+ * RCS: @(#) $Id: expWinConsoleDebugger.hpp,v 1.1.2.16 2002/03/15 07:51:56 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -214,6 +214,9 @@ private:
 
     // send info back to the parent
     void WriteMaster		(CHAR *, DWORD);
+
+    // announce we are done.
+    void NotifyDone		();
 
     // The arrays of functions where we set breakpoints
     //
