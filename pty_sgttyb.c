@@ -165,7 +165,7 @@ exp_init_pty()
 		setpgrp(0,0);
 		close(0);
 		close(1);
-		getptyslave(exp_get_var(exp_interp,"stty_init"));
+		exp_getptyslave(exp_get_var(exp_interp,"stty_init"));
 		close(2);
 		fcntl(0,F_DUPFD,2);		/* dup 0 onto 2 */
 	}
@@ -219,7 +219,7 @@ int control;
 }
 
 int
-getptyslave(ttycopy,ttyinit,stty_args)
+exp_getptyslave(ttycopy,ttyinit,stty_args)
 int ttycopy;
 int ttyinit;
 char *stty_args;

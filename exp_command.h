@@ -7,6 +7,19 @@ dollars.  Therefore it is public domain.  However, the author and NIST
 would appreciate credit if this program or parts of it are used.
 */
 
+#ifdef HAVE_SYS_WAIT_H
+  /* ISC doesn't def WNOHANG unless _POSIX_SOURCE is def'ed */
+# ifdef WNOHANG_REQUIRES_POSIX_SOURCE
+#  define _POSIX_SOURCE
+# endif
+# include <sys/wait.h>
+# ifdef WNOHANG_REQUIRES_POSIX_SOURCE
+#  undef _POSIX_SOURCE
+# endif
+#endif
+
+#include "../unix/tclUnixPort.h"
+
 #define EXP_CHANNELNAMELEN (16 + TCL_INTEGER_SPACE)
 
 EXTERN char *		exp_get_var _ANSI_ARGS_((Tcl_Interp *,char *));
@@ -28,90 +41,6 @@ EXTERN int exp_flageq_code _ANSI_ARGS_((char *,char *,int));
 /* exp_flageq for single char flags */
 #define exp_flageq1(flag,string) \
 	((string[0] == flag) && (string[1] == '\0'))
-
-/*
- * The type of the status returned by wait varies from UNIX system
- * to UNIX system.  The macro below defines it:
- * (stolen from tclUnix.h)
- */
-
-#define WAIT_STATUS_TYPE int
-#if 0
-#ifdef AIX
-#   define WAIT_STATUS_TYPE pid_t
-#else
-#ifndef NO_UNION_WAIT
-#   define WAIT_STATUS_TYPE union wait
-#else
-#   define WAIT_STATUS_TYPE int
-#endif
-#endif /* AIX */
-
-/* These macros are taken from tclUnix.h */
-
-#undef WIFEXITED
-#ifndef WIFEXITED
-#   define WIFEXITED(stat)  (((*((int *) &(stat))) & 0xff) == 0)
-#endif
-
-#undef WEXITSTATUS
-#ifndef WEXITSTATUS
-#   define WEXITSTATUS(stat) (((*((int *) &(stat))) >> 8) & 0xff)
-#endif
-
-#undef WIFSIGNALED
-#ifndef WIFSIGNALED
-#   define WIFSIGNALED(stat) (((*((int *) &(stat)))) && ((*((int *) &(stat))) == ((*((int *) &(stat))) & 0x00ff)))
-#endif
-
-#undef WTERMSIG
-#ifndef WTERMSIG
-#   define WTERMSIG(stat)    ((*((int *) &(stat))) & 0x7f)
-#endif
-
-#undef WIFSTOPPED
-#ifndef WIFSTOPPED
-#   define WIFSTOPPED(stat)  (((*((int *) &(stat))) & 0xff) == 0177)
-#endif
-
-#undef WSTOPSIG
-#ifndef WSTOPSIG
-#   define WSTOPSIG(stat)    (((*((int *) &(stat))) >> 8) & 0xff)
-#endif
-
-#endif /* 0 */
-
-/* These macros are suggested by the autoconf documentation. */
-
-#undef WIFEXITED
-#ifndef WIFEXITED
-#   define WIFEXITED(stat)  (((stat) & 0xff) == 0)
-#endif
-
-#undef WEXITSTATUS
-#ifndef WEXITSTATUS
-#   define WEXITSTATUS(stat) (((stat) >> 8) & 0xff)
-#endif
-
-#undef WIFSIGNALED
-#ifndef WIFSIGNALED
-#   define WIFSIGNALED(stat) ((stat) && ((stat) == ((stat) & 0x00ff)))
-#endif
-
-#undef WTERMSIG
-#ifndef WTERMSIG
-#   define WTERMSIG(stat)    ((stat) & 0x7f)
-#endif
-
-#undef WIFSTOPPED
-#ifndef WIFSTOPPED
-#   define WIFSTOPPED(stat)  (((stat) & 0xff) == 0177)
-#endif
-
-#undef WSTOPSIG
-#ifndef WSTOPSIG
-#   define WSTOPSIG(stat)    (((stat) >> 8) & 0xff)
-#endif
 
 #define EXP_SPAWN_ID_USER		0
 #define EXP_SPAWN_ID_ANY_LIT		"-1"
@@ -257,7 +186,7 @@ EXTERN void		exp_pty_exit _ANSI_ARGS_((void));
 EXTERN void		exp_init_tty _ANSI_ARGS_((void));
 EXTERN void		exp_init_stdio _ANSI_ARGS_((void));
 /*EXTERN void		exp_init_expect _ANSI_ARGS_((Tcl_Interp *));*/
-EXTERN void		exp_init_spawn_ids _ANSI_ARGS_((void));
+EXTERN void		exp_init_spawn_ids _ANSI_ARGS_((Tcl_Interp *));
 EXTERN void		exp_init_spawn_id_vars _ANSI_ARGS_((Tcl_Interp *));
 EXTERN void		exp_init_trap _ANSI_ARGS_((void));
 EXTERN void		exp_init_send _ANSI_ARGS_((void));
@@ -347,7 +276,7 @@ EXTERN ExpState *       expStateCurrent _ANSI_ARGS_((Tcl_Interp *,int,int,int));
 EXTERN ExpState *       expStateFromChannelName _ANSI_ARGS_((Tcl_Interp *,char *,int,int,int,char *));
 EXTERN void		expStateFree _ANSI_ARGS_((ExpState *));
 
-EXTERN ExpState *	expCreateChannel _ANSI_ARGS_((int,int,int));
+EXTERN ExpState *	expCreateChannel _ANSI_ARGS_((Tcl_Interp *,int,int,int));
 EXTERN ExpState *	expWaitOnAny _ANSI_ARGS_((Tcl_Interp *));
 EXTERN void		expExpectVarsInit _ANSI_ARGS_((void));
 EXTERN int		expStateAnyIs _ANSI_ARGS_((ExpState *));

@@ -310,7 +310,7 @@ char *s;	/* stty args */
 /* As long as BSD stty insists on stdout == stderr, we can no longer write */
 /* diagnostics to parent stderr, since stderr has is now child's */
 /* Maybe someday they will fix stty? */
-/*			expDiagLog("getptyslave: (default) stty %s\n",DFLT_STTY);*/
+/*			expDiagLog("exp_getptyslave: (default) stty %s\n",DFLT_STTY);*/
 			pty_stty(DFLT_STTY,slave_name);
 		}
 #endif
@@ -318,7 +318,7 @@ char *s;	/* stty args */
 		/* lastly, give user chance to override any terminal parms */
 		if (s) {
 			/* give user a chance to override any terminal parms */
-/*			expDiagLog("getptyslave: (user-requested) stty %s\n",s);*/
+/*			expDiagLog("exp_getptyslave: (user-requested) stty %s\n",s);*/
 			pty_stty(s,slave_name);
 		}
 	}
@@ -607,7 +607,7 @@ int control;	/* if 1, enable pty trapping of close/open/ioctl */
 }
 
 int
-getptyslave(ttycopy,ttyinit,stty_args)
+exp_getptyslave(ttycopy,ttyinit,stty_args)
 int ttycopy;
 int ttyinit;
 char *stty_args;

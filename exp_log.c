@@ -88,7 +88,7 @@ expWriteBytesAndLogIfTtyU(esPtr,buf,lenBytes)
 
     wc = Tcl_Write(esPtr->channel,buf,lenBytes);
 
-    if (tsdPtr->logChannel && ((esPtr->fdout == 1) || expDevTtyIs(esPtr))) {
+    if (tsdPtr->logChannel && ((esPtr->fdout == 1) || expDevttyIs(esPtr))) {
 	Tcl_Write(tsdPtr->logChannel,buf,lenBytes);
     }
     return wc;
@@ -134,7 +134,7 @@ expLogInteractionU(esPtr,buf)
     /* don't write to user if they're seeing it already, i.e., typing it! */
     if (tsdPtr->logUser && (!expStdinoutIs(esPtr)) && (!expDevttyIs(esPtr)))
 	Tcl_WriteChars(tsdPtr->logChannel,buf,-1);
-    expWriteDiagChars(buf,-1);
+    expDiagWriteChars(buf,-1);
 }
 
 /* send to log if open */
@@ -467,6 +467,7 @@ expLogAllSet(app)
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
     tsdPtr->logAll = app;
+    /* should probably confirm logChannel != 0 */
 }
 
 int
@@ -635,5 +636,5 @@ expLogInit()
 
     Tcl_DStringInit(&tsdPtr->logFilename);
     tsdPtr->logChannel = 0;
-    tsdPtr->logAll = TRUE;
+    tsdPtr->logAll = FALSE;
 }

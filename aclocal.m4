@@ -278,6 +278,9 @@ dnl AC_SUBST(TCL_RANLIB)
 SAVELIBS=$LIBS
 # eval used to expand out TCL_DBGX
 eval "LIBS=\"$TCL_BUILD_LIB_SPEC $TCL_LIBS\""
+AC_MSG_CHECKING([Tcl build library])
+AC_MSG_RESULT($LIBS)
+
 AC_CHECK_FUNC(Tcl_CreateCommand,[
 	AC_MSG_CHECKING([if Tcl library build specification is valid])
 	AC_MSG_RESULT(yes)

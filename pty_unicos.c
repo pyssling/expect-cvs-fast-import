@@ -280,7 +280,7 @@ int control;
 }
 
 int
-getptyslave(ttycopy,ttyinit,stty_args)
+exp_getptyslave(ttycopy,ttyinit,stty_args)
 int ttycopy;
 int ttyinit;
 char *stty_args;
@@ -288,14 +288,14 @@ char *stty_args;
 	int slave;
 
 	if (0 > (slave = open(linet, O_RDWR))) {
-		expDiagLog("getptyslave:  open linet=%s errno=%d\n",linet,errno);
+		expDiagLog("exp_getptyslave:  open linet=%s errno=%d\n",linet,errno);
 		return(-1);
 	}
 
 	/* sanity check - if slave not 0, skip rest of this and return */
 	/* to what will later be detected as an error in caller */
 	if (0 != slave) {
-		expDiagLog("getptyslave:  slave fd not 0\n");
+		expDiagLog("exp_getptyslave:  slave fd not 0\n");
 		 return(slave);
 	}
 

@@ -1142,7 +1142,7 @@ struct exp_state_list *slPtr;
 
 /* return TRUE if this ecase is used by this fd */
 static int
-exp_i_uses_fd(exp_i,esPtr)
+exp_i_uses_state(exp_i,esPtr)
 struct exp_i *exp_i;
 ExpState *esPtr;
 {
@@ -1543,6 +1543,7 @@ ExpState *esPtr;
     }
 }
 
+#if OBSOLETE
 /* Strip parity */
 static void
 expParityStrip(obj,offsetBytes)
@@ -1566,6 +1567,7 @@ expParityStrip(obj,offsetBytes)
 	}
     }
 }
+#endif /*OBSOLETE*/
 
 /* Strip UTF-encoded nulls from object, beginning at offset */
 static void
@@ -1647,10 +1649,6 @@ int save_flags;
 #endif
 
     if (cc > 0) {
-	/* strip parity if requested */
-	if (esPtr->parity == 0) {
-	    expParityStrip(esPtr->buffer,size /* old size which is now offset */);
-	}
 	cc = expSizeGet(esPtr); /* generate true byte count */
     }
     return cc;	
@@ -1685,6 +1683,7 @@ int timeout;
 int key;
 {
     ExpState *esPtr;
+
     int size;
     int cc;
     int write_count;
@@ -1693,12 +1692,13 @@ int key;
 
     if (esPtrs == 0) {
 	/* we already know the ExpState, just find out what happened */
-	cc = exp_get_next_event_info(interp,esPtr,esPtrsMax);
+	cc = exp_get_next_event_info(interp,*esPtrOut,esPtrsMax);
 	tcl_set_flags = TCL_GLOBAL_ONLY;
     } else {
-	cc = exp_get_next_event(interp,esPtrs,esPtrsMax,&esPtr,timeout,key);
+	cc = exp_get_next_event(interp,esPtrs,esPtrsMax,esPtrOut,timeout,key);
 	tcl_set_flags = 0;
     }
+    esPtr = *esPtrOut;
 
     if (cc == EXP_DATA_NEW) {
 	/* try to read it */
@@ -2230,10 +2230,9 @@ expMatchProcess(interp, eo, cc, bg, detail)
 
     if (body) {
 	if (!bg) {
-/*SCOTT - is DIRECT correct? */
-	    result = Tcl_EvalObjEx(interp,body,TCL_EVAL_DIRECT);
+	    result = Tcl_EvalObjEx(interp,body,0);
 	} else {
-	    result = Tcl_EvalObjEx(interp,body,TCL_EVAL_DIRECT|TCL_EVAL_GLOBAL);
+	    result = Tcl_EvalObjEx(interp,body,TCL_EVAL_GLOBAL);
 	    if (result != TCL_OK) Tcl_BackgroundError(interp);
 	}
 	if (cc == EXP_EOF) Tcl_DecrRefCount(body);
@@ -2356,7 +2355,7 @@ do_more_data:
 
 /*ARGSUSED*/
 int
-Exp_ExpectCmd(clientData, interp, objc, objv)
+Exp_ExpectObjCmd(clientData, interp, objc, objv)
 ClientData clientData;
 Tcl_Interp *interp;
 int objc;
@@ -2531,7 +2530,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 	/* or above, because it would then be executed several times */
 	if (cc == EXP_EOF) {
 	    eo.esPtr = esPtr;
-	    eo.match = expGetSize(eo.esPtr);
+	    eo.match = expSizeGet(eo.esPtr);
 	    eo.buffer = eo.esPtr->buffer;
 	    expDiagLogU("expect: read eof\r\n");
 	    break;
@@ -2970,11 +2969,11 @@ expExpectVarsInit()
 
 static struct exp_cmd_data
 cmd_data[]  = {
-{"expect",	exp_proc(Exp_ExpectCmd),	(ClientData)0,	0},
+{"expect",	Exp_ExpectObjCmd,	0,	(ClientData)0,	0},
 {"expect_after",exp_proc(Exp_ExpectGlobalCmd),(ClientData)&exp_cmds[EXP_CMD_AFTER],0},
 {"expect_before",exp_proc(Exp_ExpectGlobalCmd),(ClientData)&exp_cmds[EXP_CMD_BEFORE],0},
-{"expect_user",	exp_proc(Exp_ExpectCmd),	(ClientData)&StdinoutPlaceholder,0},
-{"expect_tty",	exp_proc(Exp_ExpectCmd),	(ClientData)&DevttyPlaceholder,0},
+{"expect_user",	Exp_ExpectObjCmd,	0,	(ClientData)&StdinoutPlaceholder,0},
+{"expect_tty",	Exp_ExpectObjCmd,	0,	(ClientData)&DevttyPlaceholder,0},
 {"expect_background",exp_proc(Exp_ExpectGlobalCmd),(ClientData)&exp_cmds[EXP_CMD_BG],0},
 {"match_max",	exp_proc(Exp_MatchMaxCmd),	0,	0},
 {"remove_nulls",exp_proc(Exp_RemoveNullsCmd),	0,	0},

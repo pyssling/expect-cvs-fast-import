@@ -5,6 +5,7 @@
 #define __EXPECT_CF_H__
 
 #undef NO_STDLIB_H		/* Tcl requires this name */
+#undef NO_UNION_WAIT
 #undef HAVE_STDARG_H
 #undef HAVE_VARARGS_H
 #undef HAVE_STROPTS_H

@@ -78,7 +78,7 @@ would appreciate credit if this program or parts of it are used.
  * See the file "license.terms" for information on usage and redistribution
  * of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  *
- * RCS: @(#) $Id$
+ * RCS: @(#) $Id: exp_clib.c,v 5.28.1.1.2.3 1999/06/15 22:52:55 don Exp $
  */
 
 #ifndef _STDLIB
@@ -130,7 +130,7 @@ extern unsigned long	strtoul _ANSI_ARGS_((CONST char *string,
  * See the file "license.terms" for information on usage and redistribution
  * of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  *
- * RCS: @(#) $Id$
+ * RCS: @(#) $Id: exp_clib.c,v 5.28.1.1.2.3 1999/06/15 22:52:55 don Exp $
  */
 
 #ifndef _TCL
@@ -1260,7 +1260,7 @@ EXTERN int		Tcl_AppInit _ANSI_ARGS_((Tcl_Interp *interp));
  * Caveat:  this is V8 regexp(3) [actually, a reimplementation thereof],
  * not the System V one.
  *
- * RCS: @(#) $Id$
+ * RCS: @(#) $Id: exp_clib.c,v 5.28.1.1.2.3 1999/06/15 22:52:55 don Exp $
  */
 
 #ifndef _REGEXP
@@ -1351,7 +1351,7 @@ EXTERN char *TclGetRegError _ANSI_ARGS_((void));
  * *** 2. This in addition to changes to TclRegError makes the   ***
  * ***    code multi-thread safe.                                ***
  *
- * RCS: @(#) $Id$
+ * RCS: @(#) $Id: exp_clib.c,v 5.28.1.1.2.3 1999/06/15 22:52:55 don Exp $
  */
 
 #if ACK
@@ -2693,8 +2693,8 @@ int exp_loguser = TRUE;		/* if TRUE, user sees interactions on stdout */
 
 
 char *exp_printify();
-int getptymaster();
-int getptyslave();
+int exp_getptymaster();
+int exp_getptyslave();
 int Exp_StringMatch();
 
 #define sysreturn(x)	return(errno = x, -1)

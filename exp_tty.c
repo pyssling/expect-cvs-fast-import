@@ -310,32 +310,33 @@ int devtty;		/* if true, redirect to /dev/tty */
 	int i;
 	int rc;
 
-	/* insert "system" at front, null at end, */
-	/* and optional redirect in middle, hence "+3" */
-	new_argv = (char **)ckalloc((3+argc)*sizeof(char *));
-	new_argv[0] = exec_cmd;
-	new_argv[1] = stty_cmd;
-	for (i=1;i<argc;i++) {
-		new_argv[i+1] = argv[i];
-	}
-	if (devtty) new_argv[++i] =
-#ifdef STTY_READS_STDOUT
-		">/dev/tty";
-#else
-		"</dev/tty";
-#endif
+	Tcl_Obj *cmdObj = Tcl_NewStringObj("",0);
+	Tcl_IncrRefCount(cmdObj);
 
-	new_argv[i+1] = (char *)0;
+	Tcl_AppendStringsToObj(cmdObj,"exec /bin/stty",(char *)0);
+	for (i=1;i<argc;i++) {
+	    Tcl_AppendStringsToObj(cmdObj," ",argv[i],(char *)0);
+	}
+	if (devtty) Tcl_AppendStringsToObj(cmdObj,
+#ifdef STTY_READS_STDOUT
+		" >/dev/tty",
+#else
+		" </dev/tty",
+#endif
+		(char *)0);
 
 	Tcl_ResetResult(interp);
 
-	/* normally, I wouldn't set one of Tcl's own variables, but in this */
-	/* case, I only only want to see if Tcl resets it to non-NONE, */
-	/* and I don't know any other way of doing it */
-	Tcl_SetVar(interp,"errorCode","NONE",0);
-	rc = Tcl_ExecCmd((ClientData)0,interp,argc+1+devtty,new_argv);
+	/*
+	 * normally, I wouldn't set one of Tcl's own variables, but in this
+	 * case, I only want to see if Tcl resets it to non-NONE, and I don't
+	 * know any other way of doing it
+	 */
 
-	ckfree((char *)new_argv);
+	Tcl_SetVar(interp,"errorCode","NONE",0);
+	rc = Tcl_EvalObjEx(interp,cmdObj,TCL_EVAL_DIRECT);
+
+	Tcl_DecrRefCount(cmdObj);
 
 	/* if stty-reads-stdout, stty will fail since Exec */
 	/* will detect the stderr.  Only by examining errorCode */

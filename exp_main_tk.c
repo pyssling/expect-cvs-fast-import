@@ -415,7 +415,7 @@ optcmd_diagToStderr(dst,interp,key,argc,argv)
     int argc;
     char **argv;
 {
-    expDiagToStderr(1);
+    expDiagToStderrSet(1);
     return --argc;  /* what the heck is the convention here!! */
 }
 

@@ -273,7 +273,7 @@ int key;
 
 	    esPtr = tsdPtr->ready_esPtr;
 
-	    if (esPtr) continue;
+	    if (!esPtr) continue;
 
 	    /* if it was from something we're not looking for at */
 	    /* the moment, ignore it */

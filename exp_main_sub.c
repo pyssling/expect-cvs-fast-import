@@ -501,7 +501,7 @@ Tcl_Interp *interp;
 		exp_init_event();
 		exp_init_trap();
 		exp_init_unit_random();
-		exp_init_spawn_ids();
+		exp_init_spawn_ids(interp);
 		expChannelInit();
 		expDiagInit();
 		expLogInit();
@@ -605,7 +605,7 @@ char **argv;
 			    expErrorLogU("\r\n");
 			}
 			break;
-		case 'd': expDiagToStderr(TRUE);
+		case 'd': expDiagToStderrSet(TRUE);
 			expDiagLog("expect version %s\r\n",exp_version);
 			break;
 #ifdef TCL_DEBUGGER

@@ -6,10 +6,44 @@
  *
  */
 
-#include	"tclInt.h"	/* Internal definitions for Tcl. */
-#include	"tclPort.h"	/* Portability features for Tcl. */
+#include <sys/types.h>
+#include <stdio.h>
+#include <signal.h>
+#include <errno.h>
+#include <ctype.h>	/* for isspace */
+#include <time.h>	/* for time(3) */
 
-#include "expChan.h"
+#include "expect_cf.h"
+
+#ifdef HAVE_SYS_WAIT_H
+#include <sys/wait.h>
+#endif
+
+#ifdef HAVE_UNISTD_H
+# include <unistd.h>
+#endif
+
+#include	"tclInt.h"	/* Internal definitions for Tcl. */
+
+#include "tcl.h"
+
+#include "string.h"
+
+#include "exp_rename.h"
+#include "exp_prog.h"
+#include "exp_command.h"
+
+static int		ExpCloseProc _ANSI_ARGS_((ClientData instanceData,
+			    Tcl_Interp *interp));
+static int		ExpInputProc _ANSI_ARGS_((ClientData instanceData,
+		            char *buf, int toRead, int *errorCode));
+static int		ExpOutputProc _ANSI_ARGS_((
+			    ClientData instanceData, char *buf, int toWrite,
+                            int *errorCode));
+static void		ExpWatchProc _ANSI_ARGS_((ClientData instanceData,
+		            int mask));
+static int		ExpGetHandleProc _ANSI_ARGS_((ClientData instanceData,
+		            int direction, ClientData *handlePtr));
 
 /*
  * This structure describes the channel type structure for Expect-based IO:
@@ -87,6 +121,13 @@ ExpInputProc(instanceData, buf, toRead, errorCodePtr)
 
     bytesRead = read(esPtr->fdin, buf, (size_t) toRead);
     if (bytesRead > -1) {
+	/* strip parity if requested */
+	if (esPtr->parity == 0) {
+	    char *end = buf+bytesRead;
+	    for (;buf < end;buf++) {
+		*buf &= 0x7f;
+	    }
+	}
         return bytesRead;
     }
     *errorCodePtr = errno;
@@ -239,7 +280,7 @@ ExpWatchProc(instanceData, mask)
     mask &= esPtr->validMask;
     if (mask) {
 	Tcl_CreateFileHandler(esPtr->fdin, mask,
-		(Tcl_ExpProc *) Tcl_NotifyChannel,
+		(Tcl_FileProc *) Tcl_NotifyChannel,
 		(ClientData) esPtr->channel);
     } else {
 	Tcl_DeleteFileHandler(esPtr->fdin);
@@ -284,6 +325,13 @@ ExpGetHandleProc(instanceData, direction, handlePtr)
 }
 
 int
+expChannelCountGet()
+{
+    ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
+    return tsdPtr->channelCount;
+}
+
+int
 expSizeGet(esPtr)
     ExpState *esPtr;
 {
@@ -323,12 +371,13 @@ exp_close_all(interp)
 Tcl_Interp *interp;
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
+    ExpState *esPtr;
 
     /* no need to keep things in sync (i.e., tsdPtr, count) since we could only
        be doing this if we're exiting.  Just close everything down. */
 
     for (esPtr = tsdPtr->firstExpPtr;esPtr;esPtr = esPtr->nextPtr) {
-	exp_close(interp,esPtr->channel);
+	exp_close(interp,esPtr);
     }
 }
 
@@ -338,7 +387,9 @@ Tcl_Interp *interp;
 /* this is the best way to do it. */
 /* returns the ExpState or 0 if nothing to wait on */
 ExpState *
-expWaitOnAny(interp) {
+expWaitOnAny(interp)
+    Tcl_Interp *interp;
+{
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
     int result;
     ExpState *esPtr;
@@ -394,10 +445,11 @@ exp_background_channelhandlers_run_all()
 }
 
 ExpState *
-expCreateChannel(fdin,fdout,pid)
+expCreateChannel(interp,fdin,fdout,pid)
+    Tcl_Interp *interp;
     int fdin;
     int fdout;
-    int pid:
+    int pid;
 {
     ExpState *esPtr;
     char channelName[16 + TCL_INTEGER_SPACE];
@@ -409,8 +461,8 @@ expCreateChannel(fdin,fdout,pid)
 
     esPtr = (ExpState *) ckalloc((unsigned) sizeof(ExpState));
 
-    esPtr->nextPtr = tsdPtr->firstFilePtr;
-    tsdPtr->firstFilePtr = esPtr;
+    esPtr->nextPtr = tsdPtr->firstExpPtr;
+    tsdPtr->firstExpPtr = esPtr;
 
     sprintf(esPtr->name,"exp%d",fdin);
 

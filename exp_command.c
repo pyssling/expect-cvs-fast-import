@@ -31,17 +31,6 @@ would appreciate credit if this program or parts of it are used.
 #include <sys/file.h>
 #include "exp_tty.h"
 
-#ifdef HAVE_SYS_WAIT_H
-  /* ISC doesn't def WNOHANG unless _POSIX_SOURCE is def'ed */
-# ifdef WNOHANG_REQUIRES_POSIX_SOURCE
-#  define _POSIX_SOURCE
-# endif
-# include <sys/wait.h>
-# ifdef WNOHANG_REQUIRES_POSIX_SOURCE
-#  undef _POSIX_SOURCE
-# endif
-#endif
-
 #include <errno.h>
 #include <signal.h>
 
@@ -98,8 +87,8 @@ would appreciate credit if this program or parts of it are used.
 
 #define SPAWN_ID_VARNAME "spawn_id"
 
-int getptymaster();
-int getptyslave();
+int exp_getptymaster();
+int exp_getptyslave();
 
 int exp_forked = FALSE;		/* whether we are child process */
 
@@ -221,7 +210,6 @@ expStateFromChannelName(interp,name,open,adjust,any,msg)
     esPtr = Tcl_GetChannelInstanceData(channel);
     if (!channel) return(0);
 
-    /* following is a little tricky */
     if ((!open) || esPtr->open) {   /* if open == 1, then check if actually
 				       open */
 	if (adjust) expAdjust(esPtr);
@@ -239,9 +227,7 @@ expStateCheck(interp,esPtr,open,adjust,msg)
     int adjust;
     char *msg;
 {
-    /* following is a little tricky, do not be tempted do the */
-    /* 'usual' boolean simplification */
-    if ((!open) || !esPtr->open) {
+    if ((!open) || esPtr->open) {
 	if (adjust) expAdjust(esPtr);
 	return esPtr;
     }
@@ -437,7 +423,8 @@ Tcl_Interp *interp;
 }
 
 void
-exp_init_spawn_ids()
+exp_init_spawn_ids(interp)
+    Tcl_Interp *interp;
 {
     static ExpState any_placeholder;  /* can be shared process-wide */
     
@@ -450,14 +437,14 @@ exp_init_spawn_ids()
 
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
 
-    tsdPtr->stdinout = expCreateChannel(0,1,isatty(0)?exp_getpid:EXP_NOPID);
+    tsdPtr->stdinout = expCreateChannel(interp,0,1,isatty(0)?exp_getpid:EXP_NOPID);
     tsdPtr->stdinout->keepForever = 1;
     /* hmm, now here's an example of a output-only descriptor!! */
-    tsdPtr->stderrX = expCreateChannel(2,2,isatty(2)?exp_getpid:EXP_NOPID);
+    tsdPtr->stderrX = expCreateChannel(interp,2,2,isatty(2)?exp_getpid:EXP_NOPID);
     tsdPtr->stderrX->keepForever = 1;
 
     if (exp_dev_tty != -1) {
-	tsdPtr->devtty = expCreateChannel(exp_dev_tty,exp_dev_tty,exp_getpid);
+	tsdPtr->devtty = expCreateChannel(interp,exp_dev_tty,exp_dev_tty,exp_getpid);
 	tsdPtr->devtty->keepForever = 1;
     }
 
@@ -721,7 +708,7 @@ when trapping, see below in child half of fork */
 	    expStdoutLogU("\r\n",0);
 	}
 
-	if (0 > (master = getptymaster())) {
+	if (0 > (master = exp_getptymaster())) {
 	    /*
 	     * failed to allocate pty, try and figure out why
 	     * so we can suggest to user what to do about it.
@@ -809,7 +796,7 @@ when trapping, see below in child half of fork */
 	
     if (openarg || pty_only) {
 	ExpState *esPtr;
-	esPtr = expCreateChannel(master,write_master,EXP_NOPID);
+	esPtr = expCreateChannel(interp,master,write_master,EXP_NOPID);
 	    
 	if (openarg) {
 	    esPtr->channel_orig = esPtr->channel;
@@ -833,7 +820,7 @@ when trapping, see below in child half of fork */
 	     * the -pty flag.
 	     */
 
-	    if (0 > (esPtr->fd_slave = getptyslave(ttycopy,ttyinit,
+	    if (0 > (esPtr->fd_slave = exp_getptyslave(ttycopy,ttyinit,
 		    stty_init))) {
 		exp_error(interp,"open(slave pty): %s\r\n",Tcl_PosixError(interp));
 		return TCL_ERROR;
@@ -886,7 +873,7 @@ when trapping, see below in child half of fork */
 	    close(sync2_fds[0]);
 	    close(status_pipe[1]);
 
-	    esPtr = expCreateChannel(master,master,pid);
+	    esPtr = expCreateChannel(interp,master,master,pid);
 	    
 	    if (exp_pty_slave_name) set_slave_name(esPtr,exp_pty_slave_name);
 
@@ -1033,10 +1020,10 @@ parent_error:
 
 	/* since we closed fd 0, open of pty slave must return fd 0 */
 
-	/* since getptyslave may have to run stty, (some of which work on fd */
-	/* 0 and some of which work on 1) do the dup's inside getptyslave. */
+	/* since exp_getptyslave may have to run stty, (some of which work on fd */
+	/* 0 and some of which work on 1) do the dup's inside exp_getptyslave. */
 
-	if (0 > (slave = getptyslave(ttycopy,ttyinit,stty_init))) {
+	if (0 > (slave = exp_getptyslave(ttycopy,ttyinit,stty_init))) {
 		restore_error_fd
 
 		if (exp_pty_error) {
@@ -1049,7 +1036,7 @@ parent_error:
 	/* sanity check */
 	if (slave != 0) {
 		restore_error_fd
-		expErrorLog("getptyslave: slave = %d but expected 0\n",slave);
+		expErrorLog("exp_getptyslave: slave = %d but expected 0\n",slave);
 		exit(-1);
 	}
 
@@ -1570,7 +1557,7 @@ Tcl_VarTraceProc *updateproc;	/* proc to invoke if indirect is written */
 {
 	if (i->next) exp_free_i(interp,i->next,updateproc);
 
-	exp_free_fd(i->state_list);
+	exp_free_state(i->state_list);
 
 	if (i->direct == EXP_INDIRECT) {
 		Tcl_UntraceVar(interp,i->variable,
@@ -1704,7 +1691,7 @@ struct exp_i *i;
 		i->value = ckalloc(strlen(p)+1);
 		strcpy(i->value,p);
 
-		exp_free_fd(i->state_list);
+		exp_free_state(i->state_list);
 		i->state_list = 0;
 	} else {
 		/* no free, because this should only be called on */
@@ -1993,10 +1980,10 @@ Exp_LogFileCmd(clientData, interp, argc, argv)
 	    if (expLogChannelGet()) {
 		if (expLogAllGet()) strcat(resultbuf,"-a ");
 		if (!expLogAppendGet()) strcat(resultbuf,"-noappend ");
-		if (expLogFilename()) {
+		if (expLogFilenameGet()) {
 		    strcat(resultbuf,expLogFilenameGet());
 		} else {
-		    if (expLogLeaveOpen()) {
+		    if (expLogLeaveOpenGet()) {
 			strcat(resultbuf,"-leaveopen ");
 		    }
 		    strcat(resultbuf,Tcl_GetChannelName(expLogChannelGet()));
@@ -2043,7 +2030,7 @@ Exp_LogFileCmd(clientData, interp, argc, argv)
 	    return TCL_ERROR;
 	}
     } else {
-	expLogCloseChannel();
+	expLogChannelClose(interp);
 	if (logAll) {
 	    exp_error(interp,"cannot use -a without a file or channel");
 	    return TCL_ERROR;
@@ -2328,7 +2315,7 @@ char *argv[];
 
 	/* come out on stderr, by using expErrorLog */
 	expErrorLog("%2d",level);
-	for (i = 0;i<level;i++) exp_nferrorlog("  ",0/*ignored - satisfy lint*/);
+	for (i = 0;i<level;i++) expErrorLogU("  ");
 	expErrorLogU(command);
 	expErrorLogU("\r\n");
 }
@@ -2739,14 +2726,14 @@ char **argv;
 	exp_close(interp,tsdPtr->stdinout);
 	open("/dev/null",0);
 	open("/dev/null",1);
-	tsdPtr->stdinout = expCreateChannel(0,1,EXP_NOPID);
+	tsdPtr->stdinout = expCreateChannel(interp,0,1,EXP_NOPID);
 	tsdPtr->stdinout->keepForever = 1;
 	}
     if (isatty(2)) {
 	/* reopen stderr saves error checking in error/log routines. */
 	exp_close(interp,expDevttyGet());
 	open("/dev/null",1);
-	tsdPtr->devtty = expCreateChannel(2,2,EXP_NOPID);
+	tsdPtr->devtty = expCreateChannel(interp,2,2,EXP_NOPID);
 	tsdPtr->devtty->keepForever = 1;
     }
 

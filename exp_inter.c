@@ -43,7 +43,6 @@ would appreciate credit if this program or parts of it are used.
 #include "exp_prog.h"
 #include "exp_command.h"
 #include "exp_log.h"
-#include "exp_tstamp.h"	/* remove when timestamp stuff is gone */
 
 #if OBSOLETE
 #include "tclRegexp.h"
@@ -93,7 +92,6 @@ struct action {
 	int tty_reset;		/* if true, reset tty mode upon action */
 	int iread;		/* if true, reread indirects */
 	int iwrite;		/* if true, write spawn_id element */
-	int timestamp;		/* if true, generate timestamp */
 	struct action *next;	/* chain only for later for freeing */
 };
 
@@ -393,6 +391,67 @@ expEcho(esPtr,km,skipBytes,matchBytes)
     esPtr->echoed = matchBytes + skipBytes - esPtr->printed;
 }
 
+/*
+ * intRead() does the logical equivalent of a read() for the interact command.
+ * Returns # of bytes read or negative number (EXP_XXX) indicating unusual event.
+ */
+static int
+intRead(interp,esPtr,warnOnBufferFull,interruptible,key)
+    Tcl_Interp *interp;
+    ExpState *esPtr;
+    int warnOnBufferFull;
+    int interruptible;
+    int key;
+{
+    char *eobOld;  /* old end of buffer */
+    int cc;
+    int size = expSizeGet(esPtr);
+    char *str;
+
+    str = Tcl_GetStringFromObj(esPtr->buffer,&size);
+    eobOld = str+size;
+
+    if (size + TCL_UTF_MAX >= esPtr->msize) {
+	/*
+	 * In theory, interact could be invoked when this situation
+	 * already exists, hence the "probably" in the warning below
+	 */
+	if (warnOnBufferFull) {
+	    expDiagLogU("WARNING: interact buffer is full, probably because your\r\n");
+	    expDiagLogU("patterns have matched all of it but require more chars\r\n");
+	    expDiagLogU("in order to complete the match.\r\n");
+	    expDiagLogU("Dumping first half of buffer in order to continue\r\n");
+	    expDiagLogU("Recommend you enlarge the buffer or fix your patterns.\r\n");
+	}
+	exp_buffer_shuffle(interp,esPtr,0,INTER_OUT,"interact");
+    }
+    if (!interruptible) {
+	cc = Tcl_ReadChars(esPtr->channel,
+		esPtr->buffer,
+		esPtr->msize - (size / TCL_UTF_MAX),
+		1 /* append */);
+    } else {
+#ifdef SIMPLE_EVENT
+	cc = intIRead(esPtr->channel,
+		esPtr->buffer,
+		esPtr->msize - (size / TCL_UTF_MAX),
+		1 /* append */);
+#endif
+    }
+
+    if (cc > 0) {
+	expDiagLog("spawn id %s sent <",esPtr->name);
+	expDiagLogU(expPrintify(eobOld));
+	expDiagLogU(">\r\n");
+
+	esPtr->key = key;
+	cc = expSizeGet(esPtr);  /* generate true byte count */
+    }
+    return cc;
+}
+
+
+
 #ifdef SIMPLE_EVENT
 
 /*
@@ -465,67 +524,6 @@ int flags;
     }
     reading = FALSE;
     return(cc);
-}
-
-/*
- * intRead() does the logical equivalent of a read() for the interact command.
- * Returns # of bytes read or negative number (EXP_XXX) indicating unusual event.
- */
-static int
-intRead(esPtr,warnOnBufferFull,interruptible)
-    ExpState *esPtr;
-    int warnOnBufferFull;
-    int interruptible;
-{
-    char *eobOld;  /* old end of buffer */
-    int cc;
-    int size = expSizeGet(esPtr);
-    char *str;
-
-    str = Tcl_GetString(esPtr->buffer,&size);
-    eobOld = str+size;
-
-    if (size + TCL_UTF_MAX >= esPtr->msize) {
-	/*
-	 * In theory, interact could be invoked when this situation
-	 * already exists, hence the "probably" in the warning below
-	 */
-	if (warnOnBufferFull) {
-	    expDiagLogU("WARNING: interact buffer is full, probably because your\r\n");
-	    expDiagLogU("patterns have matched all of it but require more chars\r\n");
-	    expDiagLogU("in order to complete the match.\r\n");
-	    expDiagLogU("Dumping first half of buffer in order to continue\r\n");
-	    expDiagLogU("Recommend you enlarge the buffer or fix your patterns.\r\n");
-	}
-	exp_buffer_shuffle(interp,u,0,INTER_OUT,"interact");
-    }
-    if (!interruptible) {
-	cc = Tcl_ReadChars(esPtr->channel,
-		esPtr->buffer,
-		esPtr->msize - (size / TCL_UTF_MAX),
-		1 /* append */);
-    } else {
-#ifdef SIMPLE_EVENT
-	cc = intIRead(esPtr->channel,
-		esPtr->buffer,
-		esPtr->msize - (size / TCL_UTF_MAX),
-		1 /* append */);
-#endif
-    }
-
-    if (cc > 0) {
-	/* strip parity if requested */
-	if (esPtr->parity == 0) {
-	    expParityStrip(esPtr->buffer,size /* old size which is now offset */);
-	}
-	expDiagLog("spawn id %s send <",u->name);
-	expDiagLogU(expPrintify(eobOld));
-	expDiagLogU(">\r\n");
-
-	u->key = key;
-	cc = expSizeGet(esPtr);  /* generate true byte count */
-    }
-    return cc;
 }
 
 /* exit status for the child process created by cmdInteract */
@@ -657,7 +655,7 @@ static char interpreter_cmd[] = "interpreter";
 
 /*ARGSUSED*/
 int
-Exp_InteractCmd(clientData, interp, objc, objv)
+Exp_InteractObjCmd(clientData, interp, objc, objv)
 ClientData clientData;
 Tcl_Interp *interp;
 int objc;
@@ -691,7 +689,6 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
     int next_writethru = FALSE;/*if macros should also go to proc output */
     int next_indices = FALSE;/* if we should write indices */
     int next_echo = FALSE;	/* if macros should be echoed */
-    int next_timestamp = FALSE; /* if we should generate a timestamp */
     int status = TCL_OK;	/* final return value */
     int i;			/* misc temp */
     int size;			/* size temp */
@@ -771,7 +768,6 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
     action_eof.tty_reset = FALSE;
     action_eof.iread = FALSE;
     action_eof.iwrite = FALSE;
-    action_eof.timestamp = FALSE;
 
     /*
      * Parse the command arguments.
@@ -785,7 +781,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 		"-output",	"-u",		"-o",		"-i",
 		"-echo",	"-nobuffer",	"-indices",	"-f",
 		"-reset",	"-F",		"-iread",	"-iwrite",
-		"-eof",		"-timeout",	"-timestamp",	"-nobrace"
+		"-eof",		"-timeout",	"-nobrace"
 	    };
 	    enum switches {
 		EXP_SWITCH_DASH,	EXP_SWITCH_EXACT,
@@ -797,7 +793,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 		EXP_SWITCH_RESET,	EXP_SWITCH_CAPFAST,
 		EXP_SWITCH_IREAD,	EXP_SWITCH_IWRITE,
 		EXP_SWITCH_EOF,		EXP_SWITCH_TIMEOUT,
-		EXP_SWITCH_TIMESTAMP,	EXP_SWITCH_NOBRACE
+		EXP_SWITCH_NOBRACE
 	    };
 	    int index;
 
@@ -958,8 +954,6 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 		    next_iwrite = FALSE;
 		    action->iread = next_iread;
 		    next_iread = FALSE;
-		    action->timestamp = next_timestamp;
-		    next_timestamp = FALSE;
 		    break;
 		}
 		case EXP_SWITCH_TIMEOUT: {
@@ -993,14 +987,8 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 		    next_iwrite = FALSE;
 		    action->iread = next_iread;
 		    next_iread = FALSE;
-		    action->timestamp = next_timestamp;
-		    next_timestamp = FALSE;
 		    break;
 		}
-		case EXP_SWITCH_TIMESTAMP:
-		    expDiagLogU("-timestamp is deprecated, use exp_timestamp command\r\n");
-		    next_timestamp = TRUE;
-		    break;
 		case EXP_SWITCH_FAST:
 		case EXP_SWITCH_CAPFAST:
 		    /* noop compatibility switches for fast mode */
@@ -1046,8 +1034,6 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 		    next_iwrite = FALSE;
 		    action->iread = next_iread;
 		    next_iread = FALSE;
-		    action->timestamp = next_timestamp;
-		    next_timestamp = FALSE;
 		    break;
 		}
 		case EXP_OPTION_TIMEOUT: {
@@ -1080,8 +1066,6 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 		    next_iwrite = FALSE;
 		    action->iread = next_iread;
 		    next_iread = FALSE;
-		    action->timestamp = next_timestamp;
-		    next_timestamp = FALSE;
 		    break;
 		}
 		case EXP_OPTION_NULL:
@@ -1110,7 +1094,6 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 	km->action.tty_reset = next_tty_reset;
 	km->action.iwrite = next_iwrite;
 	km->action.iread = next_iread;
-	km->action.timestamp = next_timestamp;
 
 	next_indices = next_echo = next_writethru = FALSE;
 	next_tty_reset = FALSE;
@@ -1340,7 +1323,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 
 	switch (rc) {
 	    case EXP_DATA_NEW:
-		cc = intRead(esPtr,1,0);
+		cc = intRead(u,esPtr,1,0,key);
 		if (cc > 0) break;
 
 		rc = EXP_EOF;
@@ -1655,7 +1638,7 @@ got_action:
 
 		switch (rc) {
 		case EXP_DATA_NEW:
-		    cc = intRead(esPtr,0,0);
+		    cc = intRead(u,esPtr,0,0,key);
 		    if (cc > 0) break;
 		    /*
 		     * FALLTHRU
@@ -1913,7 +1896,7 @@ got_action:
 
 		switch (rc) {
 		case EXP_DATA_NEW:
-		        cc = intRead(esPtr,0,1);
+		        cc = intRead(u,esPtr,0,1,key);
 		        if (cc > 0) {
 				break;
 			} else if (cc == EXP_CHILD_EOF) {
@@ -2155,14 +2138,6 @@ ExpState *esPtr;
 {
     int status;
 
-    /* deprecated */
-    if (action->timestamp) {
-	time_t current_time;
-	time(&current_time);
-	exp_timestamp(interp,&current_time,INTER_OUT);
-    }
-    /* deprecated */
-
     if (action->iwrite) {
 	out("spawn_id",esPtr->name);
     }
@@ -2241,7 +2216,7 @@ struct output *o;
 
 
 static struct exp_cmd_data cmd_data[]  = {
-{"interact",	exp_proc(Exp_InteractCmd),	0,	0},
+{"interact",	Exp_InteractObjCmd,	0,	0,	0},
 {0}};
 
 void

@@ -34,7 +34,7 @@ would appreciate credit if this program or parts of it are used.
 #include <signal.h>
 #include <setjmp.h>
 #include <sys/file.h>
-#define EXP_AVOID_INCLUDING_TCL_H 1
+#include "tcl.h"
 #include "expect_comm.h"
 #include "exp_rename.h"
 #include "exp_pty.h"
