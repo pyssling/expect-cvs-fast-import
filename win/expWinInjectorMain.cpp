@@ -23,7 +23,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinInjectorMain.cpp,v 1.1.2.3 2002/06/19 06:42:45 davygrvy Exp $
+ * RCS: @(#) $Id: expWinInjectorMain.cpp,v 1.1.2.4 2002/06/20 05:39:45 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -61,11 +61,16 @@ private:
 	if (err != NO_ERROR) {
 	    // Bad!
 	    delete ConsoleDebuggerIPC;
-	    return 666;
+	    OutputDebugString("Expect's injector DLL could not start IPC.\n");
+	    return 0x666;
 	}
 
-	// forever loop receiving.
+	OutputDebugString("Expect's injector DLL loaded into the slave process correctly.\n");
+
+	// forever loop receiving INPUT_RECORDs over IPC.
 	while (ConsoleDebuggerIPC->GetAlertable(&ir, interrupt)) {
+	    // Stuff it into our slave console as if it had been entered
+	    // by the user.
 	    WriteConsoleInput(console, &ir, 1, &dwWritten);
 	}
 
@@ -74,9 +79,10 @@ private:
     }
 };
 
-CMclEvent interrupt;
+CMclEvent *interrupt;
 CMclThread *injectorThread;
 Injector *inject;
+HANDLE console;
 
 // It is documented that it "isn't a good idea to spawn threads from a DllMain".
 // Pooie on you; this is what we will do.
@@ -84,22 +90,20 @@ Injector *inject;
 BOOL WINAPI
 DllMain (HINSTANCE hInst, ULONG ulReason, LPVOID lpReserved)
 {
-    HANDLE console;
 
     switch (ulReason) {
     case DLL_PROCESS_ATTACH:
 	DisableThreadLibraryCalls(hInst);
-
 	console = CreateFile("CONIN$", GENERIC_WRITE,
 		FILE_SHARE_WRITE, 0L, OPEN_EXISTING, 0, 0L);
-
-	inject = new Injector(console, &interrupt);
+	interrupt = new CMclEvent();
+	inject = new Injector(console, interrupt);
 	injectorThread = new CMclThread(inject);
 	break;
-
     case DLL_PROCESS_DETACH:
-	interrupt.Set();
+	interrupt->Set();
 	injectorThread->Wait(INFINITE);
+	delete interrupt;
 	delete inject;
 	delete injectorThread;
 	break;
