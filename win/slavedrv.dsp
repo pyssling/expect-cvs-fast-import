@@ -42,9 +42,9 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /c
-# ADD CPP /nologo /MD /W3 /GX /O2 /I "." /I "..\generic" /I "d:\tcl_workspace\tcl_head\generic" /I "d:\tcl_workspace\tcl_head\win" /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D _WIN32_WINNT=0x0400 /D "USE_TCL_STUBS" /YX /FD /c
+# ADD CPP /nologo /MD /W3 /GX /O2 /I "." /I "..\generic" /I "d:\tcl_workspace\tcl_head\generic" /I "d:\tcl_workspace\tcl_head\win" /I "$(IntDir)" /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "USE_TCL_STUBS" /D "BUILD_slavedriver" /YX /FD /c
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
-# ADD RSC /l 0x409 /d "NDEBUG"
+# ADD RSC /l 0x409 /i "..\generic" /i "d:\tcl_workspace\tcl_head\generic" /i "$(IntDir)" /d "NDEBUG"
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
@@ -66,9 +66,9 @@ LINK32=link.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /GZ /c
-# ADD CPP /nologo /G5 /MDd /W3 /Gm /GX /ZI /Od /I "." /I "..\generic" /I "d:\tcl_workspace\tcl_head\generic" /I "d:\tcl_workspace\tcl_head\win" /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "USE_TCL_STUBS" /D "BUILD_slavedriver" /YX /FD /GZ /c
+# ADD CPP /nologo /G5 /MDd /W3 /Gm /GX /ZI /Od /I "." /I "..\generic" /I "d:\tcl_workspace\tcl_head\generic" /I "d:\tcl_workspace\tcl_head\win" /I "$(IntDir)" /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "USE_TCL_STUBS" /D "BUILD_slavedriver" /YX /FD /GZ /c
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
-# ADD RSC /l 0x409 /i "..\generic" /i "d:\tcl_workspace\tcl_head\generic" /d "_DEBUG"
+# ADD RSC /l 0x409 /i "..\generic" /i "d:\tcl_workspace\tcl_head\generic" /i "$(IntDir)" /d "_DEBUG"
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
@@ -153,28 +153,12 @@ SOURCE=.\expWinProcess.c
 # Begin Source File
 
 SOURCE=.\expWinSlaveDbg.c
-
-!IF  "$(CFG)" == "slavedrv - Win32 Release"
-
-!ELSEIF  "$(CFG)" == "slavedrv - Win32 Debug"
-
 # PROP Exclude_From_Build 1
-
-!ENDIF 
-
 # End Source File
 # Begin Source File
 
 SOURCE=.\expWinSlaveDrv.c
-
-!IF  "$(CFG)" == "slavedrv - Win32 Release"
-
-!ELSEIF  "$(CFG)" == "slavedrv - Win32 Debug"
-
 # PROP Exclude_From_Build 1
-
-!ENDIF 
-
 # End Source File
 # Begin Source File
 
@@ -218,7 +202,7 @@ SOURCE=.\slavedrv.rc
 !ELSEIF  "$(CFG)" == "slavedrv - Win32 Debug"
 
 # ADD BASE RSC /l 0x409
-# ADD RSC /l 0x409 /i "$(INTDIR)"
+# ADD RSC /l 0x409
 
 !ENDIF 
 
@@ -229,6 +213,23 @@ SOURCE=.\slavedrvmc.mc
 
 !IF  "$(CFG)" == "slavedrv - Win32 Release"
 
+# Begin Custom Build - Compiling message catalog...
+IntDir=.\Release\slavedrv
+InputPath=.\slavedrvmc.mc
+
+BuildCmds= \
+	mc -w -h "$(IntDir)" -r "$(IntDir)" $(InputPath)
+
+"$(IntDir)\slavedrvmc.rc" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+   $(BuildCmds)
+
+"$(IntDir)\slavedrvmc.h" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+   $(BuildCmds)
+
+"$(IntDir)\MSG00409.bin" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+   $(BuildCmds)
+# End Custom Build
+
 !ELSEIF  "$(CFG)" == "slavedrv - Win32 Debug"
 
 # Begin Custom Build - Compiling message catalog...
@@ -238,10 +239,10 @@ InputPath=.\slavedrvmc.mc
 BuildCmds= \
 	mc -w -h "$(IntDir)" -r "$(IntDir)" $(InputPath)
 
-"$(IntDir)\spawndrvmc.rc" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+"$(IntDir)\slavedrvmc.rc" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
    $(BuildCmds)
 
-"$(IntDir)\spawndrvmc.h" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+"$(IntDir)\slavedrvmc.h" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
    $(BuildCmds)
 
 "$(IntDir)\MSG00409.bin" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
