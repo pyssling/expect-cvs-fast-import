@@ -1,3 +1,21 @@
+2002-03-15  davygrvy
+	* win/expWinConsoleDebugger.cpp:
+	* win/expWinConsoleDebugger.hpp:
+	* win/expWinConsoleDebuggerBreakPoints.cpp:
+	* win/expWinMessage.cpp:
+	* win/expWinMessage.hpp:
+	* win/expWinSlaveMain.cpp:
+	* win/expWinSlaveTrapDbg.cpp:
+	* win/expWinSpawnClient.hpp:
+	* win/expWinSpawnStdioClient.cpp:
+		final instalment.  tried to work on cleanup issues, but more
+		testing needed.  Fixed a big bug in ConsoleDebugger::
+		OnFillConsoleOutputCharacter() where the master console handle
+		was null.  I successfully logged into panix.com with Win2k's
+		telnet.exe and trapped it all!
+
+	-=[ TAGGED as 'win32-jump-point-1' ]=-
+
 2002-03-13  davygrvy
 	* win/expWinConsoleDebugger.cpp:
 	* win/expWinConsoleDebugger.hpp:
