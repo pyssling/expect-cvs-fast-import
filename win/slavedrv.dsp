@@ -66,7 +66,7 @@ LINK32=link.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /GZ /c
-# ADD CPP /nologo /G5 /MDd /W3 /Gm /GX /ZI /Od /I "." /I "..\generic" /I "d:\tcl_workspace\tcl_head\generic" /I "d:\tcl_workspace\tcl_head\win" /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "USE_TCL_STUBS" /D "BUILD_spawndriver" /YX /FD /GZ /c
+# ADD CPP /nologo /G5 /MDd /W3 /Gm /GX /ZI /Od /I "." /I "..\generic" /I "d:\tcl_workspace\tcl_head\generic" /I "d:\tcl_workspace\tcl_head\win" /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "USE_TCL_STUBS" /D "BUILD_slavedriver" /YX /FD /GZ /c
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
 # ADD RSC /l 0x409 /d "_DEBUG"
 BSC32=bscmake.exe
@@ -82,6 +82,18 @@ LINK32=link.exe
 
 # Name "slavedrv - Win32 Release"
 # Name "slavedrv - Win32 Debug"
+# Begin Group "winheaders"
+
+# PROP Default_Filter "h"
+# Begin Source File
+
+SOURCE=.\expWinInt.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\expWinSlave.hpp
+# End Source File
+# End Group
 # Begin Source File
 
 SOURCE=.\expWinDynloadTclStubs.c
@@ -89,10 +101,6 @@ SOURCE=.\expWinDynloadTclStubs.c
 # Begin Source File
 
 SOURCE=.\expWinInit.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\expWinInt.h
 # End Source File
 # Begin Source File
 
@@ -113,6 +121,14 @@ SOURCE=.\expWinSlaveDrv.c
 # Begin Source File
 
 SOURCE=.\expWinSlaveKey.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\expWinSlaveMain.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\expWinSpawnMailboxCli.cpp
 # End Source File
 # Begin Source File
 
