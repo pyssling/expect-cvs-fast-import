@@ -74,6 +74,7 @@ typedef struct {
     VOID (WINAPI *outputDebugStringProc)(LPCTSTR);
     DWORD (WINAPI *getModuleFileNameProc)(HMODULE, LPTSTR, DWORD);
     BOOL (WINAPI *setEnvironmentVariableProc)(LPCTSTR, LPCTSTR);
+    BOOL (WINAPI *getEnvironmentVariableProc)(LPCTSTR, LPTSTR, DWORD);
 } ExpWinProcs;
 
 extern ExpWinProcs *expWinProcs;
