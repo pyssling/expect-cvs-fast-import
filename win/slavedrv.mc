@@ -3,13 +3,27 @@
 ; *
 ; *	This file contains the message catalog for use with Win32 error
 ; *	reporting through ReportEvent() and FormatMessage().
+; * ----------------------------------------------------------------------------
 ; *
-; * Copyright (c) 2001 Telindustrie, LLC
+; * Written by: Don Libes, libes@cme.nist.gov, NIST, 12/3/90
+; * 
+; * Design and implementation of this program was paid for by U.S. tax
+; * dollars.  Therefore it is public domain.  However, the author and NIST
+; * would appreciate credit if this program or parts of it are used.
+; * 
+; * Copyright (c) 1997 Mitel Corporation
+; *	work by Gordon Chaffee <chaffee@bmrc.berkeley.edu> for the WinNT port.
 ; *
-; * Authors: David Gravereaux <davygrvy@pobox.com>
+; * Copyright (c) 2001-2002 Telindustrie, LLC
+; *	work by David Gravereaux <davygrvy@pobox.com> for full Stubs complience
+; *	and any Win32 OS.
 ; *
-; * See the file "license.terms" for information on usage and redistribution
-; * of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+; * ----------------------------------------------------------------------------
+; * URLs:    http://expect.nist.gov/
+; *	    http://expect.sf.net/
+; *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
+; * ----------------------------------------------------------------------------
+; * RCS: @(#) $Id: expWinSpawnMailboxCli.cpp,v 1.1.4.1 2002/03/06 01:51:53 davygrvy Exp $
 ; * ----------------------------------------------------------------------------
 ; */
 
