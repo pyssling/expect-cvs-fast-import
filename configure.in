@@ -11,7 +11,7 @@ AC_INIT(expect.h)
 # comments in Makefile)
 EXP_MAJOR_VERSION=5
 EXP_MINOR_VERSION=31
-EXP_MICRO_VERSION=0
+EXP_MICRO_VERSION=2
 EXP_VERSION=$EXP_MAJOR_VERSION.$EXP_MINOR_VERSION
 EXP_VERSION_NODOTS=$EXP_MAJOR_VERSION$EXP_MINOR_VERSION
 EXP_VERSION_FULL=$EXP_VERSION.$EXP_MICRO_VERSION
@@ -21,6 +21,31 @@ VERSION=$EXP_MAJOR_VERSION.$EXP_MINOR_VERSION
 # Too many people send me configure output without identifying the version.
 # This forced identification should reduce my pain significantly.
 echo "configuring Expect $EXP_MAJOR_VERSION.$EXP_MINOR_VERSION.$EXP_MICRO_VERSION"
+
+# People (when downloading Expect from CVS archive) sometimes run into
+# Make thinking configure is old and needs to be rebuilt.  If they
+# don't have a clue about autoconf, they get confused.  This is
+# particular irritating because the problem only crops up after
+# configure has successfully completed.  Help them out by checking it
+# right now and giving some advice.  Alas, we cannot summarily fix the
+# problem because it might conceivably be someone doing real
+# development.
+# Test if configure is older than configure.in and explain if no autoconf
+AC_CHECK_PROG(found,autoconf,yes,no,)
+found=no
+AC_MSG_CHECKING([configure up to date])
+for i in `ls -tr configure configure.in Makefile.in` ; do
+  newest=$i
+done
+if test "configure" = $newest ; then
+  AC_MSG_RESULT(yes)
+else
+  AC_MSG_RESULT(no)
+fi
+if test $found = "no" -a "$newest" != "configure" ; then
+  AC_MSG_WARN([configure appears to be old (configure.in and/or Makefile.in are newer) and the autoconf program to fix this situation was not found.  If you've no idea what this means, enter the command \"touch configure\" and restart configure.])
+  exit
+fi
 
 dnl AC_CONFIG_AUX_DIR(`cd $srcdir;pwd`/..)
 AC_CANONICAL_SYSTEM

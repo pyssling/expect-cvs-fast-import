@@ -100,11 +100,14 @@ fi
 if test x"${ac_cv_c_tclh}" = x ; then
   for i in \
 		${srcdir}/../tcl \
-		`ls -dr ${srcdir}/../tcl[[7-9]].[[0-9]].[[0-9]] ${srcdir}/../tcl[[7-9]].[[0-9]] 2>/dev/null` \
+		`ls -dr ${srcdir}/../tcl[[9]].[[0-9]].[[0-9]] ${srcdir}/../tcl[[9]].[[0-9]] 2>/dev/null` \
+		`ls -dr ${srcdir}/../tcl[[8]].[[2-9]].[[0-9]] ${srcdir}/../tcl[[8]].[[2-9]] 2>/dev/null` \
 		${srcdir}/../../tcl \
-		`ls -dr ${srcdir}/../../tcl[[7-9]].[[0-9]].[[0-9]] ${srcdir}/../../tcl[[7-9]].[[0-9]] 2>/dev/null` \
+		`ls -dr ${srcdir}/../../tcl[[9]].[[0-9]].[[0-9]] ${srcdir}/../../tcl[[9]].[[0-9]] 2>/dev/null` \
+		`ls -dr ${srcdir}/../../tcl[[8]].[[2-9]].[[0-9]] ${srcdir}/../../tcl[[8]].[[2-9]] 2>/dev/null` \
 		${srcdir}/../../../tcl \
-		`ls -dr ${srcdir}/../../../tcl[[7-9]].[[0-9]].[[0-9]] ${srcdir}/../../../tcl[[7-9]].[[0-9]] 2>/dev/null ` ; do
+		`ls -dr ${srcdir}/../../../tcl[[9]].[[0-9]].[[0-9]] ${srcdir}/../../../tcl[[9]].[[0-9]] 2>/dev/null ` \
+		`ls -dr ${srcdir}/../../../tcl[[8]].[[2-9]].[[0-9]] ${srcdir}/../../../tcl[[8]].[[2-9]] 2>/dev/null ` ; do
     if test -f $i/generic/tclInt.h ; then
       ac_cv_c_tclh=`(cd $i/generic; pwd)`
       break
@@ -116,8 +119,10 @@ fi
 # since ls returns lowest version numbers first, reverse its output
 if test x"${ac_cv_c_tclh}" = x ; then
   for i in \
-		`ls -dr /usr/local/src/tcl[[7-9]].[[0-9]].[[0-9]] /usr/local/src/tcl[[7-9]].[[0-9]] 2>/dev/null` \
-		`ls -dr /usr/local/lib/tcl[[7-9]].[[0-9]].[[0-9]] /usr/local/lib/tcl[[7-9]].[[0-9]] 2>/dev/null` \
+		`ls -dr /usr/local/src/tcl[[9]].[[0-9]].[[0-9]] /usr/local/src/tcl[[9]].[[0-9]] 2>/dev/null` \
+		`ls -dr /usr/local/src/tcl[[8]].[[2-9]].[[0-9]] /usr/local/src/tcl[[8]].[[2-9]] 2>/dev/null` \
+		`ls -dr /usr/local/lib/tcl[[9]].[[0-9]].[[0-9]] /usr/local/lib/tcl[[9]].[[0-9]] 2>/dev/null` \
+		`ls -dr /usr/local/lib/tcl[[8]].[[2-9]].[[0-9]] /usr/local/lib/tcl[[8]].[[2-9]] 2>/dev/null` \
 		/usr/local/src/tcl \
 		/usr/local/lib/tcl \
 		${prefix}/include ; do
@@ -187,11 +192,14 @@ if test x"${no_tcl}" = x ; then
   if test x"${ac_cv_c_tclconfig}" = x ; then
     for i in \
 		../tcl \
-		`ls -dr ../tcl[[7-9]].[[0-9]].[[0-9]] ../tcl[[7-9]].[[0-9]] 2>/dev/null` \
+		`ls -dr ../tcl[[9]].[[0-9]].[[0-9]] ../tcl[[9]].[[0-9]] 2>/dev/null` \
+		`ls -dr ../tcl[[8]].[[2-9]].[[0-9]] ../tcl[[8]].[[2-9]] 2>/dev/null` \
 		../../tcl \
-		`ls -dr ../../tcl[[7-9]].[[0-9]].[[0-9]] ../../tcl[[7-9]].[[0-9]] 2>/dev/null` \
+		`ls -dr ../../tcl[[9]].[[0-9]].[[0-9]] ../../tcl[[9]].[[0-9]] 2>/dev/null` \
+		`ls -dr ../../tcl[[8]].[[2-9]].[[0-9]] ../../tcl[[8]].[[2-9]] 2>/dev/null` \
 		../../../tcl \
-		`ls -dr ../../../tcl[[7-9]].[[0-9]].[[0-9]] ../../../tcl[[7-9]].[[0-9]] 2>/dev/null` ; do
+		`ls -dr ../../../tcl[[9]].[[0-9]].[[0-9]] ../../../tcl[[9]].[[0-9]] 2>/dev/null` \
+		`ls -dr ../../../tcl[[8]].[[2-9]].[[0-9]] ../../../tcl[[8]].[[2-9]] 2>/dev/null` ; do
       if test -f "$i/unix/tclConfig.sh" ; then
         ac_cv_c_tclconfig=`(cd $i/unix; pwd)`
 	break
@@ -211,7 +219,8 @@ if test x"${no_tcl}" = x ; then
   if test x"${ac_cv_c_tclconfig}" = x ; then
     for i in \
 		${srcdir}/../tcl \
-		`ls -dr ${srcdir}/../tcl[[7-9]].[[0-9]].[[0-9]] ${srcdir}/../tcl[[7-9]].[[0-9]] 2>/dev/null` ; do
+		`ls -dr ${srcdir}/../tcl[[9]].[[0-9]].[[0-9]] ${srcdir}/../tcl[[9]].[[0-9]] 2>/dev/null` \
+		`ls -dr ${srcdir}/../tcl[[8]].[[2-9]].[[0-9]] ${srcdir}/../tcl[[8]].[[2-9]] 2>/dev/null` ; do
       if test -f "$i/unix/tclConfig.sh" ; then
         ac_cv_c_tclconfig=`(cd $i/unix; pwd)`
 	break
@@ -308,7 +317,7 @@ dnl    AC_SUBST(TCL_UNSHARED_LIB_SUFFIX)
 # so don't do changes to Tcl thinking you can cut and paste it do 
 # the Tk differences and later simply substitute "Tk" for "Tcl".
 # Known differences:
-#  - Acceptable Tcl major version #s is 7-9 while Tk is 4-9
+#  - Acceptable Tcl major version #s is 8.2-9.* while Tk is 8.2-9.*
 #  - Searching for Tcl includes looking for tclInt.h, Tk looks for tk.h
 #  - Computing major/minor versions is different because Tk depends on
 #    headers to Tcl, Tk, and X.
@@ -358,9 +367,12 @@ if test x"${ac_cv_c_tkh}" = x ; then
   for i in \
 		${srcdir}/../tk \
 		`ls -dr ${srcdir}/../tk[[4-9]].[[0-9]].[[0-9]] ${srcdir}/../tk[[4-9]].[[0-9]] 2>/dev/null` \
+		`ls -dr ${srcdir}/../tk[[4-9]].[[0-9]].[[0-9]] ${srcdir}/../tk[[4-9]].[[0-9]] 2>/dev/null` \
 		${srcdir}/../../tk \
 		`ls -dr ${srcdir}/../../tk[[4-9]].[[0-9]].[[0-9]] ${srcdir}/../../tk[[4-9]].[[0-9]] 2>/dev/null` \
+		`ls -dr ${srcdir}/../../tk[[4-9]].[[0-9]].[[0-9]] ${srcdir}/../../tk[[4-9]].[[0-9]] 2>/dev/null` \
 		${srcdir}/../../../tk \
+		`ls -dr ${srcdir}/../../../tk[[4-9]].[[0-9]].[[0-9]] ${srcdir}/../../../tk[[4-9]].[[0-9]] 2>/dev/null ` \
 		`ls -dr ${srcdir}/../../../tk[[4-9]].[[0-9]].[[0-9]] ${srcdir}/../../../tk[[4-9]].[[0-9]] 2>/dev/null ` ; do
     if test -f $i/generic/tk.h ; then
       ac_cv_c_tkh=`(cd $i/generic; pwd)`
@@ -374,6 +386,8 @@ fi
 if test x"${ac_cv_c_tkh}" = x ; then
   for i in \
 		`ls -dr /usr/local/src/tk[[4-9]].[[0-9]].[[0-9]] /usr/local/src/tk[[4-9]].[[0-9]] 2>/dev/null` \
+		`ls -dr /usr/local/src/tk[[4-9]].[[0-9]].[[0-9]] /usr/local/src/tk[[4-9]].[[0-9]] 2>/dev/null` \
+		`ls -dr /usr/local/lib/tk[[4-9]].[[0-9]].[[0-9]] /usr/local/lib/tk[[4-9]].[[0-9]] 2>/dev/null` \
 		`ls -dr /usr/local/lib/tk[[4-9]].[[0-9]].[[0-9]] /usr/local/lib/tk[[4-9]].[[0-9]] 2>/dev/null` \
 		/usr/local/src/tk \
 		/usr/local/lib/tk \
@@ -438,9 +452,12 @@ if test x"${no_tk}" = x ; then
     for i in \
 		../tk \
 		`ls -dr ../tk[[4-9]].[[0-9]].[[0-9]] ../tk[[4-9]].[[0-9]] 2>/dev/null` \
+		`ls -dr ../tk[[4-9]].[[0-9]].[[0-9]] ../tk[[4-9]].[[0-9]] 2>/dev/null` \
 		../../tk \
 		`ls -dr ../../tk[[4-9]].[[0-9]].[[0-9]] ../../tk[[4-9]].[[0-9]] 2>/dev/null` \
+		`ls -dr ../../tk[[4-9]].[[0-9]].[[0-9]] ../../tk[[4-9]].[[0-9]] 2>/dev/null` \
 		../../../tk \
+		`ls -dr ../../../tk[[4-9]].[[0-9]].[[0-9]] ../../../tk[[4-9]].[[0-9]] 2>/dev/null` \
 		`ls -dr ../../../tk[[4-9]].[[0-9]].[[0-9]] ../../../tk[[4-9]].[[0-9]] 2>/dev/null` ; do
       if test -f "$i/unix/tkConfig.sh" ; then
         ac_cv_c_tkconfig=`(cd $i/unix; pwd)`
@@ -461,6 +478,7 @@ if test x"${no_tk}" = x ; then
   if test x"${ac_cv_c_tkconfig}" = x ; then
     for i in \
 		${srcdir}/../tk \
+		`ls -dr ${srcdir}/../tk[[4-9]].[[0-9]].[[0-9]] ${srcdir}/../tk[[4-9]].[[0-9]] 2>/dev/null` \
 		`ls -dr ${srcdir}/../tk[[4-9]].[[0-9]].[[0-9]] ${srcdir}/../tk[[4-9]].[[0-9]] 2>/dev/null` ; do
       if test -f "$i/unix/tkConfig.sh" ; then
         ac_cv_c_tkconfig=`(cd $i/unix; pwd)`

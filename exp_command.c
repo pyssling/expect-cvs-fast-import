@@ -73,7 +73,6 @@ would appreciate credit if this program or parts of it are used.
 #include "exp_log.h"
 #include "exp_event.h"
 #include "exp_pty.h"
-#include "expTcl.h"
 #ifdef TCL_DEBUGGER
 #include "tcldbg.h"
 #endif

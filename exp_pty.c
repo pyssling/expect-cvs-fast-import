@@ -293,7 +293,7 @@ static void		(*expDiagLogPtrVal) _ANSI_ARGS_((char *));
 
 void
 expDiagLogPtrSet(fn)
-     void (*fn)(char *);
+     void (*fn) _ANSI_ARGS_((char *));
 {
   expDiagLogPtrVal = fn;
 }
@@ -349,7 +349,7 @@ int errorNo;
 
 void
 expErrnoMsgSet(fn)
-     char * (*fn)(int);
+     char * (*fn) _ANSI_ARGS_((int));
 {
   expErrnoMsgVal = fn;
 }

@@ -240,13 +240,13 @@ CFILES = exp_command.c expect.c $(PTY).c \
 	exp_trap.c exp_strf.c \
 	exp_console.c exp_glob.c exp_win.c exp_clib.c \
 	exp_closetcl.c exp_memmove.c exp_tty_comm.c \
-	exp_$(EVENT_TYPE).c exp_$(EVENT_ABLE).c expTcl.c \
+	exp_$(EVENT_TYPE).c exp_$(EVENT_ABLE).c \
 	exp_chan.c Dbg.c
 OFILES = exp_command.o expect.o $(PTY).o exp_inter.o exp_regexp.o exp_tty.o \
 	exp_log.o exp_main_sub.o exp_pty.o exp_trap.o \
 	exp_console.o exp_strf.o exp_glob.o exp_win.o exp_clib.o \
 	exp_closetcl.o exp_memmove.o exp_tty_comm.o \
-	exp_$(EVENT_TYPE).o exp_$(EVENT_ABLE).o expTcl.o \
+	exp_$(EVENT_TYPE).o exp_$(EVENT_ABLE).o \
 	exp_chan.o Dbg.o
 SHARED_OFILES = shared/exp_command.o shared/expect.o shared/$(PTY).o \
 	shared/exp_inter.o shared/exp_regexp.o shared/exp_tty.o \
@@ -255,7 +255,7 @@ SHARED_OFILES = shared/exp_command.o shared/expect.o shared/$(PTY).o \
 	shared/exp_console.o shared/exp_strf.o shared/exp_glob.o \
 	shared/exp_win.o shared/exp_clib.o \
 	shared/exp_closetcl.o shared/exp_memmove.o shared/exp_tty_comm.o \
-	shared/exp_$(EVENT_TYPE).o shared/exp_$(EVENT_ABLE).o expTcl.o \
+	shared/exp_$(EVENT_TYPE).o shared/exp_$(EVENT_ABLE).o \
 	shared/exp_chan.o shared/Dbg.o
 
 # Expect libraries (both .a and shared)
@@ -659,8 +659,6 @@ otk:    $(CFILES) exp_main_tk.c
 # Targets for pushing out releases
 ######################################
 
-# until we are completely switched over, keep updating old ftp site too
-OLDFTPDIR = /proj/elib/online/pub/expect
 FTPDIR = /proj/itl/www/div826/subject/expect
 
 # make a private tar file for myself
@@ -671,23 +669,14 @@ tar:	expect-$(VERSION).tar
 ftp:	expect-$(VERSION).tar.Z expect-$(VERSION).tar.gz
 	cp expect-$(VERSION).tar.Z $(FTPDIR)/expect.tar.Z
 	cp expect-$(VERSION).tar.gz $(FTPDIR)/expect.tar.gz
+	cp expect-$(VERSION).tar.gz $(FTPDIR)/old/
 	cp HISTORY $(FTPDIR)
 	cp README $(FTPDIR)/README.distribution
 	cp example/README $(FTPDIR)/example
 	cp `pubfile example` $(FTPDIR)/example
 	ls -l $(FTPDIR)/expect.tar*
-#	update old ftp site too
-	cp expect-$(VERSION).tar.Z $(OLDFTPDIR)/expect.tar.Z
-	cp expect-$(VERSION).tar.gz $(OLDFTPDIR)/expect.tar.gz
-	cp HISTORY $(OLDFTPDIR)
-	cp README $(OLDFTPDIR)/README.distribution
-	cp example/README $(OLDFTPDIR)/example
-	cp `pubfile example` $(OLDFTPDIR)/example
-	ls -l $(OLDFTPDIR)/expect.tar*
 #	delete temp files
 	rm expect-$(VERSION).tar*
-
-
 
 # make an alpha release and install it on ftp server
 alpha:	expect-$(VERSION).tar.Z expect-$(VERSION).tar.gz

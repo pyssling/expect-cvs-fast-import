@@ -422,9 +422,13 @@ expLogChannelOpen(interp,filename,append)
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
     char *newfilename;
-    char mode[2] = "w";   /* doing it this way forces the null terminator */
+    char mode[2];
 
-    if (append) mode[0] = 'a';
+    if (append) {
+      strcpy(mode,"a");
+    } else {
+      strcpy(mode,"w");
+    }
 
     Tcl_ResetResult(interp);
     newfilename = Tcl_TranslateFileName(interp,filename,&tsdPtr->logFilename);

@@ -3,11 +3,11 @@ This file is the NEWS file from the Expect distribution.
 ======================================================================
 ======================================================================
 
-Date: 6/28/99
+Date: 10/22/99
 
 ** SUMMARY
 
-Expect 5.31 now works with Tcl 8.2b1.  Expect 5.31 does NOT work with
+Expect 5.31 now works with Tcl 8.2.  Expect 5.31 does NOT work with
 prior releases of Tcl.  Thanks to an incredible amount of work by
 Scott Stanton, Henry Spencer, Melissa Hirschl, and funding from
 Scriptics for making this possible.
@@ -29,7 +29,7 @@ intended for end-user consumption in interactive dialogues.
 The interpreter command used to exit upon eof.  Now it uses "-eof
 script" to control this behavior.  The default behavior is to return.
 (This change was required because Expect now gives control to Tcl upon
-exit and Tcl's wait (potentially forever) for all processes to die on
+exit and Tcl waits (potentially forever) for all processes to die on
 exit.)  Explicit calls to interpreter are almost non-existent.
 However, you should look for *implicit* calls via interact commands
 with a pattern but no action.  This required changes in the examples:
