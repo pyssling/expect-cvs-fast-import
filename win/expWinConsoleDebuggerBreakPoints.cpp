@@ -24,7 +24,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinConsoleDebuggerBreakPoints.cpp,v 1.1.2.6 2002/03/09 03:10:31 davygrvy Exp $
+ * RCS: @(#) $Id: expWinConsoleDebuggerBreakPoints.cpp,v 1.1.2.7 2002/03/09 05:48:50 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -106,7 +106,7 @@ ConsoleDebugger::OnBeep(Process *proc, ThreadInfo *threadInfo,
     CHAR buf[2];
 
     if (direction == BREAK_IN) {
-	// Modify the arguments so a beep doesn't sound on the server
+	// Modify the arguments so a beep doesn't sound in the slave.
 	threadInfo->args[1] = 0;
     } else if (direction == BREAK_OUT) {
 	if (*returnValue == 0) {

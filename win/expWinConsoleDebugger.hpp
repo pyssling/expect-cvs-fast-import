@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinConsoleDebugger.hpp,v 1.1.2.9 2002/03/11 05:36:37 davygrvy Exp $
+ * RCS: @(#) $Id: expWinConsoleDebugger.hpp,v 1.1.2.10 2002/03/12 01:38:19 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -33,6 +33,10 @@
 // to it from here.
 #include "expWinInt.h"
 #include <imagehlp.h>
+
+#include <string>   // for the string class.
+#include <map>	    // for associative arrays.
+
 
 #ifdef _M_IX86
     // 4096 is for ix86 only
@@ -51,7 +55,7 @@
 class ConsoleDebugger : public CMclThreadHandler, ArgMaker
 {
 public:
-    ConsoleDebugger(int argc, char * const *argv, CMclQueue<Message> &_mQ);
+    ConsoleDebugger(int argc, char * const *argv, CMclQueue<Message *> &_mQ);
     ~ConsoleDebugger();
 
 private:
@@ -136,6 +140,9 @@ private:
 	PIMAGE_DEBUG_INFORMATION dbgInfo;
     };
 
+    typedef std::map<std::string, PVOID> STRING2PTR;
+    typedef std::map<PVOID, Module *> PTR2MODULE;
+
     //  There is one of these instances for each subprocess that we are
     //  controlling.
     //
@@ -157,8 +164,8 @@ private:
 	DWORD	    pSubprocessBuffer;	// Pointer to buffer memory in subprocess.
 	DWORD	    pMemoryCacheBase;	// Base address of memory cache.
 	BYTE	    pMemoryCache[PAGESIZE];// Subprocess memory cache.
-	Tcl_HashTable *funcTable;	// Function table name to address mapping.
-	Tcl_HashTable *moduleTable;	// Win32 modules that have been loaded.
+	STRING2PTR  funcTable;		// Function table name to address mapping.
+	PTR2MODULE  moduleTable;	// Win32 modules that have been loaded.
 	Module	    *exeModule;		// Executable module info.
 	Process	    *nextPtr;		// Linked list.
     };
@@ -236,7 +243,7 @@ private:
     char * const * argv;	// Debugee process commandline args
 
     // Thread-safe message queue used for communication back to Expect.
-    CMclQueue<Message> &mQ;
+    CMclQueue<Message *> &mQ;
 };
 
 #endif // INC_expWinConsoleDebugger_hpp__

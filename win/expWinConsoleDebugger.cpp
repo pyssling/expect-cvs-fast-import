@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinConsoleDebugger.cpp,v 1.1.2.7 2002/03/09 22:56:23 davygrvy Exp $
+ * RCS: @(#) $Id: expWinConsoleDebugger.cpp,v 1.1.2.8 2002/03/11 05:36:37 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -34,7 +34,7 @@
 #endif
 
 //  Constructor.
-ConsoleDebugger::ConsoleDebugger (int _argc, char * const *_argv, CMclQueue<Message> &_mQ)
+ConsoleDebugger::ConsoleDebugger (int _argc, char * const *_argv, CMclQueue<Message *> &_mQ)
     : argc(_argc), argv(_argv), ProcessList(0L), CursorKnown(FALSE),
     ShowExceptionBacktraces(FALSE), SymbolPath(0L), mQ(_mQ)
 {
@@ -266,10 +266,10 @@ ConsoleDebugger::ProcessNew(void)
     proc->pSubprocessMemory = 0;
     proc->pSubprocessBuffer = 0;
     proc->pMemoryCacheBase = 0;
-    proc->funcTable = new Tcl_HashTable;
-    Tcl_InitHashTable(proc->funcTable, TCL_STRING_KEYS);
-    proc->moduleTable = new Tcl_HashTable;
-    Tcl_InitHashTable(proc->moduleTable, TCL_ONE_WORD_KEYS);
+//    proc->funcTable = new Tcl_HashTable;
+//    Tcl_InitHashTable(proc->funcTable, TCL_STRING_KEYS);
+//    proc->moduleTable = new Tcl_HashTable;
+//    Tcl_InitHashTable(proc->moduleTable, TCL_ONE_WORD_KEYS);
     proc->exeModule = 0L;
     proc->nextPtr = ProcessList;
     ProcessList = proc;
@@ -307,10 +307,10 @@ ConsoleDebugger::ProcessFree(Process *proc)
 	bnext = bcurr->nextPtr;
 	delete bcurr;
     }
-    Tcl_DeleteHashTable(proc->funcTable);
-    delete proc->funcTable;
-    Tcl_DeleteHashTable(proc->moduleTable);
-    delete proc->moduleTable;
+//    Tcl_DeleteHashTable(proc->funcTable);
+//    delete proc->funcTable;
+//    Tcl_DeleteHashTable(proc->moduleTable);
+//    delete proc->moduleTable;
 
     for (pprev = 0L, pcurr = ProcessList; pcurr != 0L;
 	 pcurr = pcurr->nextPtr)
@@ -543,9 +543,6 @@ ConsoleDebugger::OnXFirstBreakpoint(Process *proc, LPDEBUG_EVENT pDebEvent)
     DWORD base;
     ThreadInfo *tinfo;
 
-#if 0
-    fprintf(stderr, "OnXFirstBreakpoint: proc=0x%08x\n", proc);
-#endif
     for (tinfo = proc->threadList; tinfo != 0L; tinfo = tinfo->nextPtr) {
 	if (pDebEvent->dwThreadId == tinfo->dwThreadId) {
 	    break;
@@ -557,20 +554,20 @@ ConsoleDebugger::OnXFirstBreakpoint(Process *proc, LPDEBUG_EVENT pDebEvent)
 
     {
 	InjectCode code;
-	Tcl_HashEntry *tclEntry;
+	STRING2PTR::iterator iTor;
 	DWORD addr;
 
 	FirstThread = tinfo->hThread;
 	FirstContext.ContextFlags = CONTEXT_FULL;
 	GetThreadContext(FirstThread, &FirstContext);
 
-	tclEntry = Tcl_FindHashEntry(proc->funcTable, "VirtualAlloc");
-	if (tclEntry == 0L) {
+	iTor = proc->funcTable.find("VirtualAlloc");
+	if (iTor == proc->funcTable.end()) {
 	    proc->nBreakCount++;	// Don't stop at second breakpoint
 	    EXP_LOG0(MSG_DT_NOVIRT);
 	    return;
 	}
-	addr = (DWORD) Tcl_GetHashValue(tclEntry);
+	addr = reinterpret_cast<DWORD>((*iTor).second);
 
 	code.instPush1     = 0x68;
 	code.argMemProtect = PAGE_EXECUTE_READWRITE;
@@ -690,8 +687,7 @@ ConsoleDebugger::OnXSecondChanceException(Process *proc,
     STACKFRAME frame;
     CONTEXT context;
     ThreadInfo *tinfo;
-    Tcl_HashEntry *tclEntry;
-    Tcl_HashSearch tclSearch;
+    PTR2MODULE::iterator iTor;
     Module *modPtr;
     DWORD displacement;
     BYTE symbolBuffer[sizeof(IMAGEHLP_SYMBOL) + 512];
@@ -760,9 +756,9 @@ ConsoleDebugger::OnXSecondChanceException(Process *proc,
 
     //  Iterate through the loaded modules and load symbols for each one.
     //
-    tclEntry = Tcl_FirstHashEntry(proc->moduleTable, &tclSearch);
-    while (tclEntry) {
-	modPtr = (Module *) Tcl_GetHashValue(tclEntry);
+    iTor = proc->moduleTable.begin();
+    while (iTor != proc->moduleTable.end()) {
+	modPtr = (*iTor).second;
 	if (! modPtr->loaded) {
 	    modPtr->dbgInfo = MapDebugInformation(modPtr->hFile, 0L,
 		SymbolPath, (DWORD)modPtr->baseAddr);
@@ -771,8 +767,7 @@ ConsoleDebugger::OnXSecondChanceException(Process *proc,
 		0L, 0L, (DWORD) modPtr->baseAddr, 0);
 	    modPtr->loaded = TRUE;
 	}
-
-	tclEntry = Tcl_NextHashEntry(&tclSearch);
+	iTor++;
     }
 
 
@@ -805,8 +800,8 @@ ConsoleDebugger::OnXSecondChanceException(Process *proc,
 	    char buf[1024];
 
 	    base = SymGetModuleBase(proc->hProcess, frame.AddrPC.Offset);
-	    tclEntry = Tcl_FindHashEntry(proc->moduleTable, (const char *) base);
-	    modPtr = (Module *) Tcl_GetHashValue(tclEntry);
+	    iTor = proc->moduleTable.find(reinterpret_cast<PVOID>(base));
+	    modPtr = (*iTor).second;
 	    if (modPtr->dbgInfo && modPtr->dbgInfo->ImageFileName) {
 		s = modPtr->dbgInfo->ImageFileName;
 	    } else {
@@ -994,8 +989,6 @@ ConsoleDebugger::OnXLoadDll(Process *proc, LPDEBUG_EVENT pDebEvent)
     PVOID ptr, namePtr, funcPtr;
     DWORD p;
     LPLOAD_DLL_DEBUG_INFO info = &pDebEvent->u.LoadDll;
-    Tcl_HashEntry *tclEntry;
-    int isNew;
     BOOL bFound;
 
     int unknown = !LoadedModule(proc, info->hFile,
@@ -1088,8 +1081,7 @@ ConsoleDebugger::OnXLoadDll(Process *proc, LPDEBUG_EVENT pDebEvent)
 	ReadSubprocessMemory(proc, funcPtr, &dw, sizeof(DWORD));
 	funcPtr = (PVOID) (base + dw);
 
-	tclEntry = Tcl_CreateHashEntry(proc->funcTable, funcName, &isNew);
-	Tcl_SetHashValue(tclEntry, funcPtr);
+	proc->funcTable.insert(STRING2PTR::value_type(funcName, funcPtr));
 
 	ptr = (PVOID) (sizeof(DWORD) + (ULONG) ptr);
     }
@@ -1121,14 +1113,14 @@ ConsoleDebugger::OnXLoadDll(Process *proc, LPDEBUG_EVENT pDebEvent)
 void
 ConsoleDebugger::OnXUnloadDll(Process *proc, LPDEBUG_EVENT pDebEvent)
 {
-    Tcl_HashEntry *tclEntry;
+    PTR2MODULE::iterator iTor;
     Module *modPtr;
 
-    tclEntry = Tcl_FindHashEntry(proc->moduleTable,
-	(const char *) pDebEvent->u.UnloadDll.lpBaseOfDll);
+    iTor = proc->moduleTable.find(pDebEvent->u.UnloadDll.lpBaseOfDll);
 
-    if (tclEntry != 0L) {
-	modPtr = (Module *) Tcl_GetHashValue(tclEntry);
+
+    if (iTor != proc->moduleTable.end()) {
+	modPtr = (*iTor).second;
 	if (modPtr->hFile) {
 	    CloseHandle(modPtr->hFile);
 	}
@@ -1139,7 +1131,7 @@ ConsoleDebugger::OnXUnloadDll(Process *proc, LPDEBUG_EVENT pDebEvent)
 	    UnmapDebugInformation(modPtr->dbgInfo);
 	}
 	delete modPtr;
-	Tcl_DeleteHashEntry(tclEntry);
+	proc->moduleTable.erase(iTor);
     }
 }
 
@@ -1159,11 +1151,12 @@ ConsoleDebugger::OnXUnloadDll(Process *proc, LPDEBUG_EVENT pDebEvent)
 BOOL
 ConsoleDebugger::SetBreakpoint(Process *proc, BreakInfo *info)
 {
-    Tcl_HashEntry *tclEntry;
+    STRING2PTR::iterator iTor;
     PVOID funcPtr;
 
-    tclEntry = Tcl_FindHashEntry(proc->funcTable, info->funcName);
-    if (tclEntry == 0L) {
+    iTor = proc->funcTable.find(info->funcName);
+
+    if (iTor == proc->funcTable.end()) {
 //	EXP_LOG("Unable to set breakpoint at %s", info->funcName);
 	return FALSE;
     }
@@ -1171,7 +1164,7 @@ ConsoleDebugger::SetBreakpoint(Process *proc, BreakInfo *info)
     // Set a breakpoint at the function start in the subprocess and
     // save the original code at the function start.
     //
-    funcPtr = Tcl_GetHashValue(tclEntry);
+    funcPtr = (*iTor).second;
     SetBreakpointAtAddr(proc, info, funcPtr);
     return TRUE;
 }
@@ -1594,8 +1587,6 @@ ConsoleDebugger::LoadedModule(Process *proc, HANDLE hFile, LPVOID modname,
 {
     int known = 1;
     PVOID ptr;
-    Tcl_HashEntry *tclEntry;
-    int isNew;
     char mbstr[512];
     char *s = 0L;
     Module *modPtr;
@@ -1618,7 +1609,6 @@ ConsoleDebugger::LoadedModule(Process *proc, HANDLE hFile, LPVOID modname,
 	    known = 0;
 	}
     }
-    tclEntry = Tcl_CreateHashEntry(proc->moduleTable, (const char *)baseAddr, &isNew);
 
     modPtr = new Module;
     modPtr->loaded = FALSE;
@@ -1630,7 +1620,7 @@ ConsoleDebugger::LoadedModule(Process *proc, HANDLE hFile, LPVOID modname,
 	proc->exeModule = modPtr;
     }
 
-    Tcl_SetHashValue(tclEntry, modPtr);
+    proc->moduleTable.insert(PTR2MODULE::value_type(baseAddr, modPtr));
 
     return known;
 }

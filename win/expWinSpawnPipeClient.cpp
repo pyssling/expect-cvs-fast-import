@@ -22,24 +22,24 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinSpawnPipeClient.cpp,v 1.1.2.3 2002/03/12 01:38:19 davygrvy Exp $
+ * RCS: @(#) $Id: expWinSpawnPipeClient.cpp,v 1.1.2.4 2002/03/12 04:37:39 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
-#include "expWinInt.h"
+#include "expWinSpawnClient.hpp"
 
 class ReadPipe : public CMclThreadHandler
 {
 public:
-    ReadPipe(CMclQueue<Message> &_mQ);
+    ReadPipe(CMclQueue<Message *> &_mQ);
 private:
     virtual unsigned ThreadHandlerProc(void);
-    CMclQueue<Message> &mQ;
+    CMclQueue<Message *> &mQ;
     HANDLE hStdIn;
 };
 
 
-SpawnPipeClient::SpawnPipeClient(const char *name, CMclQueue<Message> &_mQ)
+SpawnPipeClient::SpawnPipeClient(const char *name, CMclQueue<Message *> &_mQ)
     : mQ(_mQ)
 {
     hStdOut = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -48,22 +48,22 @@ SpawnPipeClient::SpawnPipeClient(const char *name, CMclQueue<Message> &_mQ)
 }
 
 void
-SpawnPipeClient::Write(Message &what)
+SpawnPipeClient::Write(Message *what)
 {
     DWORD dwWritten;
     HANDLE where;
 
-    switch (what.type) {
+    switch (what->type) {
     case Message::TYPE_NORMAL:
 	where = hStdOut;
     case Message::TYPE_ERROR:
 	where = hStdErr;
     }
 
-    WriteFile(where, what.bytes, what.length, &dwWritten, 0L);
+    WriteFile(where, what->bytes, what->length, &dwWritten, 0L);
 }
 
-ReadPipe::ReadPipe(CMclQueue<Message> &_mQ)
+ReadPipe::ReadPipe(CMclQueue<Message *> &_mQ)
     : mQ(_mQ)
 {
     hStdIn  = GetStdHandle(STD_INPUT_HANDLE);
@@ -75,7 +75,7 @@ unsigned ReadPipe::ThreadHandlerProc(void)
 {
     BOOL ok;
     DWORD dwRead;
-    Message &msg = Message();
+    Message *msg;
     BYTE *readBuf;
 
 again:
@@ -86,9 +86,10 @@ again:
 	delete [] readBuf;
 	goto done;
     }
-    msg.bytes = readBuf;
-    msg.length = dwRead;
-    msg.type = Message::TYPE_INSTREAM;
+    msg = new Message;
+    msg->bytes = readBuf;
+    msg->length = dwRead;
+    msg->type = Message::TYPE_INSTREAM;
     mQ.Put(msg);
     goto again;
 

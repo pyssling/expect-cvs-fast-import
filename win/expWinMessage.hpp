@@ -23,7 +23,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinMessage.hpp,v 1.1.2.1 2002/03/12 01:38:19 davygrvy Exp $
+ * RCS: @(#) $Id: expWinMessage.hpp,v 1.1.2.2 2002/03/12 04:37:39 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -36,7 +36,7 @@ class Message
 {
 public:
     Message();
-    Message(Message &);
+    //Message(Message &);
 
     enum Mode {TYPE_BLANK, TYPE_NORMAL, TYPE_ERROR, TYPE_INSTREAM, TYPE_FUNCTION};
     Mode type;

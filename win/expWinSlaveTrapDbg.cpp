@@ -29,21 +29,14 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinSlaveTrapDbg.cpp,v 1.1.4.3 2002/03/09 22:56:23 davygrvy Exp $
+ * RCS: @(#) $Id: expWinSlaveTrapDbg.cpp,v 1.1.4.4 2002/03/10 01:02:37 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
 #include "expWinInt.h"
-#include <stddef.h>
-#include <assert.h>
-
-#include "expWinConsoleDebugger.hpp"
-#ifdef _MSC_VER
-#   pragma comment (lib, "imagehlp.lib")
-#endif
 
 
-ExpSlaveTrapDbg::ExpSlaveTrapDbg(int argc, char * const argv[], CMclQueue<Message> &_mQ)
+ExpSlaveTrapDbg::ExpSlaveTrapDbg(int argc, char * const argv[], CMclQueue<Message *> &_mQ)
     : mQ(_mQ)
 {
     debuggerThread = new CMclThread(new ConsoleDebugger(argc, argv, _mQ));
