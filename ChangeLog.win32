@@ -1,3 +1,259 @@
+2002-06-28  davygrvy
+	* win/expWinInjectorIPC.hpp:
+		fixed comments.
+
+	* win/Mcl/Mcl.dsp:
+		exceptions truned off.
+
+	* win/expWinConsoleDebugger.cpp:
+	* win/expWinConsoleDebugger.hpp:
+	* win/expWinMessage.hpp:
+	* win/expWinSlaveMain.cpp:
+	* win/expWinSlaveTrapDbg.cpp:
+	* win/expWinTestClient.hpp:
+	* win/expWinTestClientConio.cpp:
+	* win/expWinTestClientInteract.cpp:
+	* win/expWinTestClientStdio.cpp:
+		The ClientInteract class has been created.  It's empty, though.
+
+2002-06-27  davygrvy
+	* win/expWinClientTransport.hpp:
+	* win/expWinClientTransportConio.cpp:
+	* win/expWinClientTransportStdio.cpp:
+	* win/expWinSlave.hpp:
+	* win/expWinSlaveMain.cpp:
+	* win/expWinTestClient.hpp:
+	* win/expWinTestClientConio.cpp:
+	* win/expWinTestClientStdio.cpp:
+	* win/slavedrv.dsp:
+		renamed ClientTransport* to be TestClient* as the name is more
+		descriptive.
+
+	* win/expWinConsoleDebugger.cpp:
+	* win/expWinInjectorIPC.hpp:
+	* win/expWinInjectorMain.cpp:
+	* win/injector.dsp:
+	* win/slavedrv.dsp:
+		slot and slot sizes are shared on both sides.  This ensures there won't be
+		any errors from different info.
+
+	* win/expWinClientTransport.hpp:
+	* win/expWinClientTransportConio.cpp:
+	* win/expWinConsoleDebugger.cpp:
+	* win/expWinSlaveMain.cpp:
+	* win/expWinSlaveTrap.hpp:
+		closing of the test application is more thorough and controlled.
+
+2002-06-26  davygrvy
+	* win/expWinConsoleDebugger.cpp:
+		small stuff
+
+2002-06-25  davygrvy
+	* win/expWinClientTransport.hpp:
+	* win/expWinClientTransportConio.cpp:
+	* win/expWinConsoleDebugger.cpp:
+	* win/expWinConsoleDebugger.hpp:
+	* win/expWinInjectorMain.cpp:
+	* win/expWinSlaveMain.cpp:
+	* win/test1.dsp:
+		We can now write to the slave console.  Debugged and working.
+		slavedrv1.1 was released today from the code of this commit.
+
+	* win/Mcl/Mcl.dsp:
+		Changed all builds to not throw C++ exceptions.  there's some exe size
+		savings for doing this.  I would prefer to check the Status() member after
+		the constructor instead.
+
+	* win/expWinConsoleDebugger.cpp:
+	* win/expWinConsoleDebugger.hpp:
+	* win/slavedrvmc.mc:
+		Added RIP events to the debugger and better error reporting for bad trap
+		and transport methods on the commandline.
+
+	* win/Mcl/include/CMclGlobal.h:
+		another bug squashed.
+
+2002-06-24  davygrvy
+	* win/Mcl/src/CMclMailbox.cpp:
+		Nasty bug found and fixed.  Talked to Mike Woodring about it
+		yesterday.
+
+2002-06-23  davygrvy
+	* win/expWinSlaveMain.cpp:
+		small variable naming changes to help the reader.
+
+	* win/expWinInjectorMain.cpp:
+		Upped the mailbox size to 80 slots from 10.  An INPUT_RECORD can't be
+		too much more that 24 bytes, so this shouldn't hurt active memory.
+
+	* win/expWinConsoleKeyMap.cpp:
+		more good stuff
+
+	* win/expWinClientStdio.cpp:
+	* win/expWinClientTransport.hpp:
+	* win/expWinClientTransportConio.cpp:
+	* win/expWinClientTransportStdio.cpp:
+	* win/slavedrv.dsp:
+		yet more filename changes.
+
+	* win/expWinMessage.cpp:
+		Changed the destructor to use the array modifier.  I don't know if it serves a
+		purpose, though.
+
+	* win/expWinClientTransport.hpp:
+	* win/expWinSpawnClient.hpp:
+	* win/slavedrv.dsp:
+		filename changed to be more obvious/meaningful.
+
+	* win/expWinSlaveMain.cpp:
+		matches the class name changes
+
+	* win/expWinSlave.hpp:
+		matches the class name changes and added a proto for the new
+		MapToKeys() function.
+
+	* win/expWinConsoleDebugger.cpp:
+		hMasterConsole now properly closed in destructor.
+
+	* win/expWinClientStdio.cpp:
+	* win/expWinSpawnStdioClient.cpp:
+	* win/slavedrv.dsp:
+		another filename changed to be more obvious/meaningful.
+
+2002-06-22  davygrvy
+	* win/expWinConsoleDebugger.cpp:
+	* win/expWinConsoleDebugger.hpp:
+	* win/expWinConsoleDebuggerBreakPoints.cpp:
+	* win/expWinInjectorMain.cpp:
+	* win/expWinMessage.cpp:
+	* win/expWinMessage.hpp:
+	* win/expWinSlave.hpp:
+	* win/expWinSlaveMain.cpp:
+	* win/expWinSlaveTrap.hpp:
+	* win/expWinSlaveTrapDbg.cpp:
+	* win/expWinSpawnStdioClient.cpp:
+		More new good stuff.
+
+	* win/expWinConsoleKeyMap.cpp:
+		New file.  Contains the mapping routines for converting characters into
+		keypress events.
+
+	* win/expWinConsoleDebugger.cpp:
+	* win/expWinConsoleDebugger.hpp:
+		IPC connection to the injector dll, done.  Write() added, but does nothing yet.
+		I have to think this through...
+
+	* win/expWinConsoleDebugger.cpp:
+	* win/expWinConsoleDebugger.hpp:
+	* win/expWinInjectorMain.cpp:
+	* win/expWinSlaveMain.cpp:
+	* win/expWinSpawnStdioClient.cpp:
+	* win/injector.dsp:
+		Big crash big fixed.  I was restarting the thread AFTER the breakpoint rather
+		than on top of it.  OutputDebugString() is now passing through, too.  No
+		connection has been made yet to the IPC server the injector dll is providing.
+
+2002-06-21  davygrvy
+	* win/expWinConsoleDebugger.cpp:
+	* win/expWinConsoleDebugger.hpp:
+	* win/expWinConsoleDebuggerBreakPoints.cpp:
+	* win/expWinInjectorMain.cpp:
+	* win/expWinMessage.cpp:
+	* win/expWinMessage.hpp:
+	* win/expWinSlaveTrapDbg.cpp:
+	* win/expWinSpawnClient.hpp:
+	* win/expWinSpawnStdioClient.cpp:
+		Injector code hook-in, but doesn't yet work.  I don't know why.
+		The opcodes for loading the DLL are correct.  The opcodes are
+		written to the sub process memory and run.  I just don't know.
+
+	* win/expWinConsoleDebugger.cpp:
+	* win/expWinConsoleDebugger.hpp:
+	* win/expWinInjectorMain.cpp:
+		The injector DLL is now loading into the process.  That's the good news.
+		The bad news is that it's crashing the process.  I decided to commit the
+		changes anyways with the hope someone can assist.  Even with the
+		injector doing nothing, we still crash for some unknown reason.
+
+2002-06-20  davygrvy
+	* win/expWinInjectorMain.cpp:
+		better error handling.  I think I'll use OutputDebugString()
+		for sending warnings back to the ConsoleDebugger class.
+
+	* win/expWinConsoleDebugger.cpp:
+	* win/expWinConsoleDebugger.hpp:
+	* win/expWinInjectorMain.cpp:
+	* win/expWinMessage.hpp:
+	* win/expWinSpawnStdioClient.cpp:
+		Added OnXDebugString() to the ConsoleDebugger class to handle the
+		OUTPUT_DEBUG_STRING_EVENT debugger event.  This sends a new
+		message type called TYPE_WARNING to the output client.  Changed the
+		stdio client to just send this out on stderr.
+
+	* win/expWinConsoleDebugger.cpp:
+	* win/expWinConsoleDebugger.hpp:
+	* win/slavedrv.dsp:
+		small refactoring.
+
+	* win/expWinInjectorMain.cpp:
+		one must open the console INPUT buffer to write console events
+		to it, not the SCREEN buffer.
+
+	* win/expWinInjectorMain.cpp:
+		small changes, but still untested.
+
+2002-06-19  davygrvy
+	* win/slavedrv.rc:
+		small app type error fixed.  I had been calling this a dll. 
+		Oops.
+
+	* win/expWinInjectorMain.cpp:
+	* win/injector.dsp:
+	* win/injector.dsw:
+		minimal starting point for the console event injector dll (the
+		write portion of the ConsoleDebugger class)
+
+	* win/expWinInjectorMain.cpp:
+	* win/inject.rc:
+	* win/injector.dsp:
+		added an RC script for version info.
+
+	* win/expWinInjectorMain.cpp:
+	* win/injector.dsp:
+	* win/injector.dsw:
+		Injector idea more formalized from thought into some code.
+
+2002-06-18  davygrvy
+	* generic/exp.h:
+	* generic/expDecls.h:
+	* generic/expIntDecls.h:
+	* generic/expIntPlatDecls.h:
+	* win/expWinConsoleDebugger.cpp:
+	* win/expWinConsoleDebugger.hpp:
+	* win/expWinConsoleDebuggerBreakPoints.cpp:
+	* win/expWinSlaveMain.cpp:
+	* win/expWinUtils.cpp:
+	* win/expWinUtils.hpp:
+	* win/expect.rc:
+	* win/slavedrv.rc:
+	* win/slavedrvmc.mc:
+	* win/test1.cpp:
+		these changes perfect the debugger code under Win98 and have
+		been sitting in my workspace for quite some time now.
+
+	* win/expWinConsoleDebugger.cpp:
+		oops. fixed a compiling bug.
+
+2002-03-22  davygrvy
+	* win/slavedrv.dsp:
+	* win/slavedrv.dsw:
+	* win/test1.cpp:
+	* win/test1.dsp:
+		new "follow the mouse" test case.
+
+	* win/TclHash.hpp:
+		new Extract() functions.
+
 2002-03-16  davygrvy
 	* win/expWinConsoleDebugger.cpp:
 	* win/expWinConsoleDebugger.hpp:
