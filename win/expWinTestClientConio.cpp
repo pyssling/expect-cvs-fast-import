@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinTestClientConio.cpp,v 1.1.2.1 2002/06/27 04:37:51 davygrvy Exp $
+ * RCS: @(#) $Id: expWinTestClientConio.cpp,v 1.1.2.2 2002/06/28 01:26:57 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -67,8 +67,8 @@ private:
 	// Wait for any (either) to signal.
 	dwRet = groupedHandles.Wait(FALSE, INFINITE);
 
-	if (!CMclWaitSucceeded(dwRet, groupedHandles.GetCount()) ||
-		CMclWaitSucceededIndex(dwRet) == 0) {
+	if (!CMclWaitSucceeded(dwRet, 2) ||
+		CMclWaitSucceeded(dwRet, 2) && CMclWaitSucceededIndex(dwRet) == 0) {
 	    // stop event or some other error, so die.
 	    return 0;
 	}

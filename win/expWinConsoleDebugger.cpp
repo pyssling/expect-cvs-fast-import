@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinConsoleDebugger.cpp,v 1.1.2.29 2002/06/27 22:51:04 davygrvy Exp $
+ * RCS: @(#) $Id: expWinConsoleDebugger.cpp,v 1.1.2.30 2002/06/28 01:26:56 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -47,8 +47,11 @@
 
 
 //  Constructor.
-ConsoleDebugger::ConsoleDebugger
-(int _argc, char * const *_argv, CMclQueue<Message *> &_mQ)
+ConsoleDebugger::ConsoleDebugger (
+	int _argc,
+	char * const *_argv,
+	CMclQueue<Message *> &_mQ
+    )
     : argc(_argc), argv(_argv), ProcessList(0L), CursorKnown(FALSE),
     ConsoleOutputCP(0), ConsoleCP(0), mQ(_mQ), pStartAddress(0L),
     originalExeEntryPointOpcode(0), pInjectorStub(0), injectorIPC(0L),
@@ -111,12 +114,12 @@ ConsoleDebugger::ConsoleDebugger
 
     BreakArrayKernel32[2].funcName = "FillConsoleOutputCharacterA";
     BreakArrayKernel32[2].nargs = 5;
-    BreakArrayKernel32[2].breakProc = OnFillConsoleOutputCharacter;
+    BreakArrayKernel32[2].breakProc = OnFillConsoleOutputCharacterA;
     BreakArrayKernel32[2].dwFlags = BREAK_OUT;
 
     BreakArrayKernel32[3].funcName = "FillConsoleOutputCharacterW";
     BreakArrayKernel32[3].nargs = 5;
-    BreakArrayKernel32[3].breakProc = OnFillConsoleOutputCharacter;
+    BreakArrayKernel32[3].breakProc = OnFillConsoleOutputCharacterW;
     BreakArrayKernel32[3].dwFlags = BREAK_OUT;
 
     BreakArrayKernel32[4].funcName = "FreeConsole";
@@ -174,45 +177,55 @@ ConsoleDebugger::ConsoleDebugger
     BreakArrayKernel32[14].breakProc = OnSetConsoleOutputCP;
     BreakArrayKernel32[14].dwFlags = BREAK_OUT;
 
-    BreakArrayKernel32[15].funcName = "SetConsoleWindowInfo";
+    BreakArrayKernel32[15].funcName = "SetConsoleTextAttribute";
     BreakArrayKernel32[15].nargs = 2;
-    BreakArrayKernel32[15].breakProc = OnSetConsoleWindowInfo;
+    BreakArrayKernel32[15].breakProc = OnSetConsoleTextAttribute;
     BreakArrayKernel32[15].dwFlags = BREAK_OUT;
 
-    BreakArrayKernel32[16].funcName = "WriteConsoleA";
-    BreakArrayKernel32[16].nargs = 5;
-    BreakArrayKernel32[16].breakProc = OnWriteConsoleA;
+    BreakArrayKernel32[16].funcName = "SetConsoleWindowInfo";
+    BreakArrayKernel32[16].nargs = 3;
+    BreakArrayKernel32[16].breakProc = OnSetConsoleWindowInfo;
     BreakArrayKernel32[16].dwFlags = BREAK_OUT;
 
-    BreakArrayKernel32[17].funcName = "WriteConsoleW";
+    BreakArrayKernel32[17].funcName = "WriteConsoleA";
     BreakArrayKernel32[17].nargs = 5;
-    BreakArrayKernel32[17].breakProc = OnWriteConsoleW;
+    BreakArrayKernel32[17].breakProc = OnWriteConsoleA;
     BreakArrayKernel32[17].dwFlags = BREAK_OUT;
 
-    BreakArrayKernel32[18].funcName = "WriteConsoleOutputA";
+    BreakArrayKernel32[18].funcName = "WriteConsoleW";
     BreakArrayKernel32[18].nargs = 5;
-    BreakArrayKernel32[18].breakProc = OnWriteConsoleOutputA;
+    BreakArrayKernel32[18].breakProc = OnWriteConsoleW;
     BreakArrayKernel32[18].dwFlags = BREAK_OUT;
 
-    BreakArrayKernel32[19].funcName = "WriteConsoleOutputW";
+    BreakArrayKernel32[19].funcName = "WriteConsoleOutputA";
     BreakArrayKernel32[19].nargs = 5;
-    BreakArrayKernel32[19].breakProc = OnWriteConsoleOutputW;
+    BreakArrayKernel32[19].breakProc = OnWriteConsoleOutputA;
     BreakArrayKernel32[19].dwFlags = BREAK_OUT;
 
-    BreakArrayKernel32[20].funcName = "WriteConsoleOutputCharacterA";
+    BreakArrayKernel32[20].funcName = "WriteConsoleOutputW";
     BreakArrayKernel32[20].nargs = 5;
-    BreakArrayKernel32[20].breakProc = OnWriteConsoleOutputCharacterA;
+    BreakArrayKernel32[20].breakProc = OnWriteConsoleOutputW;
     BreakArrayKernel32[20].dwFlags = BREAK_OUT;
 
-    BreakArrayKernel32[21].funcName = "WriteConsoleOutputCharacterW";
+    BreakArrayKernel32[21].funcName = "WriteConsoleOutputCharacterA";
     BreakArrayKernel32[21].nargs = 5;
-    BreakArrayKernel32[21].breakProc = OnWriteConsoleOutputCharacterW;
+    BreakArrayKernel32[21].breakProc = OnWriteConsoleOutputCharacterA;
     BreakArrayKernel32[21].dwFlags = BREAK_OUT;
 
-    BreakArrayKernel32[22].funcName = 0L;
-    BreakArrayKernel32[22].nargs = 0;
-    BreakArrayKernel32[22].breakProc = 0L;
-    BreakArrayKernel32[22].dwFlags = 0;
+    BreakArrayKernel32[22].funcName = "WriteConsoleOutputCharacterW";
+    BreakArrayKernel32[22].nargs = 5;
+    BreakArrayKernel32[22].breakProc = OnWriteConsoleOutputCharacterW;
+    BreakArrayKernel32[22].dwFlags = BREAK_OUT;
+
+    BreakArrayKernel32[23].funcName = "WriteFile";
+    BreakArrayKernel32[23].nargs = 5;
+    BreakArrayKernel32[23].breakProc = OnWriteFile;
+    BreakArrayKernel32[23].dwFlags = BREAK_OUT;
+
+    BreakArrayKernel32[24].funcName = 0L;
+    BreakArrayKernel32[24].nargs = 0;
+    BreakArrayKernel32[24].breakProc = 0L;
+    BreakArrayKernel32[24].dwFlags = 0;
 
     BreakArrayUser32[0].funcName = "IsWindowVisible";
     BreakArrayUser32[0].nargs = 1;
@@ -346,7 +359,7 @@ again:
 	goto skip;
     }
 
-//    bpCritSec.Enter();
+    bpCritSec.Enter();
 
     // Process the debugging event code.
     //
@@ -431,7 +444,7 @@ again:
 	break;
     }
 
-//    bpCritSec.Leave();
+    bpCritSec.Leave();
 
 skip:
     // Resume executing the thread that reported the debugging event.
@@ -1883,6 +1896,8 @@ ConsoleDebugger::WriteRecord (INPUT_RECORD *ir)
 void
 ConsoleDebugger::EnterInteract (HANDLE OutConsole)
 {
+    bpCritSec.Enter();
+
     interactingConsole = OutConsole;
 
     // More stuff to do here... What?
@@ -1891,6 +1906,7 @@ ConsoleDebugger::EnterInteract (HANDLE OutConsole)
     // more ???  help!
 
     interacting = true;
+    bpCritSec.Leave();
 }
 
 void

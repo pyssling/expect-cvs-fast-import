@@ -24,13 +24,15 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinConsoleDebuggerBreakPoints.cpp,v 1.1.2.12 2002/06/21 03:01:51 davygrvy Exp $
+ * RCS: @(#) $Id: expWinConsoleDebuggerBreakPoints.cpp,v 1.1.2.13 2002/06/22 14:02:03 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
 #include "expWinSlave.hpp"
 
+//////////////////////////////////////////////////////////
 // NOTE:  black magic abounds...  be warry young padwon...
+//////////////////////////////////////////////////////////
 
 /*
  *----------------------------------------------------------------------
@@ -95,6 +97,7 @@ void
 ConsoleDebugger::OnAllocConsole(Process *proc, ThreadInfo *threadInfo,
     Breakpoint *brkpt, PDWORD returnValue, DWORD direction)
 {
+    __asm nop;
 }
 
 /*
@@ -124,12 +127,16 @@ ConsoleDebugger::OnBeep(Process *proc, ThreadInfo *threadInfo,
     CHAR buf[2] = {0,0};
 
     if (direction == BREAK_IN) {
+	lastBeepDuration = threadInfo->args[1];
 	// Modify the arguments so a beep doesn't sound in the slave.
 	threadInfo->args[1] = 0;
     } else if (direction == BREAK_OUT) {
 	if (*returnValue == 0) {
 	    buf[0] = 7; // ASCII beep
 	    WriteMasterCopy(buf, 1);
+	    if (interacting) {
+		Beep(threadInfo->args[0], lastBeepDuration);
+	    }
 	}
     }
 }
@@ -137,10 +144,10 @@ ConsoleDebugger::OnBeep(Process *proc, ThreadInfo *threadInfo,
 /*
  *-----------------------------------------------------------------------------
  *
- * ConsoleDebugger::OnFillConsoleOutputCharacter --
+ * ConsoleDebugger::OnFillConsoleOutputCharacterA --
  *
  *	This function gets called when an FillConsoleOutputCharacterA
- *	or FillConsoleOutputCharacterW breakpoint is hit.
+ *	breakpoint is hit.
  *
  * Results:
  *	None
@@ -152,123 +159,183 @@ ConsoleDebugger::OnBeep(Process *proc, ThreadInfo *threadInfo,
  */
 
 void
-ConsoleDebugger::OnFillConsoleOutputCharacter(Process *proc,
+ConsoleDebugger::OnFillConsoleOutputCharacterA(Process *proc,
     ThreadInfo *threadInfo, Breakpoint *brkpt, PDWORD returnValue,
     DWORD direction)
 {
-    CHAR buf[4096];
-    int bufpos;
-    UCHAR c;
+    CHAR cCharacter;
+    DWORD nLength;
+    COORD dwWriteCoord;
     PVOID ptr;
-    DWORD i;
-    DWORD len;
-    COORD coord;
-    DWORD lines, preCols, postCols;
-    BOOL eol, bol;		// Needs clearing to end, beginning of line
-    CONSOLE_SCREEN_BUFFER_INFO info;
 
     if (*returnValue == 0) {
 	return;
     }
 
-    c = (UCHAR) threadInfo->args[1];
-    len = threadInfo->args[2];
-    coord = *((PCOORD) &(threadInfo->args[3]));
+    cCharacter = (CHAR) threadInfo->args[1];
+    nLength = threadInfo->args[2];
+    dwWriteCoord = *((PCOORD) &(threadInfo->args[3]));
     ptr = (PVOID) threadInfo->args[4];
     if (ptr) {
-	ReadSubprocessMemory(proc, ptr, &len, sizeof(DWORD));
+	ReadSubprocessMemory(proc, ptr, &nLength, sizeof(DWORD));
+    }
+
+    OnFillCOC_Finish(cCharacter, nLength, dwWriteCoord);
+}
+
+/*
+ *-----------------------------------------------------------------------------
+ *
+ * ConsoleDebugger::OnFillConsoleOutputCharacterW --
+ *
+ *	This function gets called when an FillConsoleOutputCharacterW
+ *	breakpoint is hit.
+ *
+ * Results:
+ *	None
+ *
+ * Side Effects:
+ *	Prints some output.
+ *
+ *-----------------------------------------------------------------------------
+ */
+
+void
+ConsoleDebugger::OnFillConsoleOutputCharacterW(Process *proc,
+    ThreadInfo *threadInfo, Breakpoint *brkpt, PDWORD returnValue,
+    DWORD direction)
+{
+    CHAR cCharacter;
+    WCHAR cWCharacter;
+    DWORD nLength;
+    COORD dwWriteCoord;
+    PVOID ptr;
+
+    if (*returnValue == 0) {
+	return;
+    }
+
+    cWCharacter = (WCHAR) threadInfo->args[1];
+    nLength = threadInfo->args[2];
+    dwWriteCoord = *((PCOORD) &(threadInfo->args[3]));
+    ptr = (PVOID) threadInfo->args[4];
+    if (ptr) {
+	ReadSubprocessMemory(proc, ptr, &nLength, sizeof(DWORD));
+    }
+
+    // For now, just truncated it.
+    // TODO: fix me!
+    //
+    cCharacter = (cWCharacter & 0xff);
+
+    OnFillCOC_Finish(cCharacter, nLength, dwWriteCoord);
+}
+
+void
+ConsoleDebugger::OnFillCOC_Finish(CHAR cCharacter, DWORD nLength, COORD dwWriteCoord)
+{
+    CHAR buf[4096];
+    int bufpos;
+    DWORD i;
+    DWORD lines, preCols, postCols;
+    BOOL eol, bol;		// Needs clearing to end, beginning of line
+    CONSOLE_SCREEN_BUFFER_INFO info;
+
+    if (interacting) {
+	DWORD dwWritten;
+	FillConsoleOutputCharacter(interactingConsole, cCharacter, nLength, dwWriteCoord, &dwWritten);
     }
 
     preCols = 0;
     bufpos = 0;
     eol = bol = FALSE;
-    if (coord.X) {
-	preCols = ConsoleSize.X - coord.X;
-	if (len <= preCols) {
-	    preCols = len;
-	    len = 0;
-	    if (len == preCols) {
+    if (dwWriteCoord.X) {
+	preCols = ConsoleSize.X - dwWriteCoord.X;
+	if (nLength <= preCols) {
+	    preCols = nLength;
+	    nLength = 0;
+	    if (nLength == preCols) {
 		eol = TRUE;
 	    }
 	} else {
 	    eol = TRUE;
-	    len -= preCols;
+	    nLength -= preCols;
 	}
-    } else if (len < (DWORD) ConsoleSize.X) {
+    } else if (nLength < (DWORD) ConsoleSize.X) {
 	bol = TRUE;
-	preCols = len;
-	len = 0;
+	preCols = nLength;
+	nLength = 0;
     }
 
-    lines = len / ConsoleSize.X;
-    postCols = len % ConsoleSize.X;
+    lines = nLength / ConsoleSize.X;
+    postCols = nLength % ConsoleSize.X;
 
     if (preCols) {
 	if (bol) {
 	    // Beginning of line to before end of line
-	    if (c == ' ') {
+	    if (cCharacter == ' ') {
 		wsprintfA(&buf[bufpos], "\033[%d;%dH\033[1K",
-			  coord.Y+1, preCols+coord.X);
+			  dwWriteCoord.Y+1, preCols+dwWriteCoord.X);
 		bufpos += strlen(&buf[bufpos]);
 	    } else {
 		wsprintfA(&buf[bufpos], "\033[%d;%dH",
-			  coord.Y+1, coord.X+1);
+			  dwWriteCoord.Y+1, dwWriteCoord.X+1);
 		bufpos += strlen(&buf[bufpos]);
-		memset(&buf[bufpos], c, preCols);
+		memset(&buf[bufpos], cCharacter, preCols);
 		bufpos += preCols;
 	    }
 	} else {
 	    // After beginning of line to end of line
-	    wsprintfA(&buf[bufpos], "\033[%d;%dH", coord.Y+1, coord.X+1);
+	    wsprintfA(&buf[bufpos], "\033[%d;%dH", dwWriteCoord.Y+1, dwWriteCoord.X+1);
 	    bufpos += strlen(&buf[bufpos]);
-	    if (eol && c == ' ') {
+	    if (eol && cCharacter == ' ') {
 		wsprintfA(&buf[bufpos], "\033[K");
 		bufpos += strlen(&buf[bufpos]);
 	    } else {
-		memset(&buf[bufpos], c, preCols);
+		memset(&buf[bufpos], cCharacter, preCols);
 		bufpos += preCols;
 	    }
 	}
-	coord.X = 0;
-	coord.Y++;
+	dwWriteCoord.X = 0;
+	dwWriteCoord.Y++;
     }
     if (lines) {
-	if ((c == ' ') && ((lines + coord.Y) >= (DWORD) ConsoleSize.Y)) {
+	if ((cCharacter == ' ') && ((lines + dwWriteCoord.Y) >= (DWORD) ConsoleSize.Y)) {
 	    // Clear to end of screen
 	    wsprintfA(&buf[bufpos], "\033[%d;%dH\033[J",
-		      coord.Y+1, coord.X+1);
+		      dwWriteCoord.Y+1, dwWriteCoord.X+1);
 	    bufpos += strlen(&buf[bufpos]);
-	} else if ((c == ' ') && (coord.Y == 0) && (lines > 0)) {
+	} else if ((cCharacter == ' ') && (dwWriteCoord.Y == 0) && (lines > 0)) {
 	    // Clear to top of screen
 	    wsprintfA(&buf[bufpos], "\033[%d;%dH\033[1J", lines, 1);
 	    bufpos += strlen(&buf[bufpos]);
 	} else {
 	    for (i = 0; i < lines; i++) {
 		wsprintfA(&buf[bufpos], "\033[%d;%dH",
-			  coord.Y+i+1, coord.X+1);
+			  dwWriteCoord.Y+i+1, dwWriteCoord.X+1);
 		bufpos += strlen(&buf[bufpos]);
-		if (c == ' ') {
+		if (cCharacter == ' ') {
 		    wsprintfA(&buf[bufpos], "\033[2K");
 		    bufpos += strlen(&buf[bufpos]);
 		} else {
-		    memset(&buf[bufpos], c, ConsoleSize.X);
+		    memset(&buf[bufpos], cCharacter, ConsoleSize.X);
 		    bufpos += ConsoleSize.X;
 		}
 	    }
 	}
-	coord.Y += (SHORT) lines;
+	dwWriteCoord.Y += (SHORT) lines;
     }
 	
     if (postCols) {
-	if (c == ' ') {
+	if (cCharacter == ' ') {
 	    // Clear to beginning of line
 	    wsprintfA(&buf[bufpos], "\033[%d;%dH\033[1K",
-		      coord.Y+1, postCols+coord.X);
+		      dwWriteCoord.Y+1, postCols+dwWriteCoord.X);
 	    bufpos += strlen(&buf[bufpos]);
 	} else {
-	    wsprintfA(&buf[bufpos], "\033[%d;%dH", coord.X+1, coord.Y+1);
+	    wsprintfA(&buf[bufpos], "\033[%d;%dH", dwWriteCoord.X+1, dwWriteCoord.Y+1);
 	    bufpos += strlen(&buf[bufpos]);
-	    memset(&buf[bufpos], c, postCols);
+	    memset(&buf[bufpos], cCharacter, postCols);
 	    bufpos += postCols;
 	}
     }
@@ -303,6 +370,7 @@ void
 ConsoleDebugger::OnFreeConsole(Process *proc, ThreadInfo *threadInfo,
     Breakpoint *brkpt, PDWORD returnValue, DWORD direction)
 {
+    __asm nop;
 }
 
 /*
@@ -510,6 +578,7 @@ ConsoleDebugger::OnSetConsoleActiveScreenBuffer(Process *proc,
 	return;
     }
 
+    __asm nop;
 //    RefreshScreen(&proc->overlapped);
 }
 
@@ -534,6 +603,10 @@ ConsoleDebugger::OnSetConsoleCP(Process *proc, ThreadInfo *threadInfo,
 	return;
     }
     ConsoleCP = (UINT) threadInfo->args[0];
+
+    if (interacting) {
+	SetConsoleCP(ConsoleCP);
+    }
 }
 
 /*
@@ -561,6 +634,10 @@ ConsoleDebugger::OnSetConsoleCursorInfo(Process *proc, ThreadInfo *threadInfo,
     }
     ptr = (PVOID) threadInfo->args[1];
     ReadSubprocessMemory(proc, ptr, &CursorInfo, sizeof(CONSOLE_CURSOR_INFO));
+
+    if (interacting) {
+	SetConsoleCursorInfo(interactingConsole, &CursorInfo);
+    }
 }
 
 /*
@@ -595,6 +672,10 @@ ConsoleDebugger::OnSetConsoleCursorPosition(Process *proc,
 
     count = wsprintf(buf, "\033[%d;%dH", CursorPosition.Y+1, CursorPosition.X+1);
     WriteMasterCopy(buf, count);
+
+    if (interacting) {
+	SetConsoleCursorPosition(interactingConsole, CursorPosition);
+    }
 }
 
 /*
@@ -633,7 +714,11 @@ ConsoleDebugger::OnSetConsoleMode(Process *proc, ThreadInfo *threadInfo,
 	}
     }
     if (found) {
-	MasterConsoleInputMode = threadInfo->args[1];
+	ConsoleInputMode = threadInfo->args[1];
+    }
+
+    if (interacting) {
+	SetConsoleMode(interactingConsole, ConsoleInputMode);
     }
 }
 
@@ -658,6 +743,41 @@ ConsoleDebugger::OnSetConsoleOutputCP(Process *proc, ThreadInfo *threadInfo,
 	return;
     }
     ConsoleOutputCP = (UINT) threadInfo->args[0];
+
+    if (interacting) {
+	SetConsoleOutputCP(ConsoleOutputCP);
+    }
+}
+
+/*
+ *-----------------------------------------------------------------------------
+ *
+ * ConsoleDebugger::OnSetConsoleTextAttribute --
+ *
+ * Results:
+ *	None
+ *
+ * Notes:
+ *
+ *-----------------------------------------------------------------------------
+ */
+
+void
+ConsoleDebugger::OnSetConsoleTextAttribute(Process *proc, ThreadInfo *threadInfo,
+    Breakpoint *brkpt, PDWORD returnValue, DWORD direction)
+{
+    WORD wAttributes;
+
+    wAttributes = (WORD) threadInfo->args[1];
+
+    // TODO: fix me!
+    //
+    __asm nop;
+
+    if (interacting) {
+	SetConsoleTextAttribute(interactingConsole, wAttributes);
+    }
+
 }
 
 /*
@@ -682,6 +802,25 @@ ConsoleDebugger::OnSetConsoleWindowInfo(Process *proc,
     ThreadInfo *threadInfo, Breakpoint *brkpt, PDWORD returnValue,
     DWORD direction)
 {
+    HANDLE hConsoleOutput;
+    BOOL bAbsolute;
+    SMALL_RECT ConsoleWindowRect;
+    PVOID ptr;
+
+    if (*returnValue == FALSE) {
+	return;
+    }
+
+    hConsoleOutput = (HANDLE) threadInfo->args[0];
+    bAbsolute = threadInfo->args[1];
+    ptr = (PVOID) threadInfo->args[2];
+    if (ptr) {
+	ReadSubprocessMemory(proc, ptr, &ConsoleWindowRect, sizeof(SMALL_RECT));
+    }
+
+    // TODO: fix me!  What do we do here?
+    //
+    __asm nop;
 }
 
 /*
@@ -730,6 +869,11 @@ ConsoleDebugger::OnWriteConsoleA(Process *proc, ThreadInfo *threadInfo,
     ptr = (PVOID) threadInfo->args[1];
     ReadSubprocessMemory(proc, ptr, p, n * sizeof(CHAR));
     WriteMasterCopy(p, n);
+
+    if (interacting) {
+	DWORD x;
+	WriteConsole(interactingConsole, p, n, &x, 0L);
+    }
 
     if (p != buf) {
 	delete [] p;
@@ -785,10 +929,15 @@ ConsoleDebugger::OnWriteConsoleW(Process *proc, ThreadInfo *threadInfo,
     }
     ReadSubprocessMemory(proc, ptr, p, n * sizeof(WCHAR));
 
-    // Convert to ASCII and write the intercepted data to the pipe.
+    // Convert to ASCII and write-out the intercepted data.
     //
     w = WideCharToMultiByte(CP_ACP, 0, p, n, a, asize, 0L, 0L);
     WriteMasterCopy(a, w);
+
+    if (interacting) {
+	DWORD x;
+	WriteConsole(interactingConsole, a, w, &x, 0L);
+    }
 
     if (p != buf) {
 	delete [] p, a;
@@ -839,7 +988,7 @@ ConsoleDebugger::OnWriteConsoleOutputA(Process *proc,
     bufferCoord = *((PCOORD) &threadInfo->args[3]);
     ptr = (PVOID) threadInfo->args[4]; // Get the rectangle written
     if (ptr == 0L) return;
-    ReadSubprocessMemory(proc, ptr, &writeRegion,sizeof(SMALL_RECT));
+    ReadSubprocessMemory(proc, ptr, &writeRegion, sizeof(SMALL_RECT));
 
     ptr = (PVOID) threadInfo->args[1]; // Get character array
     if (ptr == 0L) return;
@@ -877,6 +1026,10 @@ ConsoleDebugger::OnWriteConsoleOutputA(Process *proc,
 	maxbuf = p - buf;
 	WriteMasterCopy(buf, maxbuf);
 	buf[maxbuf] = 0;
+    }
+
+    if (interacting) {
+	WriteConsoleOutput(interactingConsole, charBuf, bufferSize, bufferCoord, &writeRegion);
     }
 
     delete [] charBuf;
@@ -965,6 +1118,10 @@ ConsoleDebugger::OnWriteConsoleOutputW(Process *proc,
 	buf[maxbuf] = 0;
     }
 
+    if (interacting) {
+	WriteConsoleOutput(interactingConsole, charBuf, bufferSize, bufferCoord, &writeRegion);
+    }
+
     delete [] charBuf;
 }
 
@@ -992,8 +1149,9 @@ ConsoleDebugger::OnWriteConsoleOutputCharacterA(Process *proc,
 {
     static CHAR buf[1024];
     PVOID ptr;
-    DWORD n;
-    PCHAR p;
+    DWORD nLength;
+    PCHAR lpCharacter;
+    COORD dwWriteCoord;
 
     if (*returnValue == 0) {
 	return;
@@ -1001,25 +1159,31 @@ ConsoleDebugger::OnWriteConsoleOutputCharacterA(Process *proc,
     // Get number of bytes written
     ptr = (PVOID) threadInfo->args[4];
     if (ptr == 0L) {
-	n = threadInfo->args[2];
+	nLength = threadInfo->args[2];
     } else {
-	ReadSubprocessMemory(proc, ptr, &n, sizeof(DWORD));
+	ReadSubprocessMemory(proc, ptr, &nLength, sizeof(DWORD));
     }
 
-    CreateVtSequence(proc, *((PCOORD) &threadInfo->args[3]), n);
+    dwWriteCoord = *((PCOORD) &threadInfo->args[3]);
+    CreateVtSequence(proc, dwWriteCoord, nLength);
 
-    if (n > 1024) {
-	p = new CHAR [n];
+    if (nLength > 1024) {
+	lpCharacter = new CHAR [nLength];
     } else {
-	p = buf;
+	lpCharacter = buf;
     }
 
     ptr = (PVOID) threadInfo->args[1];
-    ReadSubprocessMemory(proc, ptr, p, n * sizeof(CHAR));
-    WriteMasterCopy(p, n);
+    ReadSubprocessMemory(proc, ptr, lpCharacter, nLength * sizeof(CHAR));
+    WriteMasterCopy(lpCharacter, nLength);
 
-    if (p != buf) {
-	delete [] p;
+    if (interacting) {
+	DWORD dwWritten;
+	WriteConsoleOutputCharacter(interactingConsole, lpCharacter, nLength, dwWriteCoord, &dwWritten);
+    }
+
+    if (lpCharacter != buf) {
+	delete [] lpCharacter;
     }
     CursorKnown = FALSE;
 }
@@ -1049,11 +1213,11 @@ ConsoleDebugger::OnWriteConsoleOutputCharacterW(Process *proc,
     static WCHAR buf[1024];
     static CHAR ansi[2048];
     PVOID ptr;
-    DWORD n;
+    DWORD nLength;
     PWCHAR p;
-    PCHAR a;
+    PCHAR lpCharacter;
+    COORD dwWriteCoord;
     int asize;
-    int w;
 
     if (*returnValue == 0) {
 	return;
@@ -1061,32 +1225,38 @@ ConsoleDebugger::OnWriteConsoleOutputCharacterW(Process *proc,
     // Get number of bytes written
     ptr = (PVOID) threadInfo->args[4];
     if (ptr == 0L) {
-	n = threadInfo->args[2];
+	nLength = threadInfo->args[2];
     } else {
-	ReadSubprocessMemory(proc, ptr, &n, sizeof(DWORD));
+	ReadSubprocessMemory(proc, ptr, &nLength, sizeof(DWORD));
     }
 
-    CreateVtSequence(proc, *((PCOORD) &threadInfo->args[3]), n);
+    dwWriteCoord = *((PCOORD) &threadInfo->args[3]);
+    CreateVtSequence(proc, dwWriteCoord, nLength);
 
-    if (n > 1024) {
-	p = new WCHAR [n];
-	asize = n * 2 * sizeof(CHAR);
-	a = new CHAR [n * 2];
+    if (nLength > 1024) {
+	p = new WCHAR [nLength];
+	asize = nLength * 2 * sizeof(CHAR);
+	lpCharacter = new CHAR [nLength * 2];
     } else {
 	p = buf;
-	a = ansi;
+	lpCharacter = ansi;
 	asize = sizeof(ansi);
     }
 
     ptr = (PVOID) threadInfo->args[1];
-    ReadSubprocessMemory(proc, ptr, p, n * sizeof(WCHAR));
+    ReadSubprocessMemory(proc, ptr, p, nLength * sizeof(WCHAR));
 
     // Convert to ASCI and Write the intercepted data to the pipe.
-    w = WideCharToMultiByte(CP_ACP, 0, p, n, a, asize, 0L, 0L);
-    WriteMasterCopy(a, w);
+    nLength = WideCharToMultiByte(CP_ACP, 0, p, nLength, lpCharacter, asize, 0L, 0L);
+    WriteMasterCopy(lpCharacter, nLength);
+
+    if (interacting) {
+	DWORD dwWritten;
+	WriteConsoleOutputCharacter(interactingConsole, lpCharacter, nLength, dwWriteCoord, &dwWritten);
+    }
 
     if (p != buf) {
-	delete [] p, a;
+	delete [] p, lpCharacter;
     }
     CursorKnown = FALSE;
 }
@@ -1115,4 +1285,30 @@ ConsoleDebugger::OnIsWindowVisible(Process *proc, ThreadInfo *threadInfo,
     Breakpoint *brkpt, PDWORD returnValue, DWORD direction)
 {
     *returnValue = TRUE;
+}
+
+/*
+ *-----------------------------------------------------------------------------
+ *
+ * ConsoleDebugger::OnWriteFile --
+ *
+ *	This function gets called when a WriteFile
+ *	breakpoint is hit.
+ *
+ * Results:
+ *	None
+ *
+ * Side Effects:
+ *	none yet..
+ *
+ *-----------------------------------------------------------------------------
+ */
+
+void
+ConsoleDebugger::OnWriteFile(Process *proc,
+    ThreadInfo *threadInfo, Breakpoint *brkpt, PDWORD returnValue,
+    DWORD direction)
+{
+    // TODO: is this a console handle in the slave?
+    __asm nop;
 }
