@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinInit.c,v 1.1.4.2 2002/02/10 12:03:30 davygrvy Exp $
+ * RCS: @(#) $Id: expWinInit.c,v 1.1.4.3 2002/02/11 09:56:00 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -88,7 +88,12 @@ ExpWinInit(void)
 	expWinProcs = &unicodeProcs;
     }
 
-    /* need TclWinMakeFile() from the outside... bastards! */
+    /* need TclWinMakeFile() from the outside... los bastards! */
     tclWinMakeFileProc = (tclWinMakeFileProcType)
 	    GetProcAddress(TclWinGetTclInstance(), "TclWinMakeFile");
+
+#ifdef STATIC_BUILD
+    /* this may not be correct, but closer than not */
+    expDllInstance = TclWinGetTclInstance();
+#endif
 }
