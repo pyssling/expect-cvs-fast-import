@@ -83,6 +83,7 @@ extern ExpWinProcs *expWinProcs;
 extern HMODULE expDllInstance;
 
 extern void		ExpWinInit(void);
+extern void		ExpDynloadTclStubs(void);
 extern DWORD		ExpWinApplicationType(const char *originalName,
 			    Tcl_DString *fullPath);
 extern void		BuildCommandLine(CONST char *executable, int argc,

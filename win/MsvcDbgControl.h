@@ -3,7 +3,7 @@
 
 #include <windows.h>
 
-extern WCHAR *	MsvcDbg_GetCommandLine(void);
+extern CHAR *	MsvcDbg_GetCommandLine(void);
 extern int	MsvcDbg_Launch(const CHAR *wrkspace, Tcl_DString *cmdline,
 			void **token);
 #endif

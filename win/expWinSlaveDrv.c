@@ -65,16 +65,13 @@
 #endif
 
 #ifdef _MSC_VER
-    // Only do this when MSVC++ is compiling us.
-#   ifdef USE_TCL_STUBS
-#	pragma comment (lib, "tclstub" \
+#   pragma comment (lib, "tclstub" \
 		STRINGIFY(JOIN(TCL_MAJOR_VERSION,TCL_MINOR_VERSION)) ".lib")
-#	if !defined(_MT) || !defined(_DLL) || defined(_DEBUG)
-	    // This fixes a bug with how the Stubs library was compiled.
-	    // The requirement for msvcrt.lib from tclstubXX.lib must
-	    // be removed.  This bug has been fixed since 8.4a3, I beleive.
-#	    pragma comment(linker, "-nodefaultlib:msvcrt.lib")
-#	endif
+#   if !defined(_MT) || !defined(_DLL) || defined(_DEBUG)
+	// This fixes a bug with how the Stubs library was compiled.
+	// The requirement for msvcrt.lib from tclstubXX.lib must
+	// be removed.  This bug has been fixed since 8.4a3, I beleive.
+#	pragma comment(linker, "-nodefaultlib:msvcrt.lib")
 #   endif
 #endif
 
@@ -156,7 +153,6 @@ HANDLE ExpWaitMutex;		/* Grab before modifying wait queue */
 DWORD  ExpWaitCount;		/* Current number of wait handles */
 HANDLE ExpWaitQueue[EXP_MAX_QLEN];/* wait handles */
 DWORD  ExpConsoleInputMode;	/* Current flags for the console */
-int pid;			/* used by the debugger controler */
 
 static void		InitializeWaitQueue(void);
 static BOOL 		PipeRespondToMaster(int useSocket, HANDLE handle,
@@ -233,7 +229,7 @@ main(void)
     struct sockaddr_in sin;
     WSADATA	SockData;
 
-    pid = GetCurrentProcessId();
+    ExpDynloadTclStubs();
     ExpWinInit();
     SetArgv(&argc, &argv);
 
@@ -444,7 +440,7 @@ ExpProcessInput(HANDLE hMaster, HANDLE hConsoleInW, HANDLE hConsoleOut,
     over.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
     while (1) {
 	bRet = ExpReadMaster(useSocket, hMaster, &buffer[dwHave],
-			     /*dwNeeded-dwHave*/ BUFSIZE, &driverInCnt, &over, &dwResult);
+			     dwNeeded-dwHave, &driverInCnt, &over, &dwResult);
 	if ((bRet == TRUE && driverInCnt == 0) ||
 	    (bRet == FALSE && dwResult == ERROR_BROKEN_PIPE))
 	{
@@ -483,7 +479,7 @@ ExpProcessInput(HANDLE hMaster, HANDLE hConsoleInW, HANDLE hConsoleOut,
 		    EXP_LOG("Unclean shutdown 0x%x", dwResult);
 		}
 	    }
-	    ExpKillProcessList();
+	    /*ExpKillProcessList();*/
 	    ExitProcess(0);
 	} else if (bRet == FALSE) {
 	    EXP_LOG("Unexpected error 0x%x", dwResult);
@@ -1364,36 +1360,39 @@ SetArgv(
     int argc, size, inquote, copy, slashes;
     Tcl_DString cmdLine;
     WCHAR *cmdLineUni;
-    char buff[MAX_PATH];
-
-    GetModuleFileName(GetModuleHandle(NULL), buff, MAX_PATH);
-    Tcl_FindExecutable(buff);
 
     Tcl_DStringInit(&cmdLine);
 
 #ifdef _DEBUG
     if (IsDebuggerPresent()) {
 #   ifdef _MSC_VER
-	cmdLineUni = MsvcDbg_GetCommandLine();
+
+	/*
+	 *  There will be a unicode loss here.  I don't feel it's a bad
+	 *  trade-off when running in a debugger.
+	 *  cp1251 != utf-8, though.
+	 */
+	Tcl_DStringAppend(&cmdLine, MsvcDbg_GetCommandLine(), -1);
+
 #   else
 #   error "Need Debugger control for this IDE"
 #   endif
     } else {
 #endif
 
+	/*
+	 * Always get the unicode commandline because *ALL* Win32 platforms
+	 * support it.
+	 */
 	cmdLineUni = GetCommandLineW();
+	size = WideCharToMultiByte(CP_UTF8, 0, cmdLineUni, -1, 0, 0, NULL, NULL);
+	Tcl_DStringSetLength(&cmdLine, size);
+	WideCharToMultiByte(CP_UTF8, 0, cmdLineUni, -1,
+		Tcl_DStringValue(&cmdLine), size, NULL, NULL);
 
 #ifdef _DEBUG
     }
 #endif
-    /*
-     * Always get the unicode commandline because *ALL* Win32 platforms
-     * support it.
-     */
-    size = WideCharToMultiByte(CP_UTF8, 0, cmdLineUni, -1, 0, 0, NULL, NULL);
-    Tcl_DStringSetLength(&cmdLine, size);
-    WideCharToMultiByte(CP_UTF8, 0, cmdLineUni, -1,
-	    Tcl_DStringValue(&cmdLine), size, NULL, NULL);
 
     /*
      * Precompute an overly pessimistic guess at the number of arguments

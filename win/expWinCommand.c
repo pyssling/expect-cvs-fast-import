@@ -432,7 +432,8 @@ Exp_SpawnCmd(ClientData clientData,Tcl_Interp *interp,int argc,char **argv)
 	 * Launch a new instance of MSVC++ with the right project file, if one
 	 * does not already exist.  And tell MSVC++ to run it in the debuger.
 	 */
-	MsvcDbg_Launch("D:\\expect_wslive\\expect_win32_take2\\win\\slavedrv.dsp",
+	globalPid = MsvcDbg_Launch(
+		"D:\\expect_wslive\\expect_win32_take2\\win\\slavedrv.dsp",
 		&cmdLine, &dbgtoken);
 #   else
 #   error "Need Debugger control for this IDE"

@@ -1,3 +1,39 @@
+/* ----------------------------------------------------------------------------
+ * MsvcDbgControl.cpp --
+ *
+ *	Debugger friendly replacements for CreateProcess() on the parent side
+ *	and GetCommandLine() on the child side.
+ *
+ *	This stuff may not be perfect, but the intent is to avoid all
+ *	the manual-ness of having to set a specific commandline by hand
+ *	while debugging the system.
+ *
+ *	See the note on line 259 for needing to set a soft break on the
+ *	child side.
+ *
+ * ----------------------------------------------------------------------------
+ *
+ * Written by: Don Libes, libes@cme.nist.gov, NIST, 12/3/90
+ * 
+ * Design and implementation of this program was paid for by U.S. tax
+ * dollars.  Therefore it is public domain.  However, the author and NIST
+ * would appreciate credit if this program or parts of it are used.
+ * 
+ * Copyright (c) 1997 Mitel Corporation
+ *	work by Gordon Chaffee <chaffee@bmrc.berkeley.edu> for the WinNT port.
+ *
+ * Copyright (c) 2001 Telindustrie, LLC
+ *	work by David Gravereaux <davygrvy@pobox.com> for any Win32 OS.
+ *
+ * ----------------------------------------------------------------------------
+ * URLs:    http://expect.sf.net/
+ *	    http://expect.nist.gov/
+ *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
+ * ----------------------------------------------------------------------------
+ * RCS: @(#) $Id: expWinCommand.c,v 1.1.2.3 2001/11/07 10:04:57 davygrvy Exp $
+ * ----------------------------------------------------------------------------
+ */
+
 #include "tclPort.h"
 extern "C" {
     #include "expWin.h"
@@ -167,15 +203,13 @@ nameMangledAndTooCPlusPlusishToBeExternC
 	Tcl_WinUtfToTChar(keyName, -1, &keyDS);
 	delete keyName;
 
-	// associate the pid we just got from AppB to the commandline
-	// and when AppB asks us for it, we know what to send in return.
-
 	RegCreateKeyEx(HKEY_LOCAL_MACHINE, "Software\\Tomasoft\\MsDevDbgCtrl",
 		0, REG_NONE, REG_OPTION_VOLATILE, KEY_ALL_ACCESS, 0L, &root,
 		0L);
 
-	(*expWinProcs->regSetValueExProc)(root, Tcl_DStringValue(&keyDS), 0, REG_SZ,
-		(BYTE *) Tcl_DStringValue(cmdline),
+	// Save the commandline in the registry using the PID as the key.
+	(*expWinProcs->regSetValueExProc)(root, Tcl_DStringValue(&keyDS), 0,
+		REG_SZ,	(BYTE *) Tcl_DStringValue(cmdline),
 		Tcl_DStringLength(cmdline));
 
 	RegFlushKey(root);
@@ -204,14 +238,13 @@ MsvcDbg_Launch(const CHAR *wrkspace, Tcl_DString *cmdline, void **token)
     }
 }
 
-extern "C" WCHAR *
+extern "C" CHAR *
 MsvcDbg_GetCommandLine(void)
 {
     HKEY root;
     HANDLE event1;
-    WCHAR pidChar[33], *buf;
-    DWORD type = REG_SZ, size;
-    LONG ret;
+    CHAR pidChar[33], *buf;
+    DWORD type = REG_SZ, size = 0;
     int pid;     // <- this is read by the parent's debugger.
 
     pid = GetCurrentProcessId();
@@ -229,13 +262,13 @@ MsvcDbg_GetCommandLine(void)
 
     // >>>> END IMPORTANT! <<<<
 
-    _itow(pid, pidChar, 10);
-    ret = RegOpenKeyEx(HKEY_LOCAL_MACHINE, "Software\\Tomasoft\\MsDevDbgCtrl", 0, KEY_ALL_ACCESS, &root);
-    size = 0;
-    ret = RegQueryValueExW(root, pidChar, 0, &type, 0L, &size);
-    buf = (WCHAR *) HeapAlloc(GetProcessHeap(), 0, size);
-    ret = RegQueryValueExW(root, pidChar, 0, &type, (LPBYTE)buf, &size);
-    ret = RegDeleteValueW(root, pidChar);
+    _itoa(pid, pidChar, 10);
+    RegOpenKeyEx(HKEY_LOCAL_MACHINE, "Software\\Tomasoft\\MsDevDbgCtrl",
+	    0, KEY_ALL_ACCESS, &root);
+    RegQueryValueEx(root, pidChar, 0, &type, 0L, &size);
+    buf = (CHAR *) HeapAlloc(GetProcessHeap(), 0, size);
+    RegQueryValueEx(root, pidChar, 0, &type, (LPBYTE) buf, &size);
+    RegDeleteValue(root, pidChar);
     RegCloseKey(root);
     return buf;
 }
