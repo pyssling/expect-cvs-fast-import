@@ -6269,9 +6269,6 @@ else
   eval "EXP_CC_SEARCH_FLAGS=\"$TK_LD_SEARCH_FLAGS\""
 fi
 
-echo "EXP_CC_SEARCH_FLAGS =${EXP_CC_SEARCH_FLAGS}"
-echo "TCL_LD_SEARCH_FLAGS =${TCL_LD_SEARCH_FLAGS}"
-
 # TCL_LD_SEARCH_FLAGS is only valid when used with the compiler, $CC.
 # Expect needs to use these flags with the linker, though.  If the
 # linker and the compiler are not the same program (as they aren't on
@@ -6280,8 +6277,6 @@ echo "TCL_LD_SEARCH_FLAGS =${TCL_LD_SEARCH_FLAGS}"
 
 LD_PROG=`echo ${TCL_SHLIB_LD} | sed -e "s| .*||"`
 CC_PROG=`echo ${CC} | sed -e "s| .*||"`
-echo "LD_PROG=${LD_PROG}"
-echo "CC_PROG=${CC_PROG}"
 if test x"$LD_PROG" = x"$CC_PROG" ; then
     EXP_LD_SEARCH_FLAGS=${EXP_CC_SEARCH_FLAGS}
 else
