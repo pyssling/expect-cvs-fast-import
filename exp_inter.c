@@ -47,7 +47,6 @@ would appreciate credit if this program or parts of it are used.
 
 #if OBSOLETE
 #include "tclRegexp.h"
-#include "exp_regexp.h"
 
 extern char *TclGetRegError();
 extern void TclRegError();
@@ -62,7 +61,7 @@ static Tcl_ThreadDataKey dataKey;
 
 #define INTER_OUT "interact_out"
 #define out(var,val) \
- expDiagLog("interact: set %s(%s) \"",INTER_OUT,var); \
+ expDiagLog("interact: set %s(%s) ",INTER_OUT,var); \
  expDiagLogU(expPrintify(val)); \
  expDiagLogU("\"\r\n"); \
  Tcl_SetVar2(interp,INTER_OUT,var,val,0);
@@ -100,7 +99,7 @@ struct action {
 
 struct keymap {
 	Tcl_Obj *keys;	/* original pattern provided by user */
-	Tcl_RegExp *re;
+	int re;		/* true if looking to match a regexp. */
 	int null;	/* true if looking to match 0 byte */
 	int case_sensitive;
 	int echo;	/* if keystrokes should be echoed */
@@ -203,15 +202,17 @@ in_keymap(esPtr,keymap,km_match,match_length,skip)
     int *match_length;		/* # of chars that matched */
     int *skip;			/* # of chars to skip */
 {
+    char *string;
+    int offset;
     struct keymap *km;
     char *ks;		/* string from a keymap */
     char *start_search;	/* where in the string to start searching */
     char *string_end;
     char *string;
-    int stringLen;
+    int stringLen, bytesThisChar;
     int rm_nulls;		/* skip nulls if true */
 
-    string = Tcl_GetStringFromObj(esPtr->buffer,&stringLen);
+    string = Tcl_GetStringFromObj(esPtr->buffer,&stringBytes);
 
     /* assert (*km == 0) */
 
@@ -219,20 +220,30 @@ in_keymap(esPtr,keymap,km_match,match_length,skip)
     /* is lengthy and has no key maps.  Otherwise it would mindlessly */
     /* iterate on each character anyway. */
     if (!keymap) {
-	*skip = stringLen;
+	*skip = stringBytes;
 	return(EXP_CANTMATCH);
     }
 
     rm_nulls = esPtr->rm_nulls;
 
-    string_end = string + stringLen;
+    string_end = string + stringBytes;
 
     /* Mark beginning of line for ^ . */
     regbol = string;
 
+    /*
+     * Maintain both a character index and a string pointer so we
+     * can easily index into either the UTF or the Unicode representations.
+     */
+
 /* skip over nulls - Pascal Meheut, pascal@cnam.cnam.fr 18-May-1993 */
 /*    for (start_search = string;*start_search;start_search++) {*/
-    for (start_search = string;start_search<string_end;start_search++) {
+    for (start_search = string, offset = 0;
+	 start_search < string_end;
+	 start_search += bytesThisChar, offset++) {
+
+	bytesThisChar = Tcl_UtfToUniChar(start_search, &ch);
+	
 	if (*km_match) break; /* if we've already found a CANMATCH */
 			/* don't bother starting search from positions */
 			/* further along the string */
@@ -241,68 +252,89 @@ in_keymap(esPtr,keymap,km_match,match_length,skip)
 	    char *s;	/* current character being examined */
 
 	    if (km->null) {
-		if (*start_search == 0) {
+		if (ch == 0) {
 		    *skip = start_search-string;
 		    *match_length = 1;	/* s - start_search == 1 */
 		    *km_match = km;
 		    return(EXP_MATCH);
 	        }
 	    } else if (!km->re) {
+		char *slen, *kslen;
+		Tcl_UniChar sch, ksch;
+		
 		/* fixed string */
-		for (s = start_search,ks = km->keys ;;s++,ks++) {
-			/* if we hit the end of this map, must've matched! */
-			if (*ks == 0) {
-				*skip = start_search-string;
-				*match_length = s-start_search;
-				*km_match = km;
-				return(EXP_MATCH);
-			}
+		
+		for (s = start_search,ks = km->keys ;;s+=slen,ks+=kslen) {
+		    /* if we hit the end of this map, must've matched! */
+		    if (*ks == 0) {
+			*skip = start_search-string;
+			*match_length = s-start_search;
+			*km_match = km;
+			return(EXP_MATCH);
+		    }
 
-			/* if we ran out of user-supplied characters, and */
-			/* still haven't matched, it might match if the user */
-			/* supplies more characters next time */
+		    /* if we ran out of user-supplied characters, and */
+		    /* still haven't matched, it might match if the user */
+		    /* supplies more characters next time */
 
-			if (s == string_end) {
-				/* skip to next key entry, but remember */
-				/* possibility that this entry might match */
-				if (!*km_match) *km_match = km;
-				break;
-			}
-
-			/* if this is a problem for you, use exp_parity command */
-/*			if ((*s & 0x7f) == *ks) continue;*/
-			if (*s == *ks) continue;
-			if ((*s == '\0') && rm_nulls) {
-				ks--;
-				continue;
-			}
+		    if (s == string_end) {
+			/* skip to next key entry, but remember */
+			/* possibility that this entry might match */
+			if (!*km_match) *km_match = km;
 			break;
+		    }
+
+		    /* if this is a problem for you, use exp_parity command */
+/*			if ((*s & 0x7f) == *ks) continue;*/
+		    slen = Tcl_UtfToUniChar(s, &sch);
+		    kslen = Tcl_UtfToUniChar(ks, &ksch);
+		    
+		    if (sch == ksch) continue;
+		    if ((sch == '\0') && rm_nulls) {
+			kslen = 0;
+			continue;
+		    }
+		    break;
 		}
 	    } else {
 		/* regexp */
-		int r;	/* regtry status */
-		Tcl_RegExp *prog = km->re;
+		Tcl_RegExp re;
+		int flags;
+		int result;
 
-		/* if anchored, but we're not at beginning, skip pattern */
-		if (prog->reganch) {
-			if (string != start_search) continue;
-		}
+		re = Tcl_GetRegExpFromObj(NULL, km->keys, TCL_REG_ADVANCED);
+		flags = (offset > 0) ? TCL_REG_NOTBOL : 0;
 
-		/* known starting char - quick test 'fore lotta work */
-		if (prog->regstart) {
-			/* if this is a problem for you, use exp_parity command */
-/*			/* if ((*start_search & 0x7f) != prog->regstart) continue; */
-			if (*start_search != prog->regstart) continue;
-		}
-		r = exp_regtry(prog,start_search,match_length);
-		if (r == EXP_MATCH) {
+		result = Tcl_RegExpMatchObj(NULL, re, esPtr->buffer, offset,
+			-1 /* nmatches */, flags);
+		if (result > 0) {
+		    Tcl_RegExpInfo info;
+		    Tcl_RegExpGetInfo(re, &info);
+
+		    /*
+		     * Check to see that the match begins with the current
+		     * character.  This is a hack until we get a fix from
+		     * Henry to allow the TCL_REG_BOSONLY flag. 
+		     */
+
+		    if (info.matches[0].start == 0) {
 			*km_match = km;
 			*skip = start_search-string;
-			return(EXP_MATCH);
-		}
-		if (r == EXP_CANMATCH) {
+			return EXP_MATCH;
+		    }
+		} else if (result == 0) {
+		    Tcl_RegExpInfo info;
+		    Tcl_RegExpGetInfo(re, &info);
+
+		    /*
+		     * Check to see if there was a partial match starting
+		     * at the current character.
+		     */
+		    
+		    if (info.extendStart == 0) {
 			if (!*km_match) *km_match = km;
-		}
+		    }
+		}		    
 	    }
 	}
     }
@@ -804,6 +836,16 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 		    next_re = TRUE;
 		    objc--;
 		    objv++;
+
+		    /*
+		     * Try compiling the expression so we can report
+		     * any errors now rather then when we first try to
+		     * use it.
+		     */
+
+		    if (!(Tcl_GetRegExpFromObj(interp, objv, REG_ADVANCED))) {
+			return TCL_ERROR;
+		    }
 		    goto pattern;
 		case EXP_SWITCH_INPUT:
 		    dash_input_count++;
@@ -1090,14 +1132,10 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 	km->null = FALSE;
 	km->re = 0;
 	if (next_re) {
-	    TclRegError((char *)0);
-	    if (0 == (km->re = TclRegComp(*objv))) {
-		exp_error(interp,"bad regular expression: %s",
-			TclGetRegError());
-		return(TCL_ERROR);
-	    }
+	    km->re = TRUE;
 	    next_re = FALSE;
-	} if (next_null) {
+	}
+	if (next_null) {
 	    km->null = TRUE;
 	    next_null = FALSE;
 	}
@@ -1356,35 +1394,38 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 	/* put regexp result in variables */
 	if (km && km->re) {
 	    char name[20], value[20];
-	    Tcl_RegExp *re = km->re;
-	    char match_char;/* place to hold char temporarily */
-					/* uprooted by a NULL */
+	    Tcl_RegExpInfo info;
+	    Tcl_RegExp re;
 
-	    for (i=0;i<NSUBEXP;i++) {
-		int offset;
+	    re = Tcl_GetRegExpFromObj(interp, km->keys, TCL_REG_ADVANCED);
+	    Tcl_RegExpGetInfo(re, &info);
 
-		if (re->startp[i] == 0) continue;
+	    for (i=0;i<info.nsubs;i++) {
+		int start, end;
+
+		start = info.matches[i].start;
+		if (start == -1) continue;
+		end = info.matches[i].end;
 
 		if (km->indices) {
 		    /* start index */
 		    sprintf(name,"%d,start",i);
-		    offset = re->startp[i]-u->buffer;
-		    sprintf(value,"%d",offset);
+		    sprintf(value,"%d",start);
 		    out(name,value);
 		    
 		    /* end index */
 		    sprintf(name,"%d,end",i);
-		    sprintf(value,"%d",re->endp[i]-u->buffer-1);
+		    sprintf(value,"%d",end-1);
 		    out(name,value);
 		}
 
-		/* string itself */
+				/* string itself */
 		sprintf(name,"%d,string",i);
-		/* temporarily null-terminate in middle */
-		match_char = *re->endp[i];
-		*re->endp[i] = 0;
-		out(name,re->startp[i]);
-		*re->endp[i] = match_char;
+		val = Tcl_GetRange(buffer, start, end);
+		expDiagLog("expect_background: set %s(%s) \"",INTER_OUT,name);
+		expDiagLogU(expPrintifyObj(val));
+		expDiagLogU("\"\r\n");
+		Tcl_SetVar2Ex(interp,INTER_OUT,name,val,0);
 	    }
 	}
 
@@ -1530,6 +1571,7 @@ got_action:
 	    }
 	}
     }
+
 #else /* SIMPLE_EVENT */
 /*	deferred_interrupt = FALSE;*/
 {
@@ -2093,6 +2135,7 @@ got_action:
 	}
 }
 #endif /* SIMPLE_EVENT */
+
  done:
 #ifdef SIMPLE_EVENT
     /* force child to exit upon eof from master */

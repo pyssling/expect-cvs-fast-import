@@ -794,6 +794,7 @@ char *suffix;
     Tcl_RegExpInfo info;
     char *str;
     int length, flags;
+    int result;
 
     buffer = esPtr->buffer;
     str = Tcl_GetStringFromObj(buffer, &length);
@@ -819,11 +820,12 @@ char *suffix;
 		    
 	re = Tcl_GetRegExpFromObj(interp, e->pat, flags);
 
-	if (Tcl_RegExpMatchObj(interp, re, buffer, 0 /* offset */,
-		-1 /* nmatches */, 0 /* eflags */) < 0) {
+	result = Tcl_RegExpMatchObj(interp, re, buffer, 0 /* offset */,
+		-1 /* nmatches */, 0 /* eflags */);
+	if (result < 0) {
 	    expDiagLogU(no);
 	    return(EXP_TCLERROR);
-	} else {
+	} else if (result > 0) {
 
 	    o->e = e;
 
