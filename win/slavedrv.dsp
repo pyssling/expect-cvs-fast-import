@@ -114,6 +114,10 @@ SOURCE=.\expWinDynloadTclStubs.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\expWinInjectorIPC.hpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\expWinMessage.cpp
 # End Source File
 # Begin Source File

@@ -90,6 +90,10 @@ LINK32=link.exe
 # Name "injector - Win32 Debug"
 # Begin Source File
 
+SOURCE=.\expWinInjectorIPC.hpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\expWinInjectorMain.cpp
 # End Source File
 # Begin Source File

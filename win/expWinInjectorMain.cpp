@@ -23,11 +23,12 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinInjectorMain.cpp,v 1.1.2.12 2002/06/23 09:26:03 davygrvy Exp $
+ * RCS: @(#) $Id: expWinInjectorMain.cpp,v 1.1.2.13 2002/06/25 08:40:50 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
 #include "CMcl.h"
+#include "expWinInjectorIPC.hpp"
 
 class Injector : public CMclThreadHandler
 {
@@ -57,25 +58,17 @@ private:
 	// Create the shared memory IPC transfer mechanism by name
 	// (a mailbox).
 	ConsoleDebuggerIPC = 
-		new CMclMailbox(80, sizeof(INPUT_RECORD), boxName);
+		new CMclMailbox(IPC_NUMSLOTS, IPC_SLOTSIZE, boxName);
 
 	// Check status.
-	switch (err = ConsoleDebuggerIPC->Status()) {
-	case NO_ERROR:
-	    OutputDebugString("Expect's injector DLL loaded and ready.\n");
-	    break;
-	case ERROR_ALREADY_EXISTS:
-	    OutputDebugString("Expect's injector DLL could not start IPC: "
-		    "another mailbox of the same name already exists.\n");
-	    break;
-	default:
+	err = ConsoleDebuggerIPC->Status();
+	if (err != NO_ERROR && err != ERROR_ALREADY_EXISTS) {
 	    OutputDebugString(GetSysMsg(err));
-	}
-
-	if (err != NO_ERROR) {
 	    delete ConsoleDebuggerIPC;
 	    return 0x666;
 	}
+
+	OutputDebugString("Expect's injector DLL loaded and ready.\n");
 
 	// forever loop receiving INPUT_RECORDs over IPC.
 	while (ConsoleDebuggerIPC->GetAlertable(&ir, interrupt)) {
