@@ -78,7 +78,7 @@ would appreciate credit if this program or parts of it are used.
  * See the file "license.terms" for information on usage and redistribution
  * of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  *
- * RCS: @(#) $Id: exp_clib.c,v 5.28.1.1.2.11 1999/08/04 22:10:17 libes Exp $
+ * RCS: @(#) $Id: exp_clib.c,v 5.28.1.1.2.12 1999/12/04 06:18:23 libes Exp $
  */
 
 #ifndef _STDLIB
@@ -166,7 +166,7 @@ extern unsigned long	strtoul _ANSI_ARGS_((CONST char *string,
  * *** 2. This in addition to changes to TclRegError makes the   ***
  * ***    code multi-thread safe.                                ***
  *
- * RCS: @(#) $Id: exp_clib.c,v 5.28.1.1.2.11 1999/08/04 22:10:17 libes Exp $
+ * RCS: @(#) $Id: exp_clib.c,v 5.28.1.1.2.12 1999/12/04 06:18:23 libes Exp $
  */
 
 #if 0
@@ -2454,6 +2454,8 @@ when trapping, see below in child half of fork */
 
 	close(sync_fds[0]);
 	close(sync2_fds[1]);
+	close(status_pipe[0]);
+	fcntl(status_pipe[1],F_SETFD,1);	/* close on exec */
 
 #ifdef CRAY
 	(void) close(exp_pty[0]);

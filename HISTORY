@@ -3,6 +3,9 @@ support are in ChangeLog. - Don
 
 Date	Version	Description
 -------	-------	------------------------------------------------------
+		"Michael P. Reilly" <arcege@shore.net> noted clib was hanging in
+		spawn code.  status_pipe wasn't being closed.
+
 		Egil Kvaleberg <egil@kvaleberg.no> provided fix due to new gcc
 		which defines strchr as a macro.
 
