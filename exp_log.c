@@ -509,7 +509,8 @@ expLogChannelGet()
 /* to set to a pre-opened channel (presumably by tcl::open) */
 int
 expLogChannelSet(interp,name)
-    Tcl_Channel *channel;
+    Tcl_Interp *interp;
+    char *name;
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
 
@@ -531,7 +532,7 @@ expLogFilenameGet()
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
 
-    return Tcl_DStringValue(tsdPtr->logFilename);
+    return Tcl_DStringValue(&tsdPtr->logFilename);
 }
 
 int
@@ -557,6 +558,7 @@ expLogUserSet(logUser)
 /* in diagnostic mode, "expect -d" */
 static char *
 expPrintifyReal(s)
+char *s;
 {
 	static int destlen = 0;
 	static char *dest = 0;
@@ -599,7 +601,7 @@ expPrintifyObj(obj)
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
 
     /* don't bother writing into bigbuf if we're not going to ever use it */
-    if ((!tsdPtr->diagToStderr) && (!tsdPtr->diagChannel)) return(tsdPtr->bigbuf);
+    if ((!tsdPtr->diagToStderr) && (!tsdPtr->diagChannel)) return((char *)0);
     
     return expPrintifyReal(Tcl_GetString(obj));
 }
@@ -611,7 +613,7 @@ char *s;
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
 
     /* don't bother writing into bigbuf if we're not going to ever use it */
-    if ((!tsdPtr->diagToStderr) && (!tsdPtr->diagChannel)) return(tsdPtr->bigbuf);
+    if ((!tsdPtr->diagToStderr) && (!tsdPtr->diagChannel)) return((char *)0);
 
     return expPrintifyReal(s);
 }
@@ -626,11 +628,12 @@ expDiagInit()
     tsdPtr->diagToStderr = 0;
 }
 
+void
 expLogInit()
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
 
     Tcl_DStringInit(&tsdPtr->logFilename);
     tsdPtr->logChannel = 0;
-    tsdPtr-> = 0;
+    tsdPtr->logAll = TRUE;
 }

@@ -282,8 +282,8 @@ Tcl_Interp *interp;
     exp_tty tty_old;
     int was_raw, was_echo;
 
-    Tcl_Channel outChannel;
-    ExpState esPtr = expStdinoutGet();
+    Tcl_Channel inChannel, outChannel;
+    ExpState *esPtr = expStdinoutGet();
     /*	int fd = fileno(stdin);*/
 	
     expect_key++;
@@ -293,7 +293,7 @@ Tcl_Interp *interp;
 
     gotPartial = 0;
     while (TRUE) {
-	outChannel = Tcl_GetStdChannel(TCL_STDOUT);
+	outChannel = expStdinoutGet()->channel;
 	if (outChannel) {
 	    Tcl_Flush(outChannel);
 	}
@@ -321,7 +321,8 @@ Tcl_Interp *interp;
 	/*  check for code == EXP_TCLERROR? */
 
 	if (code != EXP_EOF) {
-	    code = length = Tcl_GetsObj(inChannel, commandPtr);
+	    inChannel = expStdinoutGet()->channel;
+	    code = Tcl_GetsObj(inChannel, commandPtr);
 #ifdef SIMPLE_EVENT
 	    if (code == -1 && errno == EINTR) {
 		if (Tcl_AsyncReady()) {

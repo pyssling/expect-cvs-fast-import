@@ -570,7 +570,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 			 */
 
 			if (!(Tcl_GetRegExpFromObj(interp, objv[i+1],
-				REG_ADVANCED))) {
+				TCL_REG_ADVANCED))) {
 			    goto error;
 			}
 			goto pattern;

@@ -79,8 +79,10 @@ int Exp_StringCaseMatch2(string,pattern, nocase)	/* INTL */
 				 * special characters. */
     int nocase;
 {
-    char c2;
+    Tcl_UniChar ch1, ch2;
     int match = 0;	/* # of chars matched */
+
+    char *pstart = pattern;
 
     while (1) {
 	/* If at end of pattern, success! */
@@ -163,7 +165,7 @@ int Exp_StringCaseMatch2(string,pattern, nocase)	/* INTL */
 	 * (two characters separated by "-").
 	 */
 	
-	if (p == '[') {
+	if (*pattern == '[') {
 	    Tcl_UniChar ch, startChar, endChar;
 
 	    pattern++;

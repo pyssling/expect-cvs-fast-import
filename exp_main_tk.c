@@ -168,10 +168,10 @@ static int rest = 0;
 /* for Expect */
 int my_rc = 1;
 int sys_rc = 1;
-int optcmd_eval();
-int optcmd_diagToStderr();
+static int optcmd_eval();
+static int optcmd_diagToStderr();
 #ifdef TCL_DEBUGGER
-int optcmd_debug();
+static int optcmd_debug();
 #endif
 int print_version = 0;
 
@@ -407,7 +407,7 @@ char **argv;
 	return argc;
 }
 
-static void
+static int
 optcmd_diagToStderr(dst,interp,key,argc,argv)
     char *dst;
     Tcl_Interp *interp;
@@ -415,7 +415,7 @@ optcmd_diagToStderr(dst,interp,key,argc,argv)
     int argc;
     char **argv;
 {
-    expDiagToStderr(TRUE);
+    expDiagToStderr(1);
     return --argc;  /* what the heck is the convention here!! */
 }
 

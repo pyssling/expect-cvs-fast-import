@@ -58,7 +58,7 @@ void
 exp_event_disarm_bg(esPtr)
 ExpState *esPtr;
 {
-    Tcl_DeleteChannelHandler(esPtr->channel,exp_background_channelhandler),(ClientData)esPtr);
+    Tcl_DeleteChannelHandler(esPtr->channel,exp_background_channelhandler,(ClientData)esPtr);
 }
 
 static void
@@ -175,11 +175,12 @@ int mask;
 
     tsdPtr->ready_esPtr = (ExpState *)clientData;
     tsdPtr->ready_mask = mask;
-    exp_event_disarm_fg(tsdPtr->ready_esptr);
+    exp_event_disarm_fg(tsdPtr->ready_esPtr);
 }
 
 void
 exp_event_disarm_fg(esPtr)
+ExpState *esPtr;
 {
     Tcl_DeleteChannelHandler(esPtr->channel,exp_channelhandler,(ClientData)esPtr);
 
@@ -375,7 +376,7 @@ double sec;
 
 	if (!tsdPtr->ready_esPtr) continue;
 
-	exp_event_disarm(tsdPtr->ready_esPtr);
+	exp_event_disarm_fg(tsdPtr->ready_esPtr);
 	tsdPtr->ready_esPtr = EXP_SPAWN_ID_BAD;
     }
 }

@@ -91,7 +91,7 @@ struct breakpoint {
 	char *file;	/* file where breakpoint is */
 	int line;	/* line where breakpoint is */
 	char *pat;	/* pattern defining where breakpoint can be */
-	regexp *re;	/* regular expression to trigger breakpoint */
+	Tcl_RegExp *re;	/* regular expression to trigger breakpoint */
 	char *expr;	/* expr to trigger breakpoint */
 	char *cmd;	/* cmd to eval at breakpoint */
 	struct breakpoint *next, *previous;

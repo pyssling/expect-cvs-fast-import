@@ -25,7 +25,7 @@ EXTERN char *		expPrintifyObj _ANSI_ARGS_((Tcl_Obj *));
 EXTERN void		expLogInit _ANSI_ARGS_((void));
 EXTERN int		expLogChannelOpen _ANSI_ARGS_((Tcl_Interp *,char *,int));
 EXTERN Tcl_Channel 	expLogChannelGet _ANSI_ARGS_((void));
-EXTERN int		expLogChannelSet _ANSI_ARGS_((Tcl_Channel,char *));
+EXTERN int		expLogChannelSet _ANSI_ARGS_((Tcl_Interp *,char *));
 EXTERN void		expLogChannelClose _ANSI_ARGS_((Tcl_Interp *));
 EXTERN char *		expLogFilenameGet _ANSI_ARGS_((void));
 EXTERN void		expLogAppendSet _ANSI_ARGS_((int));

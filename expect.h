@@ -58,6 +58,8 @@ EXTERN int exp_reading;			/* whether we can longjmp or not */
 EXTERN int exp_logfile_all;
 EXTERN FILE *exp_debugfile;
 EXTERN FILE *exp_logfile;
+extern void exp_debuglog _ANSI_ARGS_(TCL_VARARGS(char *,fmt));
+extern void exp_errorlog _ANSI_ARGS_(TCL_VARARGS(char *,fmt));
 
 EXTERN int exp_disconnect _ANSI_ARGS_((void));
 EXTERN FILE *exp_popen	_ANSI_ARGS_((char *command));
