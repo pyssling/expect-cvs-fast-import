@@ -181,8 +181,9 @@ Exp_SpawnCmd(ClientData clientData,Tcl_Interp *interp,int argc,char **argv)
     char slaveName[50];		/* Used to set 'spawn_out(slave,name)' */
     static int slaveId = 1;	/* Start at one because console0 is expect's */
     UCHAR buf[8];		/* enough space for child status info */
-    char execPath[MAX_PATH];
+    WCHAR execPath[MAX_PATH];   /* needed for unicode space. */
     Tcl_DString slavePath;
+    Tcl_DString slaveDrvPath;
     struct exp_f *f;
     HANDLE hEvent = NULL;
     OVERLAPPED over;
@@ -301,15 +302,20 @@ Exp_SpawnCmd(ClientData clientData,Tcl_Interp *interp,int argc,char **argv)
     Tcl_SetVar2(interp,EXP_SPAWN_OUT,"slave,name",slaveName,0);
 
     /*
-     * Time to create our subprocess.
+     * Time to create our subprocess.  slavedrv.exe is ALWAYS in the same
+     * directory alongside the extension dll.
      */
 
-    dwRet = SearchPath(NULL, "slavedrv.exe", NULL, MAX_PATH, execPath, NULL);
-    if (dwRet == 0) {
-	Tcl_AppendResult(interp, argv0,
-			 ": unable to find helper program slavedrv.exe",
-			 (char *) NULL);
-	return TCL_ERROR;
+    Tcl_DStringInit(&slaveDrvPath);
+    (*expWinProcs->getModuleFileNameProc)(expDllInstance,
+	    (LPTSTR) execPath, MAX_PATH);
+    val = Tcl_WinTCharToUtf((LPTSTR)execPath, -1, &slaveDrvPath);
+    for (i = Tcl_DStringLength(&slaveDrvPath) - 1; i > 0; i--) {
+	if (*(val+i) == '\\') {
+	    Tcl_DStringSetLength(&slaveDrvPath, i+1);
+	    Tcl_DStringAppend(&slaveDrvPath, "slavedrv.exe", 12);
+	    break;
+	}
     }
 
     Tcl_DStringInit(&slavePath);
@@ -382,7 +388,7 @@ Exp_SpawnCmd(ClientData clientData,Tcl_Interp *interp,int argc,char **argv)
     }
 
     nargv = (char **) ckalloc(sizeof(char *) * (argc+4));
-    nargv[0] = execPath;
+    nargv[0] = Tcl_DStringValue(&slaveDrvPath);
 
     if (!useSocket) {
 	nargv[1] = pipeName;
@@ -393,44 +399,70 @@ Exp_SpawnCmd(ClientData clientData,Tcl_Interp *interp,int argc,char **argv)
     nargv[3] = debug    ? "1" : "0";
     j = 4;
     nargv[j++] = Tcl_DStringValue(&slavePath);
-    for (i = 0; i < argc; i++, j++) {
+    for (i = 1; i < argc; i++, j++) {
 	nargv[j] = argv[i];
     }
     argc = j;
 
+#ifdef _DEBUG
     /*
      * When the Expect extension is running in a debugger,
      * print the commandline to the debugger's output window.
      * This is a feature of the OS.
+     *
+     * >>>>[ And don't leave this stuff in the retail build! ]<<<<
      */
     if (IsDebuggerPresent()) {
-	Tcl_DString ds;
+	Tcl_DString cmdLine;
+	Tcl_DString enVar;
 
 	OutputDebugString("spawndrv.exe args: ");
-	Tcl_DStringInit(&ds);
+	Tcl_DStringInit(&cmdLine);
+	Tcl_DStringInit(&enVar);
 	/* This quotes the strings properly. */
-	BuildCommandLine(nargv[0], argc, nargv, &ds);
-	(*expWinProcs->outputDebugStringProc)((LPCTSTR)Tcl_DStringValue(&ds));
+	BuildCommandLine(nargv[0], argc, nargv, &cmdLine);
+	(*expWinProcs->outputDebugStringProc)((LPCTSTR)Tcl_DStringValue(&cmdLine));
 	OutputDebugString("\n");
 
-	Tcl_DStringFree(&ds);
-    }
+	/*
+	 * Telling the MSVC++ debugger what commandline to use is not
+	 * possible.  Pass the info over an envar.
+	 */
 
-    hide = !debug;
-    dwRet = ExpWinCreateProcess(argc, nargv, NULL, NULL, NULL,
-			     TRUE, hide, FALSE, FALSE,
-			     &slaveDrvPid, &globalPid);
-    if (dwRet != 0) {
-        TclWinConvertError(dwRet);
-        exp_error(interp, "couldn't execute \"%s\": %s",
-	      argv[0],Tcl_PosixError(interp));
-	goto end;
-    }
+	Tcl_WinUtfToTChar("EXP_SPAWN_DEBUG_CMDLINE", -1, &enVar);
+	(*expWinProcs->setEnvironmentVariableProc)(
+		(LPCTSTR)Tcl_DStringValue(&enVar),
+		(LPCTSTR)Tcl_DStringValue(&cmdLine));
+	Tcl_DStringFree(&enVar);
+	Tcl_DStringFree(&cmdLine);
 
-    /*
-     * Until we use the process handle for something, close it
-     */
-    CloseHandle((HANDLE) slaveDrvPid);
+	/*
+	 * Launch a new instance of MSVC++ with the right project file, if one
+	 * does not already exist.  And tell MSVC++ to run it in the debuger.
+	 */
+
+	ExpWinDbgLaunch();
+
+    } else {
+#endif
+	hide = !debug;
+	dwRet = ExpWinCreateProcess(argc, nargv, NULL, NULL, NULL,
+				 TRUE, hide, FALSE, FALSE,
+				 &slaveDrvPid, &globalPid);
+	if (dwRet != 0) {
+	    TclWinConvertError(dwRet);
+	    exp_error(interp, "couldn't execute \"%s\": %s",
+		  argv[0],Tcl_PosixError(interp));
+	    goto end;
+	}
+
+	/*
+	 * Until we use the process handle for something, close it
+	 */
+	CloseHandle((HANDLE) slaveDrvPid);
+#ifdef _DEBUG
+    }
+#endif
 
     /*
      * Wait for connection with the slave driver
@@ -447,20 +479,20 @@ Exp_SpawnCmd(ClientData clientData,Tcl_Interp *interp,int argc,char **argv)
 		dwRet = WaitForSingleObject(hEvent, 10000 /* XXX 30000*/);
 		if (dwRet != WAIT_OBJECT_0) {
 		    TclWinConvertError(dwRet);
-		    exp_error(interp, "%s did not connect to server pipe: %s",
-			      execPath, Tcl_PosixError(interp));
+		    exp_error(interp, "\"%s\" did not connect to server pipe: %s",
+			      Tcl_DStringValue(&slaveDrvPath), Tcl_PosixError(interp));
 		    goto end;
 		}
 		bRet = GetOverlappedResult(hSlaveDrv, &over, &count, FALSE);
 		if (bRet == FALSE) {
 		    TclWinConvertError(GetLastError());
-		    exp_error(interp, "%s did not connect to server pipe: %s",
-			      execPath, Tcl_PosixError(interp));
+		    exp_error(interp, "\"%s\" did not connect to server pipe: %s",
+			      Tcl_DStringValue(&slaveDrvPath), Tcl_PosixError(interp));
 		    goto end;
 		}
 	    } else {
-		exp_error(interp, "%s did not connect to server pipe: %s",
-			  execPath, Tcl_PosixError(interp));
+		exp_error(interp, "\"%s\" did not connect to server pipe: %s",
+			  Tcl_DStringValue(&slaveDrvPath), Tcl_PosixError(interp));
 		goto end;
 	    }
 	}
@@ -491,15 +523,15 @@ Exp_SpawnCmd(ClientData clientData,Tcl_Interp *interp,int argc,char **argv)
 		dwRet = WaitForSingleObject(hEvent, 50000);  /* 50 seconds */
 		if (dwRet != WAIT_OBJECT_0) {
 		    TclWinConvertError(dwRet);
-		    exp_error(interp, "%s did not synchronize with master: %s",
-			      execPath, Tcl_PosixError(interp));
+		    exp_error(interp, "\"%s\" did not synchronize with master: %s",
+			      Tcl_DStringValue(&slaveDrvPath), Tcl_PosixError(interp));
 		    goto end;
 		}
 		bRet = GetOverlappedResult(hSlaveDrv, &over, &count, FALSE);
 		if (bRet == FALSE) {
 		    TclWinConvertError(GetLastError());
-		    exp_error(interp, "%s did not synchronize with master: %s",
-			      execPath, Tcl_PosixError(interp));
+		    exp_error(interp, "\"%s\" did not synchronize with master: %s",
+			      Tcl_DStringValue(&slaveDrvPath), Tcl_PosixError(interp));
 		    goto end;
 		}
 	    }

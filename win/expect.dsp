@@ -179,6 +179,14 @@ SOURCE=.\expWinSpawnChan.c
 
 SOURCE=.\expWinTty.c
 # End Source File
+# Begin Source File
+
+SOURCE=.\ExpWinVCDbgLaunch.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\winDllMain.c
+# End Source File
 # End Group
 # End Target
 # End Project

@@ -62,19 +62,22 @@ typedef struct {
 
 typedef struct {
     int useWide;
-    HANDLE (WINAPI *createFileProc)(CONST TCHAR *, DWORD, DWORD, 
+    HANDLE (WINAPI *createFileProc)(LPCTSTR, DWORD, DWORD,
 	    LPSECURITY_ATTRIBUTES, DWORD, DWORD, HANDLE);
-    BOOL (WINAPI *createProcessProc)(CONST TCHAR *, TCHAR *, 
-	    LPSECURITY_ATTRIBUTES, LPSECURITY_ATTRIBUTES, BOOL, DWORD, 
-	    LPVOID, CONST TCHAR *, LPSTARTUPINFO, LPPROCESS_INFORMATION);
-    DWORD (WINAPI *getFileAttributesProc)(CONST TCHAR *);
-    DWORD (WINAPI *getShortPathNameProc)(CONST TCHAR *, TCHAR *, DWORD); 
-    DWORD (WINAPI *searchPathProc)(CONST TCHAR *, CONST TCHAR *, 
-	    CONST TCHAR *, DWORD, TCHAR *, TCHAR **);
+    BOOL (WINAPI *createProcessProc)(LPCTSTR, LPTSTR, LPSECURITY_ATTRIBUTES,
+	    LPSECURITY_ATTRIBUTES, BOOL, DWORD, LPVOID, LPCTSTR, LPSTARTUPINFO,
+	    LPPROCESS_INFORMATION);
+    DWORD (WINAPI *getFileAttributesProc)(LPCTSTR);
+    DWORD (WINAPI *getShortPathNameProc)(LPCTSTR, LPTSTR, DWORD); 
+    DWORD (WINAPI *searchPathProc)(LPCTSTR, LPCTSTR, LPCTSTR, DWORD, LPTSTR,
+	    LPTSTR *);
     VOID (WINAPI *outputDebugStringProc)(LPCTSTR);
+    DWORD (WINAPI *getModuleFileNameProc)(HMODULE, LPTSTR, DWORD);
+    BOOL (WINAPI *setEnvironmentVariableProc)(LPCTSTR, LPCTSTR);
 } ExpWinProcs;
 
 extern ExpWinProcs *expWinProcs;
+extern HMODULE expDllInstance;
 
 extern void		ExpWinInit(void);
 extern DWORD		ExpWinApplicationType(const char *originalName,
@@ -91,3 +94,4 @@ EXTERN Tcl_Channel	ExpCreateSpawnChannel _ANSI_ARGS_((Tcl_Interp *,
 extern void		ExpSyslog TCL_VARARGS(char *,fmt);
 extern Tcl_Pid		Exp_WaitPid(Tcl_Pid pid, int *statPtr, int options);
 extern void		Exp_KillProcess(Tcl_Pid pid);
+extern void		ExpWinDbgLaunch(void);
