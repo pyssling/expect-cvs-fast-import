@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinSpawnChan.c,v 1.1.2.1.2.3 2002/02/10 12:03:30 davygrvy Exp $
+ * RCS: @(#) $Id: expWinSlaveMain.cpp,v 1.1.4.1 2002/03/06 01:51:53 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -49,7 +49,7 @@
 // local protos
 static ExpSpawnClientTransport *ExpWinSpawnOpenClientTransport(const char *name);
 static ExpSlaveTrap *ExpWinSlaveOpenTrap(const char *meth, int argc, char * const argv[]);
-static int ExpWinSlaveEvents (ExpSpawnClientTransport *transport, ExpSlaveTrap *masterCtrl);
+static int ExpWinMasterDoEvents(ExpSpawnClientTransport *transport, ExpSlaveTrap *masterCtrl);
 static void SetArgv(int *argcPtr, char ***argvPtr);
 
 
@@ -83,20 +83,18 @@ main (void)
     //  to Expect.
     //
     tclient = ExpWinSpawnOpenClientTransport(argv[1]);
-    if (tclient == 0L) return 4;
 
     //  Create the process to be intercepted within the trap method requested
     //  on the commandline.
     //
     slaveCtrl = ExpWinSlaveOpenTrap(argv[2], argc-3, &argv[3]);
-    if (slaveCtrl == 0L) return 5;
 
     //  Process events until the slave closes.
     //
     //  We block on input/events coming from the slave and
     //  input from the IPC coming from expect.
     //
-    return ExpWinSlaveDoEvents(tclient, slaveCtrl);
+    return ExpWinMasterDoEvents(tclient, slaveCtrl);
 }
 
 /*
@@ -157,9 +155,10 @@ ExpWinSlaveOpenTrap(const char *meth, int argc, char * const argv[])
 
 /*
  *----------------------------------------------------------------------
- *  ExpWinSlaveEvents --
+ *  ExpWinMasterDoEvents --
  *
- *	Process all events for the slavedrv application.
+ *	Process all events for the slavedrv application.  We are the
+ *	master.  The slave is the process we are trapping.
  *
  *  Returns:
  *	an exit code.
@@ -168,8 +167,9 @@ ExpWinSlaveOpenTrap(const char *meth, int argc, char * const argv[])
  */
 
 int
-ExpWinSlaveEvents (ExpSpawnClientTransport *transport, ExpSlaveTrap *masterCtrl)
+ExpWinMasterDoEvents(ExpSpawnClientTransport *transport, ExpSlaveTrap *masterCtrl)
 {
+    CMclWaitableCollection stuff;
     return 0;
 }
 
