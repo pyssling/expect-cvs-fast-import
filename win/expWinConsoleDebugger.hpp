@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinConsoleDebugger.hpp,v 1.1.2.20 2002/06/20 21:52:53 davygrvy Exp $
+ * RCS: @(#) $Id: expWinConsoleDebugger.hpp,v 1.1.2.21 2002/06/21 03:01:51 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -159,6 +159,7 @@ private:
     //
     void OnXFirstBreakpoint	(Process *, LPDEBUG_EVENT);
     void OnXSecondBreakpoint	(Process *, LPDEBUG_EVENT);
+    void OnXThirdBreakpoint	(Process *, LPDEBUG_EVENT);
     void OnXBreakpoint		(Process *, LPDEBUG_EVENT);
     void OnXCreateProcess	(Process *, LPDEBUG_EVENT);
     void OnXCreateThread	(Process *, LPDEBUG_EVENT);
@@ -204,7 +205,7 @@ private:
     BOOL ReadSubprocessMemory	(Process *, LPVOID, LPVOID, DWORD);
     BOOL WriteSubprocessMemory	(Process *, LPVOID, LPVOID, DWORD);
     void MakeSubprocessMemory   (Process *, SIZE_T, LPVOID *, DWORD = PAGE_READWRITE);
-    void RemoveSubprocessMemory (Process *, LPVOID);
+    BOOL RemoveSubprocessMemory (Process *, LPVOID);
     int ReadSubprocessStringA	(Process *, PVOID, PCHAR, int);
     int ReadSubprocessStringW	(Process *, PVOID, PWCHAR, int);
     void CreateVtSequence	(Process *, COORD, DWORD);
@@ -213,6 +214,7 @@ private:
     // send info back to the parent
     void WriteMasterCopy	(CHAR *, DWORD);
     void WriteMasterWarning	(CHAR *, DWORD);
+    void WriteMasterError	(CHAR *, DWORD);
 
 
     // announce we are done.
@@ -232,6 +234,7 @@ private:
     DWORD	MasterConsoleInputMode;// Current flags for the master console.
     COORD	ConsoleSize;    // Size of the console in the slave.
     COORD	CursorPosition; // Coordinates of the cursor in the slave.
+    char	*SymbolPath;
     UINT	ConsoleCP;	// console input code page of the slave.
     UINT	ConsoleOutputCP;// console output code page of the slave.
     BOOL	CursorKnown;    // Do we know where the slave's cursor is?
@@ -248,6 +251,9 @@ private:
     //
     CMclCritSec bpCritSec;
 
+    LPVOID	pStartAddress;	// Start address of the top process.
+    BYTE	originalExeEntryPointOpcode;
+
     LOADLIBRARY_STUB injectorStub;// opcodes we use to force load our injector
 				//  dll.
     PVOID	pInjectorStub;	// Pointer to memory in sub process used
@@ -258,6 +264,14 @@ private:
     typedef Tcl::Hash<HANDLE, TCL_ONE_WORD_KEYS> PTR2HANDLE;
     PTR2HANDLE	spMemMapping;	// Used on Win9x to associate the file mapping
 				//  handle to the memory address it provides.
+
+    // A couple NT routines we'll might need when running
+    // on NT/2K/XP
+    typedef LPVOID (__stdcall *PFNVIRTUALALLOCEX)(HANDLE,LPVOID,SIZE_T,DWORD,DWORD);
+    typedef BOOL (__stdcall *PFNVIRTUALFREEEX)(HANDLE,LPVOID,SIZE_T,DWORD);
+
+    PFNVIRTUALALLOCEX pfnVirtualAllocEx;
+    PFNVIRTUALFREEEX pfnVirtualFreeEx;
 };
 
 #endif // INC_expWinConsoleDebugger_hpp__

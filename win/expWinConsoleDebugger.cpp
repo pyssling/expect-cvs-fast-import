@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinConsoleDebugger.cpp,v 1.1.2.18 2002/06/20 21:52:53 davygrvy Exp $
+ * RCS: @(#) $Id: expWinConsoleDebugger.cpp,v 1.1.2.19 2002/06/21 03:01:50 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -43,18 +43,40 @@
 #endif
 
 
-typedef LPVOID (__stdcall *PFNVIRTALLEX)(HANDLE,LPVOID,SIZE_T,DWORD,DWORD);
 
 //  Constructor.
 ConsoleDebugger::ConsoleDebugger (int _argc, char * const *_argv, CMclQueue<Message *> &_mQ)
     : argc(_argc), argv(_argv), ProcessList(0L), CursorKnown(FALSE), ConsoleOutputCP(0),
-    ConsoleCP(0), mQ(_mQ)
+    ConsoleCP(0), mQ(_mQ), pStartAddress(0L), originalExeEntryPointOpcode(0), pInjectorStub(0)
 {
     OSVERSIONINFO osvi;
+    DWORD n, i;
 
     osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
     GetVersionEx(&osvi);
     dwPlatformId = osvi.dwPlatformId;
+
+    if (dwPlatformId == VER_PLATFORM_WIN32_NT) {
+	pfnVirtualAllocEx = (PFNVIRTUALALLOCEX) GetProcAddress(
+		GetModuleHandle("KERNEL32.DLL"),"VirtualAllocEx");
+	pfnVirtualFreeEx = (PFNVIRTUALFREEEX) GetProcAddress(
+		GetModuleHandle("KERNEL32.DLL"),"VirtualFreeEx");
+    }
+
+    n = GetEnvironmentVariable("Path", NULL, 0);
+    n += GetEnvironmentVariable("_NT_SYMBOL_PATH", NULL, 0) + 1;
+    n += GetEnvironmentVariable("_NT_ALT_SYMBOL_PATH", NULL, 0) + 1;
+    n += GetEnvironmentVariable("SystemRoot", NULL, 0) + 1;
+
+    SymbolPath = new char [n];
+
+    i = GetEnvironmentVariable("Path", SymbolPath, n);
+    SymbolPath[i++] = ';';
+    i += GetEnvironmentVariable("_NT_SYMBOL_PATH", &SymbolPath[i], n-i);
+    SymbolPath[i++] = ';';
+    i += GetEnvironmentVariable("_NT_ALT_SYMBOL_PATH", &SymbolPath[i], n-i);
+    SymbolPath[i++] = ';';
+    i += GetEnvironmentVariable("SystemRoot", &SymbolPath[i], n-i);
 
     //  Until further notice, assume this.
     //
@@ -212,6 +234,7 @@ ConsoleDebugger::ConsoleDebugger (int _argc, char * const *_argv, CMclQueue<Mess
 
 ConsoleDebugger::~ConsoleDebugger()
 {
+    delete [] SymbolPath;
 }
 
 unsigned
@@ -326,12 +349,21 @@ again:
 	switch (debEvent.u.Exception.ExceptionRecord.ExceptionCode) {
 	case EXCEPTION_BREAKPOINT:
 	{
-	    switch (proc->nBreakCount < 3 ? ++(proc->nBreakCount) : 3) {
+	    switch (proc->nBreakCount < 4 ? ++(proc->nBreakCount) : 4) {
 	    case 1:
 		OnXFirstBreakpoint(proc, &debEvent); break;
 	    case 2:
 		OnXSecondBreakpoint(proc, &debEvent); break;
 	    case 3:
+		if ((DWORD)debEvent.u.Exception.ExceptionRecord.ExceptionAddress
+			!= (injectorStub.operand_PUSH_value - sizeof(BYTE)))
+		{
+		    --(proc->nBreakCount);
+		    OnXBreakpoint(proc, &debEvent);
+		    break;
+		}
+		OnXThirdBreakpoint(proc, &debEvent); break;
+	    case 4:
 		OnXBreakpoint(proc, &debEvent);
 	    }
 	    break;
@@ -346,8 +378,12 @@ again:
 	    dwContinueStatus = DBG_EXCEPTION_NOT_HANDLED;
 	    break;
 
+	case EXCEPTION_NONCONTINUABLE_EXCEPTION:
+	    // we die here.
+	    return EXCEPTION_NONCONTINUABLE_EXCEPTION;
+
 	default:
-	    if (! debEvent.u.Exception.dwFirstChance) {
+	    if (!debEvent.u.Exception.dwFirstChance) {
 		// An exception was hit and it was not handled by the program.
 		// Now it is time to get a backtrace.
 		//
@@ -444,7 +480,7 @@ ConsoleDebugger::OnXFirstBreakpoint(Process *proc, LPDEBUG_EVENT pDebEvent)
     memset(retbuf, BRK_OPCODE, RETBUF_SIZE);
     WriteSubprocessMemory(proc, proc->pSubprocessMemory, retbuf, RETBUF_SIZE);
 
-    // Set all breakpoints
+    // Set all Console API breakpoints.
     //
     for (i = 0; BreakPoints[i].dllName; i++) {
 	for (binfo = BreakPoints[i].breakInfo; binfo->funcName; binfo++) {
@@ -452,31 +488,18 @@ ConsoleDebugger::OnXFirstBreakpoint(Process *proc, LPDEBUG_EVENT pDebEvent)
 	}
     }
 
-    //  Make some memory for our stub that we place into the slave's address
-    //  space and cause it to run it as if was part of the slave's application.
-    //  This stub (or set of opcodes) calls LoadLibrary() to bring in our
-    //  injector dll that acts as the receiver for "injecting" console events.
+    // Install our entry breakpoint.  We can't run the injector Stub now
+    // as the process heap hasn't been created.  (it was some memory related
+    // error and I don't know exactly why, but moving the stub run later
+    // solved it).  It seems that the first breakpoint naturally fired is
+    // much too early in the creation of the initial process for much of
+    // anything to be ready.
     //
-    MakeSubprocessMemory(proc, sizeof(LOADLIBRARY_STUB), &pInjectorStub,
-	    PAGE_EXECUTE_READWRITE);
-    injectorStub.operand_PUSH_value = (DWORD) pInjectorStub +
-	    offsetof(LOADLIBRARY_STUB, data_DllName);
-    injectorStub.operand_MOV_EAX = (DWORD) GetProcAddress(GetModuleHandle(
-	    "KERNEL32.DLL"), "LoadLibraryA");
-    WriteSubprocessMemory(proc, pInjectorStub, &injectorStub,
-	    sizeof(LOADLIBRARY_STUB));
+    ReadSubprocessMemory(proc, pStartAddress,
+	    &originalExeEntryPointOpcode, sizeof(BYTE));
 
-    //  Save the instruction pointer so we can restore it later.
-    //
-    preStubContext.ContextFlags = CONTEXT_FULL;
-    GetThreadContext(tinfo->hThread, &preStubContext);
-
-    //  Set instruction pointer to run the Stub instead of continuing
-    //  from where we are.
-    //
-    CONTEXT stubContext = preStubContext;
-    stubContext.Eip = (DWORD) pInjectorStub;
-    SetThreadContext(tinfo->hThread, &stubContext);
+    BYTE bpOpcode = BRK_OPCODE;
+    WriteSubprocessMemory(proc, pStartAddress, &bpOpcode, sizeof(BYTE));
 
     return;
 #   undef RETBUF_SIZE
@@ -487,8 +510,10 @@ ConsoleDebugger::OnXFirstBreakpoint(Process *proc, LPDEBUG_EVENT pDebEvent)
  *
  * ConsoleDebugger::OnXSecondBreakpoint --
  *
- *	This routine is called when the second breakpoint is hit and
- *	our stub has run and our injector is loaded.
+ *	This routine is called when the second breakpoint is hit.
+ *	The processes' entry-point is getting called.  We intercept this
+ *	and make our injector.dll load first before the entry-point is
+ *	called.
  *
  * Results:
  *	None
@@ -500,7 +525,60 @@ void
 ConsoleDebugger::OnXSecondBreakpoint(Process *proc, LPDEBUG_EVENT pDebEvent)
 {
     ThreadInfo *tinfo;
+
+    for (tinfo = proc->threadList; tinfo != 0L; tinfo = tinfo->nextPtr) {
+	if (pDebEvent->dwThreadId == tinfo->dwThreadId) {
+	    break;
+	}
+    }
+
+    //  Make some memory for our stub that we place into the processes' address
+    //  space.  This stub (or set of opcodes) calls LoadLibrary() to bring in our
+    //  injector dll that acts as the receiver for "injecting" console events.
+    //
+    MakeSubprocessMemory(proc, sizeof(LOADLIBRARY_STUB), &pInjectorStub,
+	    PAGE_EXECUTE_READWRITE);
+    injectorStub.operand_PUSH_value = (DWORD) pInjectorStub +
+	    offsetof(LOADLIBRARY_STUB, data_DllName);
+    injectorStub.operand_MOV_EAX = (DWORD) GetProcAddress(GetModuleHandle(
+	    "KERNEL32.DLL"), "LoadLibraryA");
+    WriteSubprocessMemory(proc, pInjectorStub, &injectorStub,
+	    sizeof(LOADLIBRARY_STUB));
+    FlushInstructionCache(proc->hProcess, pInjectorStub, sizeof(LOADLIBRARY_STUB));
+
+
+    //  Save the instruction pointer so we can restore it later.
+    //
+    preStubContext.ContextFlags = CONTEXT_FULL;
+    GetThreadContext(tinfo->hThread, &preStubContext);
+
+    //  Set instruction pointer to run the Stub instead of continuing
+    //  from where we are (which is the app's entry point).
+    //
+    CONTEXT stubContext = preStubContext;
+    stubContext.Eip = (DWORD) pInjectorStub;
+    SetThreadContext(tinfo->hThread, &stubContext);
+}
+
+/*
+ *----------------------------------------------------------------------
+ *
+ * ConsoleDebugger::OnXThirdBreakpoint --
+ *
+ *	This routine is called when the third breakpoint is hit and
+ *	our stub has run and our injector is loaded.
+ *
+ * Results:
+ *	None
+ *
+ *----------------------------------------------------------------------
+ */
+
+void
+ConsoleDebugger::OnXThirdBreakpoint(Process *proc, LPDEBUG_EVENT pDebEvent)
+{
     CONTEXT now;
+    ThreadInfo *tinfo;
 
     for (tinfo = proc->threadList; tinfo != 0L; tinfo = tinfo->nextPtr) {
 	if (pDebEvent->dwThreadId == tinfo->dwThreadId) {
@@ -514,16 +592,18 @@ ConsoleDebugger::OnXSecondBreakpoint(Process *proc, LPDEBUG_EVENT pDebEvent)
     // Eax should not be zero, if the injector loaded.
     // It should be the handle of the injector dll.
 
+    WriteSubprocessMemory(proc, pStartAddress,
+	    &originalExeEntryPointOpcode, sizeof(BYTE));
+
     SetThreadContext(tinfo->hThread, &preStubContext);
 
-    // We should now remove the memory allocated in the sub process and
-    // remove our stub.
+    // We should now remove the memory allocated in the sub process for
+    // our injector stub.
     //
     RemoveSubprocessMemory(proc, pInjectorStub);
 
     return;
 }
-
 /*
  *----------------------------------------------------------------------
  *
@@ -563,8 +643,163 @@ void
 ConsoleDebugger::OnXSecondChanceException(Process *proc,
     LPDEBUG_EVENT pDebEvent)
 {
-    // Do nothing.
-    return;
+    BOOL b;
+    STACKFRAME frame;
+    CONTEXT context;
+    ThreadInfo *tinfo;
+    Module *modPtr;
+    DWORD displacement;
+    BYTE symbolBuffer[sizeof(IMAGEHLP_SYMBOL) + 512];
+    PIMAGEHLP_SYMBOL pSymbol = (PIMAGEHLP_SYMBOL)symbolBuffer;
+    char *s;
+    int result;
+
+    for (tinfo = proc->threadList; tinfo != NULL; tinfo = tinfo->nextPtr) {
+	if (pDebEvent->dwThreadId == tinfo->dwThreadId) {
+	    break;
+	}
+    }
+
+    context.ContextFlags = CONTEXT_FULL;
+    GetThreadContext(tinfo->hThread, &context);
+
+    /*
+     * XXX: From what I can tell, SymInitialize is broken on Windows NT 4.0
+     * if you try to have it iterate the modules in a process.  It always
+     * returns an object mismatch error.  Instead, initialize without iterating
+     * the modules.  Contrary to what MSDN documentation says,
+     * Microsoft debuggers do not exclusively use the imagehlp API.  In
+     * fact, the only thing VC 5.0 uses is the StackWalk function.
+     * Windbg uses a few more functions, but it doesn't use SymInitialize.
+     * We will then do the hard work of finding all the
+     * modules and doing the right thing.
+     */
+
+    if (!SymInitialize(proc->hProcess, SymbolPath, FALSE))
+    {
+	CHAR *buffer = new CHAR [512];
+	DWORD len;
+	len = wsprintf(buffer, "Unable to get backtrace: %s\n",
+		GetSysMsg(GetLastError()));
+	WriteMasterError(buffer, len);
+	return;
+    }
+
+#ifdef _X86_
+    memset(&frame, 0, sizeof(frame));
+    frame.AddrPC.Mode = AddrModeFlat;
+    frame.AddrPC.Segment = 0;
+    frame.AddrPC.Offset = context.Eip;
+
+    frame.AddrReturn.Mode = AddrModeFlat;
+    frame.AddrReturn.Segment = 0;
+    frame.AddrReturn.Offset = context.Ebp; /* I think this is correct */
+
+    frame.AddrFrame.Mode = AddrModeFlat;
+    frame.AddrFrame.Segment = 0;
+    frame.AddrFrame.Offset = context.Ebp;
+
+    frame.AddrStack.Mode = AddrModeFlat;
+    frame.AddrStack.Segment = 0;
+    frame.AddrStack.Offset = context.Esp;
+
+    frame.FuncTableEntry = NULL;
+    frame.Params[0] = context.Eax;
+    frame.Params[1] = context.Ecx;
+    frame.Params[2] = context.Edx;
+    frame.Params[3] = context.Ebx;
+    frame.Far = FALSE;
+    frame.Virtual = FALSE;
+    frame.Reserved[0] = 0;
+    frame.Reserved[1] = 0;
+    frame.Reserved[2] = 0;
+    /* frame.KdHelp.* is not set */
+
+    /*
+     * Iterate through the loaded modules and load symbols for each one.
+     */
+    for (
+	result = proc->moduleTable.Top(&modPtr);
+	result == TCL_OK;
+	result = proc->moduleTable.Next(&modPtr)
+    ) {
+	if (!modPtr->loaded) {
+	    modPtr->dbgInfo = MapDebugInformation(modPtr->hFile, 0L,
+		SymbolPath, (DWORD)modPtr->baseAddr);
+
+	    SymLoadModule(proc->hProcess, modPtr->hFile,
+		0L, 0L, (DWORD) modPtr->baseAddr, 0);
+	    modPtr->loaded = TRUE;
+	}
+    }
+
+
+    if (proc->exeModule && proc->exeModule->dbgInfo && 
+	proc->exeModule->dbgInfo->ImageFileName) {
+	s = proc->exeModule->dbgInfo->ImageFileName;
+    } else {
+	s = "";
+    }
+
+    {
+	DWORD len;
+	CHAR *buffer = new CHAR [MAX_PATH+54];
+	len = wsprintf(buffer, "A fatal exception has occured in \"%s\"\n"
+		"This is the backtrace\n"
+		"-------------------------------------\n", s);
+	WriteMasterError(buffer, len);
+    }
+
+    while (1) {
+        pSymbol->SizeOfStruct = sizeof(symbolBuffer);
+        pSymbol->MaxNameLength = 512;
+
+	b = StackWalk(
+#ifdef _WIN64
+	    IMAGE_FILE_MACHINE_IA64,
+#else
+	    IMAGE_FILE_MACHINE_I386,
+#endif
+	    proc->hProcess,
+	    tinfo->hThread, &frame, &context, 0L,
+	    SymFunctionTableAccess, SymGetModuleBase,
+	    0L);
+
+	if (b == FALSE || frame.AddrPC.Offset == 0) {
+	    break;
+	}
+	    
+        if (SymGetSymFromAddr(proc->hProcess, frame.AddrPC.Offset,
+	    &displacement, pSymbol) )
+        {
+	    DWORD base, len;
+	    CHAR *buffer = new CHAR [128];
+
+	    base = SymGetModuleBase(proc->hProcess, frame.AddrPC.Offset);
+	    if (proc->moduleTable.Find((void *)base, &modPtr) != TCL_ERROR) {
+		if (modPtr->dbgInfo && modPtr->dbgInfo->ImageFileName) {
+		    s = modPtr->dbgInfo->ImageFileName;
+		} else {
+		    s = "";
+		}
+	    } else {
+		s = "";
+	    }
+	    len = wsprintf(buffer, "%.20s %08.8x\t%s+%X\n", s, frame.AddrPC.Offset,
+		    pSymbol->Name, displacement);
+	    WriteMasterError(buffer, len);
+	} else {
+	    DWORD len;
+	    CHAR *buffer = new CHAR [33];
+	    len = wsprintf(buffer, "%08.8x\n", frame.AddrPC.Offset);
+	    WriteMasterError(buffer, len);
+	}
+    }
+
+    SymCleanup(proc->hProcess);
+#else
+#  error Unsupported architecture	    
+#endif
 }
 
 /*
@@ -652,6 +887,10 @@ ConsoleDebugger::OnXCreateProcess(Process *proc, LPDEBUG_EVENT pDebEvent)
     ThreadInfo *threadInfo;
     CREATE_PROCESS_DEBUG_INFO *info = &pDebEvent->u.CreateProcessInfo;
     int known;
+
+    // Save the first processes' start address.
+    if (!pStartAddress)
+	    pStartAddress = info->lpStartAddress;
 
     if (proc == 0L) {
 	proc = ProcessNew();
@@ -876,16 +1115,17 @@ ConsoleDebugger::OnXDebugString(Process *proc, LPDEBUG_EVENT pDebEvent)
 		pDebEvent->u.DebugString.lpDebugStringData,
 		wbuffer, wlen);
 	len = WideCharToMultiByte(CP_ACP, 0, wbuffer, wlen, 0L, 0, 0L, 0L);
-	buffer = new CHAR [len];
+	buffer = new CHAR [len+1];
 	WideCharToMultiByte(CP_ACP, 0, wbuffer, wlen, buffer, len, 0L, 0L);
     } else {
 	len = pDebEvent->u.DebugString.nDebugStringLength;
-	buffer = new CHAR [len];
+	buffer = new CHAR [len+1];
 	ReadSubprocessStringA(proc,
 		pDebEvent->u.DebugString.lpDebugStringData,
 		buffer, len);
     }
 
+    buffer[len] = '\0';  // Oops, Win9x forgets this.
     WriteMasterWarning(buffer, len);
 }
 
@@ -951,6 +1191,117 @@ ConsoleDebugger::SetBreakpointAtAddr(Process *proc, BreakInfo *info, PVOID funcP
     code = BRK_OPCODE;
     WriteSubprocessMemory(proc, funcPtr, &code, sizeof(BYTE));
     return bpt;
+}
+
+/*
+ *----------------------------------------------------------------------
+ *
+ * ConsoleDebugger::OnXBreakpoint --
+ *
+ *	This routine is called when a EXCEPTION_DEBUG_EVENT with
+ *	an exception code of EXCEPTION_BREAKPOINT.
+ *
+ * Results:
+ *	None
+ *
+ *----------------------------------------------------------------------
+ */
+
+void
+ConsoleDebugger::OnXBreakpoint(Process *proc, LPDEBUG_EVENT pDebEvent)
+{
+    LPEXCEPTION_DEBUG_INFO exceptInfo;
+    CONTEXT context;
+    ThreadInfo *tinfo;
+    Breakpoint *pbrkpt, *brkpt;
+    PDWORD pdw;
+    DWORD i;
+    DWORD dw;
+
+    for (tinfo = proc->threadList; tinfo != 0L; tinfo = tinfo->nextPtr) {
+	if (pDebEvent->dwThreadId == tinfo->dwThreadId) {
+	    break;
+	}
+    }
+    assert(tinfo != 0L);
+
+    exceptInfo = &pDebEvent->u.Exception;
+
+    pbrkpt = 0L;
+    for (brkpt = proc->brkptList; brkpt != 0L;
+	 pbrkpt = brkpt, brkpt = brkpt->nextPtr) {
+	if (brkpt->codePtr == exceptInfo->ExceptionRecord.ExceptionAddress) {
+	    if (brkpt->threadInfo == 0L) {
+		break;
+	    }
+	    if (brkpt->threadInfo == tinfo) {
+		break;
+	    }
+	}
+    }
+
+    context.ContextFlags = CONTEXT_FULL;
+    GetThreadContext(tinfo->hThread, &context);
+
+    if (! brkpt->returning) {
+	Breakpoint *bpt;
+	// Get the arguments to the function and store them in the thread
+	// specific data structure.
+	for (pdw = tinfo->args, i=0; i < brkpt->breakInfo->nargs; i++, pdw++) {
+	    ReadSubprocessMemory(proc, (PVOID) (context.Esp+(4*(i+1))),
+				 pdw, sizeof(DWORD));
+	}
+	tinfo->nargs = brkpt->breakInfo->nargs;
+	tinfo->context = &context;
+
+	if (brkpt->breakInfo->dwFlags & BREAK_IN) {
+	    ((this)->*(brkpt->breakInfo->breakProc))(proc, tinfo, brkpt, &context.Eax, BREAK_IN);
+	}
+
+	// Only set a return breakpoint if something is interested
+	// in the return value
+	if (brkpt->breakInfo->dwFlags & BREAK_OUT) {
+	    bpt = new Breakpoint;
+	    ReadSubprocessMemory(proc, (PVOID) context.Esp,
+		&bpt->origRetAddr, sizeof(DWORD));
+	    dw = (DWORD) brkpt->codeReturnPtr;
+	    WriteSubprocessMemory(proc, (PVOID) context.Esp,
+		&dw, sizeof(DWORD));
+	    bpt->codePtr = brkpt->codeReturnPtr;
+	    bpt->returning = TRUE;
+	    bpt->codeReturnPtr = 0L;	// Doesn't matter
+	    bpt->breakInfo = brkpt->breakInfo;
+	    bpt->threadInfo = tinfo;
+	    bpt->nextPtr = proc->brkptList;
+	    proc->brkptList = bpt;
+
+	}
+
+	// Now, we need to restore the original code for this breakpoint.
+	// Put the program counter back, then do a single-step and put
+	// the breakpoint back again.
+	//
+	WriteSubprocessMemory(proc, brkpt->codePtr, &brkpt->code, sizeof(BYTE));
+
+	context.EFlags |= SINGLE_STEP_BIT;
+	context.Eip--;
+
+	proc->lastBrkpt = brkpt;
+    } else {
+	// Make the callback with the params and the return value
+	if (brkpt->breakInfo->dwFlags & BREAK_OUT) {
+	    ((this)->*(brkpt->breakInfo->breakProc))(proc, tinfo, brkpt, &context.Eax, BREAK_OUT);
+	}
+	context.Eip = brkpt->origRetAddr;
+
+	if (pbrkpt == 0L) {
+	    proc->brkptList = brkpt->nextPtr;
+	} else {
+	    pbrkpt->nextPtr = brkpt->nextPtr;
+	}
+	delete brkpt;
+    }
+    SetThreadContext(tinfo->hThread, &context);
 }
 
 /*
@@ -1072,117 +1423,6 @@ ConsoleDebugger::WriteSubprocessMemory(Process *proc, LPVOID addr, LPVOID buf, D
 	}
     }
     return ret;
-}
-
-/*
- *----------------------------------------------------------------------
- *
- * ConsoleDebugger::OnXBreakpoint --
- *
- *	This routine is called when a EXCEPTION_DEBUG_EVENT with
- *	an exception code of EXCEPTION_BREAKPOINT.
- *
- * Results:
- *	None
- *
- *----------------------------------------------------------------------
- */
-
-void
-ConsoleDebugger::OnXBreakpoint(Process *proc, LPDEBUG_EVENT pDebEvent)
-{
-    LPEXCEPTION_DEBUG_INFO exceptInfo;
-    CONTEXT context;
-    ThreadInfo *tinfo;
-    Breakpoint *pbrkpt, *brkpt;
-    PDWORD pdw;
-    DWORD i;
-    DWORD dw;
-
-    for (tinfo = proc->threadList; tinfo != 0L; tinfo = tinfo->nextPtr) {
-	if (pDebEvent->dwThreadId == tinfo->dwThreadId) {
-	    break;
-	}
-    }
-    assert(tinfo != 0L);
-
-    exceptInfo = &pDebEvent->u.Exception;
-
-    pbrkpt = 0L;
-    for (brkpt = proc->brkptList; brkpt != 0L;
-	 pbrkpt = brkpt, brkpt = brkpt->nextPtr) {
-	if (brkpt->codePtr == exceptInfo->ExceptionRecord.ExceptionAddress) {
-	    if (brkpt->threadInfo == 0L) {
-		break;
-	    }
-	    if (brkpt->threadInfo == tinfo) {
-		break;
-	    }
-	}
-    }
-
-    context.ContextFlags = CONTEXT_FULL;
-    GetThreadContext(tinfo->hThread, &context);
-
-    if (! brkpt->returning) {
-	Breakpoint *bpt;
-	// Get the arguments to the function and store them in the thread
-	// specific data structure.
-	for (pdw = tinfo->args, i=0; i < brkpt->breakInfo->nargs; i++, pdw++) {
-	    ReadSubprocessMemory(proc, (PVOID) (context.Esp+(4*(i+1))),
-				 pdw, sizeof(DWORD));
-	}
-	tinfo->nargs = brkpt->breakInfo->nargs;
-	tinfo->context = &context;
-
-	if (brkpt->breakInfo->dwFlags & BREAK_IN) {
-	    ((this)->*(brkpt->breakInfo->breakProc))(proc, tinfo, brkpt, &context.Eax, BREAK_IN);
-	}
-
-	// Only set a return breakpoint if something is interested
-	// in the return value
-	if (brkpt->breakInfo->dwFlags & BREAK_OUT) {
-	    bpt = new Breakpoint;
-	    ReadSubprocessMemory(proc, (PVOID) context.Esp,
-		&bpt->origRetAddr, sizeof(DWORD));
-	    dw = (DWORD) brkpt->codeReturnPtr;
-	    WriteSubprocessMemory(proc, (PVOID) context.Esp,
-		&dw, sizeof(DWORD));
-	    bpt->codePtr = brkpt->codeReturnPtr;
-	    bpt->returning = TRUE;
-	    bpt->codeReturnPtr = 0L;	// Doesn't matter
-	    bpt->breakInfo = brkpt->breakInfo;
-	    bpt->threadInfo = tinfo;
-	    bpt->nextPtr = proc->brkptList;
-	    proc->brkptList = bpt;
-
-	}
-
-	// Now, we need to restore the original code for this breakpoint.
-	// Put the program counter back, then do a single-step and put
-	// the breakpoint back again.
-	//
-	WriteSubprocessMemory(proc, brkpt->codePtr, &brkpt->code, sizeof(BYTE));
-
-	context.EFlags |= SINGLE_STEP_BIT;
-	context.Eip--;
-
-	proc->lastBrkpt = brkpt;
-    } else {
-	// Make the callback with the params and the return value
-	if (brkpt->breakInfo->dwFlags & BREAK_OUT) {
-	    ((this)->*(brkpt->breakInfo->breakProc))(proc, tinfo, brkpt, &context.Eax, BREAK_OUT);
-	}
-	context.Eip = brkpt->origRetAddr;
-
-	if (pbrkpt == 0L) {
-	    proc->brkptList = brkpt->nextPtr;
-	} else {
-	    pbrkpt->nextPtr = brkpt->nextPtr;
-	}
-	delete brkpt;
-    }
-    SetThreadContext(tinfo->hThread, &context);
 }
 
 /*
@@ -1316,52 +1556,10 @@ ConsoleDebugger::LoadedModule(Process *proc, HANDLE hFile, LPVOID modname,
 }
 
 void
-ConsoleDebugger::WriteMasterCopy(CHAR *buf, DWORD len)
-{
-    Message *msg;
-    DWORD i;
-
-    msg = new Message;
-    msg->bytes = new CHAR [len];
-    for (i = 0; i < len; i++) msg->bytes[i] = buf[i];
-    msg->length = len;
-    msg->type = Message::TYPE_NORMAL;
-    mQ.Put(msg);
-}
-
-/* doesn't copy */
-void
-ConsoleDebugger::WriteMasterWarning(CHAR *buf, DWORD len)
-{
-    Message *msg;
-    msg = new Message;
-    msg->bytes = buf;
-    msg->length = len;
-    msg->type = Message::TYPE_WARNING;
-    mQ.Put(msg);
-}
-
-void
-ConsoleDebugger::NotifyDone()
-{
-    Message *msg;
-    msg = new Message;
-    msg->type = Message::TYPE_SLAVEDONE;
-    mQ.Put(msg);
-}
-
-void
 ConsoleDebugger::MakeSubprocessMemory(Process *proc, SIZE_T amount,
     LPVOID *pBuff, DWORD access)
 {
     if (dwPlatformId == VER_PLATFORM_WIN32_NT) {
-        // We're on NT, so use VirtualAllocEx to allocate memory in the other
-        // process' address space.  Alas, we can't just call VirtualAllocEx
-        // since it's not defined in the Windows 95 KERNEL32.DLL.
-	//
-        static PFNVIRTALLEX pfnVirtualAllocEx = (PFNVIRTALLEX)
-            GetProcAddress(GetModuleHandle("KERNEL32.DLL"),"VirtualAllocEx");
-
         if (!(*pBuff = pfnVirtualAllocEx(proc->hProcess, 0, amount, MEM_COMMIT,
 		access))) {
 	    EXP_LOG1(MSG_DT_CANTMAKENTSPMEM, GetSysMsg(GetLastError()));
@@ -1392,25 +1590,23 @@ ConsoleDebugger::MakeSubprocessMemory(Process *proc, SIZE_T amount,
     }
 }
 
-void
+BOOL
 ConsoleDebugger::RemoveSubprocessMemory(Process *proc, LPVOID buff)
 {
-    if (dwPlatformId == VER_PLATFORM_WIN32_NT) {
-        // We're on NT, so use VirtualAllocEx to control memory in the other
-        // process' address space.  Alas, we can't just call VirtualAllocEx
-        // since it's not defined in the Windows 95 KERNEL32.DLL.
-	//
-        static PFNVIRTALLEX pfnVirtualAllocEx = (PFNVIRTALLEX)
-            GetProcAddress(GetModuleHandle("KERNEL32.DLL"),"VirtualAllocEx");
+    BOOL ret;
 
-	pfnVirtualAllocEx(proc->hProcess, buff, 0, MEM_RELEASE, 0);
+    if (dwPlatformId == VER_PLATFORM_WIN32_NT) {
+	ret = pfnVirtualFreeEx(proc->hProcess, buff, 0, MEM_RELEASE);
     } else {
 	HANDLE hFileMapping;
 	if (spMemMapping.Extract(buff, &hFileMapping) != TCL_OK) {
+	    SetLastError(ERROR_FILE_NOT_FOUND);
+	    return FALSE;
 	}
-	UnmapViewOfFile(buff);
+	ret = UnmapViewOfFile(buff);
 	CloseHandle(hFileMapping);
     }
+    return ret;
 }
 
 /*
@@ -1564,3 +1760,50 @@ ConsoleDebugger::ProcessFree(Process *proc)
 
     delete proc;
 }
+
+void
+ConsoleDebugger::WriteMasterCopy(CHAR *buf, DWORD len)
+{
+    Message *msg;
+    DWORD i;
+
+    msg = new Message;
+    msg->bytes = new CHAR [len];
+    for (i = 0; i < len; i++) msg->bytes[i] = buf[i];
+    msg->length = len;
+    msg->type = Message::TYPE_NORMAL;
+    mQ.Put(msg);
+}
+
+/* doesn't copy! */
+void
+ConsoleDebugger::WriteMasterWarning(CHAR *buf, DWORD len)
+{
+    Message *msg;
+    msg = new Message;
+    msg->bytes = buf;
+    msg->length = len;
+    msg->type = Message::TYPE_WARNING;
+    mQ.Put(msg);
+}
+
+void
+ConsoleDebugger::WriteMasterError(CHAR *buf, DWORD len)
+{
+    Message *msg;
+    msg = new Message;
+    msg->bytes = buf;
+    msg->length = len;
+    msg->type = Message::TYPE_ERROR;
+    mQ.Put(msg);
+}
+
+void
+ConsoleDebugger::NotifyDone()
+{
+    Message *msg;
+    msg = new Message;
+    msg->type = Message::TYPE_SLAVEDONE;
+    mQ.Put(msg);
+}
+
