@@ -11,29 +11,30 @@
  *
  * Modified in October, 2001 by David Gravereaux for windows.
  *
- * RCS: @(#) $Id: expInt.h,v 1.1.2.1 2001/10/28 01:02:39 davygrvy Exp $
+ * RCS: @(#) $Id: expInt.h,v 1.1.2.2 2001/10/28 01:46:31 davygrvy Exp $
  */
 
-#ifndef _EXPINT_H__
-#define _EXPINT_H__
+#ifndef _EXPINT
+#define _EXPINT
 
-#ifndef _EXP_H__
+#ifndef _EXP
 #   include "exp.h"
 #endif
 
-#ifdef HAVE_SYS_WAIT_H
-  /* ISC doesn't def WNOHANG unless _POSIX_SOURCE is def'ed */
-#   ifdef WNOHANG_REQUIRES_POSIX_SOURCE
-#	define _POSIX_SOURCE
-#   endif
-#   include <sys/wait.h>
-#   ifdef WNOHANG_REQUIRES_POSIX_SOURCE
-#	undef _POSIX_SOURCE
-#   endif
+#ifndef _TCLPORT
+#   include "tclPort.h"
 #endif
 
-#ifndef _TCLPORT
-#   include <tclPort.h>
+
+#undef TCL_STORAGE_CLASS
+#ifdef BUILD_exp
+#   define TCL_STORAGE_CLASS DLLEXPORT
+#else
+#   ifdef USE_EXP_STUBS
+#	define TCL_STORAGE_CLASS
+#   else
+#	define TCL_STORAGE_CLASS DLLIMPORT
+#   endif
 #endif
 
 
@@ -176,8 +177,247 @@ typedef struct ExpState {
 } ExpState;
 
 #define EXP_SPAWN_ID_BAD	((ExpState *)0)
-
 #define EXP_TIME_INFINITY	-1
+
+#define exp_new(x)		(x *)ckalloc(sizeof(x))
+
+struct exp_state_list {
+	ExpState *esPtr;
+	struct exp_state_list *next;
+};
+
+/* describes a -i flag */
+struct exp_i {
+	int cmdtype;	/* EXP_CMD_XXX.  When an indirect update is */
+			/* triggered by Tcl, this helps tell us in what */
+			/* exp_i list to look in. */
+	int direct;	/* if EXP_DIRECT, then the spawn ids have been given */
+			/* literally, else indirectly through a variable */
+	int duration;	/* if EXP_PERMANENT, char ptrs here had to be */
+			/* malloc'd because Tcl command line went away - */
+			/* i.e., in expect_before/after */
+	char *variable;
+	char *value;	/* if type == direct, this is the string that the */
+			/* user originally supplied to the -i flag.  It may */
+			/* lose relevance as the fd_list is manipulated */
+			/* over time.  If type == direct, this is  the */
+			/* cached value of variable use this to tell if it */
+			/* has changed or not, and ergo whether it's */
+			/* necessary to reparse. */
+
+	int ecount;	/* # of ecases this is used by */
+
+	struct exp_state_list *state_list;
+	struct exp_i *next;
+};
+
+#define EXP_TEMPORARY	1	/* expect */
+#define EXP_PERMANENT	2	/* expect_after, expect_before, expect_bg */
+#define EXP_DIRECT	1
+#define EXP_INDIRECT	2
+
+
+/*
+ * definitions for creating commands
+ */
+
+#define EXP_NOPREFIX	1	/* don't define with "exp_" prefix */
+#define EXP_REDEFINE	2	/* stomp on old commands with same name */
+
+#define exp_proc(cmdproc) 0, cmdproc
+
+struct exp_cmd_data {
+	char		*name;
+	Tcl_ObjCmdProc	*objproc;
+	Tcl_CmdProc	*proc;
+	ClientData	data;
+	int 		flags;
+};
+#define exp_deleteProc	    NULL
+#define exp_deleteObjProc   NULL
+
+
+#define streq(x,y)	(0 == strcmp((x),(y)))
+
+
+/* Global variables */
+extern int exp_default_match_max;
+extern int exp_default_parity;
+extern int exp_default_rm_nulls;
+extern Tcl_ChannelType expSpawnChanType;
+extern int expect_key;
+extern int exp_configure_count;	/* # of times descriptors have been closed
+				   or indirect lists have been changed */
+extern int exp_nostack_dump;	/* TRUE if user has requested unrolling of
+				   stack with no trace */
+extern char *exp_onexit_action;
+extern int exp_cmdlinecmds;
+extern int exp_interactive;
+extern FILE *exp_cmdfile;
+extern char *exp_cmdfilename;
+extern int exp_getpid;	/* pid of Expect itself */
+extern int exp_buffer_command_input;
+extern int exp_tcl_debugger_available;
+extern Tcl_Interp *exp_interp;
+extern void (*exp_event_exit) _ANSI_ARGS_((Tcl_Interp *));
+/*
+ * Everything below here should eventually be moved into expect.h
+ * and Expect-thread-safe variables.
+ */
+
+extern char *exp_pty_error;		/* place to pass a string generated */
+					/* deep in the innards of the pty */
+					/* code but needed by anyone */
+extern int exp_disconnected;		/* proc. disc'd from controlling tty */
+
+
+/* protos not yet moved to the Stubs table */
+TCL_EXTERN(int)		exp_getpidproc _ANSI_ARGS_((void));
+TCL_EXTERN(char *)	exp_get_var _ANSI_ARGS_((Tcl_Interp *,char *));
+TCL_EXTERN(int)		exp_one_arg_braced _ANSI_ARGS_((Tcl_Obj *));
+TCL_EXTERN(int)		exp_eval_with_one_arg _ANSI_ARGS_((ClientData,
+				Tcl_Interp *, struct Tcl_Obj * CONST objv[]));
+TCL_EXTERN(void)	exp_lowmemcpy _ANSI_ARGS_((char *,char *,int));
+TCL_EXTERN(int)		exp_flageq_code _ANSI_ARGS_((char *,char *,int));
+TCL_EXTERN(void)	expAdjust _ANSI_ARGS_((ExpState *));
+TCL_EXTERN(void)	exp_buffer_shuffle _ANSI_ARGS_((Tcl_Interp *,ExpState *,int,char *,char *));
+TCL_EXTERN(int)		exp_close _ANSI_ARGS_((Tcl_Interp *,ExpState *));
+TCL_EXTERN(void)	exp_close_all _ANSI_ARGS_((Tcl_Interp *));
+//TCL_EXTERN(void)	exp_ecmd_remove_fd_direct_and_indirect 
+//				_ANSI_ARGS_((Tcl_Interp *,int));
+TCL_EXTERN(void)	exp_trap_on _ANSI_ARGS_((int));
+TCL_EXTERN(int)		exp_trap_off _ANSI_ARGS_((char *));
+TCL_EXTERN(void)	exp_strftime _ANSI_ARGS_((char *format, const struct tm *timeptr,Tcl_DString *dstring));
+TCL_EXTERN(void)	exp_init_pty _ANSI_ARGS_((void));
+TCL_EXTERN(void)	exp_pty_exit _ANSI_ARGS_((void));
+TCL_EXTERN(void)	exp_init_tty _ANSI_ARGS_((void));
+TCL_EXTERN(void)	exp_init_stdio _ANSI_ARGS_((void));
+//TCL_EXTERN(void)	exp_init_expect _ANSI_ARGS_((Tcl_Interp *));
+TCL_EXTERN(void)	exp_init_spawn_ids _ANSI_ARGS_((Tcl_Interp *));
+TCL_EXTERN(void)	exp_init_spawn_id_vars _ANSI_ARGS_((Tcl_Interp *));
+TCL_EXTERN(void)	exp_init_trap _ANSI_ARGS_((void));
+TCL_EXTERN(void)	exp_init_send _ANSI_ARGS_((void));
+TCL_EXTERN(void)	exp_init_unit_random _ANSI_ARGS_((void));
+TCL_EXTERN(void)	exp_init_sig _ANSI_ARGS_((void));
+TCL_EXTERN(void)	expChannelInit _ANSI_ARGS_((void));
+TCL_EXTERN(int)		expChannelCountGet _ANSI_ARGS_((void));
+TCL_EXTERN(int)		exp_tcl2_returnvalue _ANSI_ARGS_((int));
+TCL_EXTERN(int)		exp_2tcl_returnvalue _ANSI_ARGS_((int));
+TCL_EXTERN(void)	exp_rearm_sigchld _ANSI_ARGS_((Tcl_Interp *));
+TCL_EXTERN(int)		exp_string_to_signal _ANSI_ARGS_((Tcl_Interp *,char *));
+TCL_EXTERN(struct exp_i *) exp_new_i_complex _ANSI_ARGS_((Tcl_Interp *,
+					char *, int, Tcl_VarTraceProc *));
+TCL_EXTERN(struct exp_i *) exp_new_i_simple _ANSI_ARGS_((ExpState *,int));
+TCL_EXTERN(struct exp_state_list *) exp_new_state _ANSI_ARGS_((ExpState *));
+TCL_EXTERN(void)	exp_free_i _ANSI_ARGS_((Tcl_Interp *,struct exp_i *,
+					Tcl_VarTraceProc *));
+TCL_EXTERN(void)	exp_free_state _ANSI_ARGS_((struct exp_state_list *));
+TCL_EXTERN(void)	exp_free_state_single _ANSI_ARGS_((struct exp_state_list *));
+TCL_EXTERN(void)	exp_i_update _ANSI_ARGS_((Tcl_Interp *,
+					struct exp_i *));
+TCL_EXTERN(void)	exp_create_commands _ANSI_ARGS_((Tcl_Interp *,
+						struct exp_cmd_data *));
+TCL_EXTERN(void)	exp_init_main_cmds _ANSI_ARGS_((Tcl_Interp *));
+TCL_EXTERN(void)	exp_init_expect_cmds _ANSI_ARGS_((Tcl_Interp *));
+TCL_EXTERN(void)	exp_init_most_cmds _ANSI_ARGS_((Tcl_Interp *));
+TCL_EXTERN(void)	exp_init_trap_cmds _ANSI_ARGS_((Tcl_Interp *));
+TCL_EXTERN(void)	exp_init_interact_cmds _ANSI_ARGS_((Tcl_Interp *));
+TCL_EXTERN(void)	exp_init_tty_cmds();
+
+TCL_EXTERN(ExpState *)	expStateCheck _ANSI_ARGS_((Tcl_Interp *,ExpState *,int,int,char *));
+TCL_EXTERN(ExpState *)  expStateCurrent _ANSI_ARGS_((Tcl_Interp *,int,int,int));
+TCL_EXTERN(ExpState *)  expStateFromChannelName _ANSI_ARGS_((Tcl_Interp *,char *,int,int,int,char *));
+TCL_EXTERN(void)	expStateFree _ANSI_ARGS_((ExpState *));
+
+TCL_EXTERN(ExpState *)	expCreateChannel _ANSI_ARGS_((Tcl_Interp *,int,int,int));
+TCL_EXTERN(ExpState *)	expWaitOnAny _ANSI_ARGS_((void));
+TCL_EXTERN(ExpState *)	expWaitOnOne _ANSI_ARGS_((void));
+TCL_EXTERN(void)	expExpectVarsInit _ANSI_ARGS_((void));
+TCL_EXTERN(int)		expStateAnyIs _ANSI_ARGS_((ExpState *));
+TCL_EXTERN(int)		expDevttyIs _ANSI_ARGS_((ExpState *));
+TCL_EXTERN(int)		expStdinOutIs _ANSI_ARGS_((ExpState *));
+TCL_EXTERN(ExpState *)	expStdinoutGet _ANSI_ARGS_((void));
+TCL_EXTERN(ExpState *)	expDevttyGet _ANSI_ARGS_((void));
+TCL_EXTERN(int)		expSizeGet _ANSI_ARGS_((ExpState *));
+TCL_EXTERN(int)		expSizeZero _ANSI_ARGS_((ExpState *));
+
+/* for exp_event.c */
+TCL_EXTERN(int)		exp_get_next_event _ANSI_ARGS_((Tcl_Interp *,ExpState **, int, ExpState **, int, int));
+TCL_EXTERN(int)		exp_get_next_event_info _ANSI_ARGS_((Tcl_Interp *, ExpState *));
+TCL_EXTERN(int)		exp_dsleep _ANSI_ARGS_((Tcl_Interp *, double));
+TCL_EXTERN(void)	exp_init_event _ANSI_ARGS_((void));
+//extern void (*exp_event_exit) _ANSI_ARGS_((Tcl_Interp *));
+TCL_EXTERN(void)	exp_event_disarm _ANSI_ARGS_((ExpState *,Tcl_FileProc *));
+TCL_EXTERN(void)	exp_event_disarm_bg _ANSI_ARGS_((ExpState *));
+TCL_EXTERN(void)	exp_event_disarm_fg _ANSI_ARGS_((ExpState *));
+TCL_EXTERN(void)	exp_arm_background_channelhandler _ANSI_ARGS_((ExpState *));
+TCL_EXTERN(void)	exp_disarm_background_channelhandler _ANSI_ARGS_((ExpState *));
+TCL_EXTERN(void)	exp_disarm_background_channelhandler_force _ANSI_ARGS_((ExpState *));
+TCL_EXTERN(void)	exp_unblock_background_channelhandler _ANSI_ARGS_((ExpState *));
+TCL_EXTERN(void)	exp_block_background_channelhandler _ANSI_ARGS_((ExpState *));
+TCL_EXTERN(void)	exp_background_channelhandler _ANSI_ARGS_((ClientData,int));
+
+
+/* for exp_log.h */
+TCL_EXTERN(void)	expDiagInit _ANSI_ARGS_((void));
+TCL_EXTERN(int)		expDiagChannelOpen _ANSI_ARGS_((Tcl_Interp *,char *));
+TCL_EXTERN(Tcl_Channel)	expDiagChannelGet _ANSI_ARGS_((void));
+TCL_EXTERN(void)	expDiagChannelClose _ANSI_ARGS_((Tcl_Interp *));
+TCL_EXTERN(char *)	expDiagFilename _ANSI_ARGS_((void));
+TCL_EXTERN(int)		expDiagToStderrGet _ANSI_ARGS_((void));
+TCL_EXTERN(void)	expDiagToStderrSet _ANSI_ARGS_((int));
+TCL_EXTERN(void)	expDiagWriteBytes _ANSI_ARGS_((char *,int));
+TCL_EXTERN(void)	expDiagWriteChars _ANSI_ARGS_((char *,int));
+TCL_EXTERN(void)	expDiagWriteObj _ANSI_ARGS_((Tcl_Obj *));
+TCL_EXTERN(void)	expDiagLog _ANSI_ARGS_(TCL_VARARGS(char *,fmt));
+TCL_EXTERN(void)	expDiagLogU _ANSI_ARGS_((char *));
+TCL_EXTERN(char *)	expPrintify _ANSI_ARGS_((char *));
+TCL_EXTERN(char *)	expPrintifyObj _ANSI_ARGS_((Tcl_Obj *));
+TCL_EXTERN(void)	expLogInit _ANSI_ARGS_((void));
+TCL_EXTERN(int)		expLogChannelOpen _ANSI_ARGS_((Tcl_Interp *,char *,int));
+TCL_EXTERN(Tcl_Channel)	expLogChannelGet _ANSI_ARGS_((void));
+TCL_EXTERN(int)		expLogChannelSet _ANSI_ARGS_((Tcl_Interp *,char *));
+TCL_EXTERN(void)	expLogChannelClose _ANSI_ARGS_((Tcl_Interp *));
+TCL_EXTERN(char *)	expLogFilenameGet _ANSI_ARGS_((void));
+TCL_EXTERN(void)	expLogAppendSet _ANSI_ARGS_((int));
+TCL_EXTERN(int)		expLogAppendGet _ANSI_ARGS_((void));
+TCL_EXTERN(void)	expLogLeaveOpenSet _ANSI_ARGS_((int));
+TCL_EXTERN(int)		expLogLeaveOpenGet _ANSI_ARGS_((void));
+TCL_EXTERN(void)	expLogAllSet _ANSI_ARGS_((int));
+TCL_EXTERN(int)		expLogAllGet _ANSI_ARGS_((void));
+TCL_EXTERN(void)	expLogToStdoutSet _ANSI_ARGS_((int));
+TCL_EXTERN(int)		expLogToStdoutGet _ANSI_ARGS_((void));
+TCL_EXTERN(void)	expLogDiagU _ANSI_ARGS_((char *));
+TCL_EXTERN(int)		expWriteBytesAndLogIfTtyU _ANSI_ARGS_((ExpState *,char *,int));
+TCL_EXTERN(int)		expLogUserGet _ANSI_ARGS_((void));
+TCL_EXTERN(void)	expLogUserSet _ANSI_ARGS_((int));
+TCL_EXTERN(void)	expLogInteractionU _ANSI_ARGS_((ExpState *,char *));
+
+
+
+TCL_EXTERN(void)	exp_ecmd_remove_state_direct_and_indirect _ANSI_ARGS_((
+			    Tcl_Interp *interp, ExpState *esPtr));
+
+Tcl_ObjCmdProc Exp_CloseObjCmd;
+Tcl_CmdProc Exp_ExpInternalCmd;
+Tcl_CmdProc Exp_DisconnectCmd;
+Tcl_CmdProc Exp_ExitCmd;
+Tcl_CmdProc Exp_ExpContinueCmd;
+Tcl_CmdProc Exp_ForkCmd;
+Tcl_CmdProc Exp_ExpPidCmd;
+Tcl_CmdProc Exp_GetpidDeprecatedCmd;
+Tcl_ObjCmdProc Exp_InterpreterObjCmd;
+Tcl_CmdProc Exp_LogFileCmd;
+Tcl_CmdProc Exp_LogUserCmd;
+Tcl_CmdProc Exp_OpenCmd;
+Tcl_CmdProc Exp_OverlayCmd;
+Tcl_ObjCmdProc Exp_InterReturnObjCmd;
+Tcl_ObjCmdProc Exp_SendObjCmd;
+Tcl_CmdProc Exp_SendLogCmd;
+Tcl_CmdProc Exp_SleepCmd;
+Tcl_CmdProc Exp_SpawnCmd;
+Tcl_CmdProc Exp_StraceCmd;
+Tcl_CmdProc Exp_WaitCmd;
 
 
 /*
@@ -186,10 +426,15 @@ typedef struct ExpState {
  * world:
  *----------------------------------------------------------------
  */
-
-void exp_ecmd_remove_state_direct_and_indirect _ANSI_ARGS_((
-			    Tcl_Interp *interp, ExpState *esPtr));
+extern void	expErrorLog _ANSI_ARGS_(TCL_VARARGS(char *,fmt));
+extern void	expErrorLogU _ANSI_ARGS_((char *));
+extern void	expStdoutLog _ANSI_ARGS_(TCL_VARARGS(int,force_stdout));
+extern void	expStdoutLogU _ANSI_ARGS_((char *buf, int force_stdout));
+extern void	exp_debuglog _ANSI_ARGS_(TCL_VARARGS(char *,fmt));
 
 #include "expIntDecls.h"
 
-#endif /* _EXPINT_H__ */
+#undef TCL_STORAGE_CLASS
+#define TCL_STORAGE_CLASS DLLIMPORT
+
+#endif /* _EXPINT */
