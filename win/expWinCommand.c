@@ -585,7 +585,6 @@ Exp_SpawnCmd(ClientData clientData,Tcl_Interp *interp,int argc,char **argv)
     }
     Tcl_SetChannelOption(interp, channel, "-blocking", "0");
     Tcl_SetChannelOption(interp, channel, "-buffering", "none");
-    Tcl_SetChannelOption(interp, channel, "-iomode", "overlapped");
     Tcl_SetChannelOption(interp, channel, "-translation", "binary");
 
     spawnChan = ExpCreateSpawnChannel(interp, channel);
