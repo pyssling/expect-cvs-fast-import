@@ -88,7 +88,7 @@ SOURCE=.\expWinDynloadTclStubs.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\ExpWinInit.c
+SOURCE=.\expWinInit.c
 # End Source File
 # Begin Source File
 
