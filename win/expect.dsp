@@ -41,7 +41,7 @@ CFG=expect - Win32 Debug
 # PROP Use_Debug_Libraries 0
 # PROP Output_Dir "Release"
 # PROP Intermediate_Dir "Release"
-# PROP Cmd_Line "nmake -nologo -f makefile.vc32 all"
+# PROP Cmd_Line "nmake -nologo -f makefile.vc32 expect"
 # PROP Rebuild_Opt "-a"
 # PROP Target_File "Release\expect532.dll"
 # PROP Bsc_Name ""
@@ -62,7 +62,7 @@ CFG=expect - Win32 Debug
 # PROP Use_Debug_Libraries 1
 # PROP Output_Dir "Debug"
 # PROP Intermediate_Dir "Debug"
-# PROP Cmd_Line "nmake -nologo -f makefile.vc32 all DEBUG=1"
+# PROP Cmd_Line "nmake -nologo -f makefile.vc32 expect DEBUG=1"
 # PROP Rebuild_Opt "-a"
 # PROP Target_File "Debug\expect532d.dll"
 # PROP Bsc_Name ""
@@ -100,6 +100,54 @@ SOURCE=..\compat\exp_strf.c
 # Begin Group "generic"
 
 # PROP Default_Filter ""
+# Begin Group "headers"
+
+# PROP Default_Filter "h"
+# Begin Source File
+
+SOURCE=..\generic\exp.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\generic\exp_command.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\generic\exp_log.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\generic\exp_printify.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\generic\expDecls.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\generic\expect.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\generic\expect_comm.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\generic\expect_tcl.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\generic\expInt.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\generic\expIntDecls.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\generic\getopt.h
+# End Source File
+# End Group
 # Begin Source File
 
 SOURCE=..\generic\exp_clib.c
@@ -114,10 +162,6 @@ SOURCE=..\generic\exp_command.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\generic\exp_command.h
-# End Source File
-# Begin Source File
-
 SOURCE=..\generic\exp_glob.c
 # End Source File
 # Begin Source File
@@ -126,15 +170,11 @@ SOURCE=..\generic\exp_log.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\generic\exp_log.h
+SOURCE=..\generic\exp_port.h
 # End Source File
 # Begin Source File
 
 SOURCE=..\generic\exp_printify.c
-# End Source File
-# Begin Source File
-
-SOURCE=..\generic\exp_printify.h
 # End Source File
 # Begin Source File
 
@@ -146,20 +186,36 @@ SOURCE=..\generic\expCommand.c
 # End Source File
 # Begin Source File
 
+SOURCE=..\generic\expect.c
+# End Source File
+# Begin Source File
+
 SOURCE=..\generic\expTrap.c
 # End Source File
 # Begin Source File
 
 SOURCE=..\generic\getopt.c
 # End Source File
-# Begin Source File
-
-SOURCE=..\generic\getopt.h
-# End Source File
 # End Group
 # Begin Group "win"
 
 # PROP Default_Filter ""
+# Begin Group "headers No. 1"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\expWin.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\expWinPort.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\expWinTty.h
+# End Source File
+# End Group
 # Begin Source File
 
 SOURCE=.\expWinCLib.c
@@ -183,10 +239,6 @@ SOURCE=.\expWinTrap.c
 # Begin Source File
 
 SOURCE=.\expWinTty.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\expWinTty.h
 # End Source File
 # End Group
 # End Target

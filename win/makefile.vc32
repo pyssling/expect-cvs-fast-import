@@ -1,7 +1,8 @@
 !include ..\mkconfig.mif
 !include .\mkvc32.mif
 !include .\mkfiles.mif
-TARGETOS = WINNT
+TARGETOS = BOTH
+APPVER = 4.0
 !include <win32.mak>
 
 ### Bring in the dependancies if we have them available.
@@ -9,7 +10,7 @@ TARGETOS = WINNT
 !include .\win\mkfiles.d
 !endif
 
-all : setup $(EXPLIB)
+expect : setup $(EXPLIB)
 slavedrv : setup $(SLAVEDRV)
 
 setup :
@@ -22,7 +23,7 @@ $(EXPLIB) : $(EXPLIB_OBJs)
 !if $(STATIC_BUILD)
 	lib -nologo -out:$@ @<<
 !else
-	link -nologo -out:$@ $(dlllflags) $(guilibsdll) @<<
+	link -nologo -out:$@ $(dlllflags) $(guilibsdll) $(TCLSTUBSLIB) @<<
 !endif
 $(EXPLIB_OBJs)
 <<

@@ -7,7 +7,7 @@ EXPLIB	    = "$(EXPLIBBASE).$(OUTEXT)"
 SLAVEDRV    = "$(OUT_DIR)\slavedrv.exe"
 
 EXPLIB_OBJs = \
-	$(TMP_DIR)\expCommand.obj \
+#	$(TMP_DIR)\expCommand.obj \
 #	$(TMP_DIR)\exp_command.obj \
 #	$(TMP_DIR)\expWinCommand.obj \
 #	$(TMP_DIR)\expWinLog.obj \
@@ -23,12 +23,14 @@ EXPLIB_OBJs = \
 #	$(TMP_DIR)\exp_main_sub.obj \
 #	$(TMP_DIR)\exp_inter.obj \
 #	$(TMP_DIR)\expect.obj \
-#	$(TMP_DIR)\exp_event.obj \
-#	$(TMP_DIR)\exp_strf.obj \
-	$(TMP_DIR)\expSpawnChan.obj \
+	$(TMP_DIR)\exp_event.obj \
+	$(TMP_DIR)\exp_strf.obj \
+#	$(TMP_DIR)\expSpawnChan.obj \
 #	$(TMP_DIR)\expWinSpawnChan.obj \
 #	$(TMP_DIR)\expChan.obj \
-#	$(TMP_DIR)\expTrap.obj
+#	$(TMP_DIR)\expTrap.obj \
+#	$(TMP_DIR)\exp_clib.obj
+
 
 SLAVEDRV_OBJs = \
 	$(TMP_DIR)\expWinSlaveDrv.obj \
