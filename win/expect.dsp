@@ -145,9 +145,17 @@ SOURCE=..\generic\expIntDecls.h
 # End Source File
 # Begin Source File
 
+SOURCE=..\generic\expPlatDecls.h
+# End Source File
+# Begin Source File
+
 SOURCE=..\generic\getopt.h
 # End Source File
 # End Group
+# Begin Source File
+
+SOURCE=..\generic\exp.decls
+# End Source File
 # Begin Source File
 
 SOURCE=..\generic\exp_clib.c
@@ -167,6 +175,10 @@ SOURCE=..\generic\exp_glob.c
 # Begin Source File
 
 SOURCE=..\generic\exp_log.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\generic\exp_main_sub.c
 # End Source File
 # Begin Source File
 
@@ -190,6 +202,14 @@ SOURCE=..\generic\expect.c
 # End Source File
 # Begin Source File
 
+SOURCE=..\generic\expSpawnChan.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\generic\expStubInit.c
+# End Source File
+# Begin Source File
+
 SOURCE=..\generic\expTrap.c
 # End Source File
 # Begin Source File
@@ -200,7 +220,7 @@ SOURCE=..\generic\getopt.c
 # Begin Group "win"
 
 # PROP Default_Filter ""
-# Begin Group "headers No. 1"
+# Begin Group "win-headers"
 
 # PROP Default_Filter ""
 # Begin Source File
