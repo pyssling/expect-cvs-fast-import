@@ -3,18 +3,19 @@
 
 class Test1 : protected Tcl::Adapter<Test1>, ArgMaker
 {
+    friend Tcl::Adapter<Test1>;
+
 public:
-    Test1(Tcl_Interp *_interp) : Tcl::Adapter<Test1>(_interp) {
+    Test1(Tcl_Interp *_interp)
+	: Tcl::Adapter<Test1>(_interp)
+    {
 	NewTclCmd(interp, "test_buildcmdline", TestCmdLineCmd);
 	NewTclCmd(interp, "test_passthru", TestPassThruCmd);
-    };
-    virtual void DoCleanup () {
-	// The adapter base class is telling us we are about to go away and it is
-	// safe to use the interp pointer to do any needed cleanup.
-    };
+    }
     ~Test1() {
 	// can't use interp pointer in here.
-    };
+    }
+
 private:
     // Test the ArgMaker::BuildCommandLine() function.
     //
@@ -30,6 +31,7 @@ private:
 	delete [] line;
 	return TCL_OK;
     }
+
     // Test the full pass-thru
     //
     int TestPassThruCmd (int objc, struct Tcl_Obj * CONST objv[])
@@ -50,6 +52,11 @@ private:
 	Tcl_SetObjResult(interp, Tcl_NewListObj(argc, oobjv));
 	return TCL_OK;
     }
+
+    virtual void DoCleanup () {
+	// The adapter base class is telling us we are about to go away and it is
+	// safe to use the interp pointer to do any needed cleanup.
+    };
 };
 
 // tell the EXTERN macro we want to declare functions for export.
