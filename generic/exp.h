@@ -11,7 +11,7 @@
  * 
  * Modified in October, 2001 by David Gravereaux for windows.
  *
- * RCS: @(#) $Id: tclInt.h,v 1.68 2001/09/28 01:21:53 dgp Exp $
+ * RCS: @(#) $Id: exp.h,v 1.1.2.1 2001/10/28 01:02:39 davygrvy Exp $
  */
 
 #ifndef _EXP_H__
@@ -69,7 +69,7 @@
 
 
 /*
- * Fix the Borland bug that's been in tcl.h since when dinosaurs roamed the
+ * Fix the Borland bug that's been in Tcl since when dinosaurs roamed the
  * earth.
  */
 #ifndef TCL_EXTERN
