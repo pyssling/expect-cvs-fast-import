@@ -101,6 +101,8 @@ ExpInitWinProcessAPI (void)
  * Side effects:
  *	None.
  *
+ * Comment: COPY OF NON_PUBLIC CORE FUNCTION!
+ *
  *----------------------------------------------------------------------
  */
 
@@ -150,6 +152,8 @@ HasConsole()
  *
  * Side effects:
  *	None.
+ *
+ * Comment: COPY OF NON_PUBLIC CORE FUNCTION!
  *
  *----------------------------------------------------------------------
  */
@@ -404,6 +408,8 @@ ExpApplicationType(
  * Side effects:
  *	None.
  *
+ * Comment: COPY OF NON_PUBLIC CORE FUNCTION!
+ *
  *----------------------------------------------------------------------
  */
 void
@@ -619,6 +625,8 @@ Exp_KillProcess(pid)
  * 
  * Side effects:
  *	A process is created.
+ *
+ * Comment: *ALMOST* A COPY OF NON_PUBLIC CORE FUNCTION!
  *
  *----------------------------------------------------------------------
  */
@@ -883,53 +891,6 @@ ExpCreateProcess(argc, argv, inputHandle, outputHandle, errorHandle,
 	createFlags |= CREATE_NEW_PROCESS_GROUP;
     }
 
-    /* 
-     * If we do not have a console window, then we must run DOS and
-     * WIN32 console mode applications as detached processes. This tells
-     * the loader that the child application should not inherit the
-     * console, and that it should not create a new console window for
-     * the child application.  The child application should get its stdio 
-     * from the redirection handles provided by this application, and run
-     * in the background.
-     *
-     * If we are starting a GUI process, they don't automatically get a 
-     * console, so it doesn't matter if they are started as foreground or
-     * detached processes.  The GUI window will still pop up to the
-     * foreground.
-     */
-
-    if (!allocConsole && HasConsole()) {
-	createFlags = 0;
-    } else if (applType == EXP_APPL_DOS || allocConsole) {
-	/*
-	 * Under NT, 16-bit DOS applications will not run unless they
-	 * can be attached to a console.  If we are running without a
-	 * console, run the 16-bit program as an normal process inside
-	 * of a hidden console application, and then run that hidden
-	 * console as a detached process.
-	 */
-
-	if (hideConsole) {
-	    startInfo.wShowWindow = SW_HIDE;
-	} else {
-	    /* For debugging, show the sub process console */
-	    startInfo.wShowWindow = SW_SHOW;
-	}
-	startInfo.dwFlags |= STARTF_USESHOWWINDOW;
-	createFlags = CREATE_NEW_CONSOLE;
-	if (applType == EXP_APPL_DOS) {
-	    Tcl_DStringAppend(&cmdLine, "cmd.exe /c ", -1);
-	}
-    } else {
-	createFlags = DETACHED_PROCESS;
-    }
-    if (debug) {
-	createFlags |= DEBUG_PROCESS;
-    }
-    if (newProcessGroup) {
-	createFlags |= CREATE_NEW_PROCESS_GROUP;
-    }
-    
     /*
      * cmdLine gets the full command line used to invoke the executable,
      * including the name of the executable itself.  The command line
