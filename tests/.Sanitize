@@ -27,6 +27,8 @@ Things-to-keep:
 README
 all
 defs
+logfile.test
+send.test
 spawn.test
 pid.test
 cat.test
