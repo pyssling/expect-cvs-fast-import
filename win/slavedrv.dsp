@@ -146,6 +146,10 @@ SOURCE=.\expWinTestClientConio.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\expWinTestClientInteract.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\expWinTestClientStdio.cpp
 # End Source File
 # Begin Source File
