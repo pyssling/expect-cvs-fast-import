@@ -10,6 +10,7 @@ test logfile-1.1 {basic logfile} {
     set filename /tmp/logfile.[pid]
     file delete -force $filename
     log_file $filename
+    unset spawn_id   ;# clean up results of previous test
     send "via send"
     send_user "via send_user"
     send_error "via send_stdout"

@@ -36,7 +36,7 @@ EXTERN Tcl_Interp *exp_interp;
 #define Exp_Init Expect_Init
 EXTERN int	Expect_Init _ANSI_ARGS_((Tcl_Interp *));	/* for Tcl_AppInit apps */
 EXTERN void	exp_parse_argv _ANSI_ARGS_((Tcl_Interp *,int argc,char **argv));
-EXTERN int	exp_interpreter _ANSI_ARGS_((Tcl_Interp *));
+EXTERN int	exp_interpreter _ANSI_ARGS_((Tcl_Interp *,Tcl_Obj *));
 EXTERN int	exp_interpret_cmdfile _ANSI_ARGS_((Tcl_Interp *,FILE *));
 EXTERN int	exp_interpret_cmdfilename _ANSI_ARGS_((Tcl_Interp *,char *));
 EXTERN void	exp_interpret_rcfiles _ANSI_ARGS_((Tcl_Interp *,int my_rc,int sys_rc));
@@ -47,7 +47,6 @@ EXTERN void	expCloseOnExec _ANSI_ARGS_((int));
 
 			/* app-specific exit handler */
 EXTERN void	(*exp_app_exit)_ANSI_ARGS_((Tcl_Interp *));
-EXTERN void	exp_exit _ANSI_ARGS_((Tcl_Interp *,int status));
 EXTERN void	exp_exit_handlers _ANSI_ARGS_((ClientData));
 
 EXTERN void	exp_error _ANSI_ARGS_(TCL_VARARGS(Tcl_Interp *,interp));

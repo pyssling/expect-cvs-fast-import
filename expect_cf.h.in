@@ -27,6 +27,7 @@
 #undef pid_t
 #undef RETSIGTYPE
 #undef TIME_WITH_SYS_TIME	/* ok to include both time.h and sys/time.h */
+#undef SETPGRP_VOID		/* if setpgrp takes 0 args */
 
 /*
  * This section is for compile macros needed by

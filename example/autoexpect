@@ -328,19 +328,14 @@ set echoing 0
 remove_nulls 0
 
 eval interact $option_keys {
-	-re . {
-		input $interact_out(0,string)
-	} null {
-		input_null
-	} \
-	-o \
-	-re .+ {
-		output $interact_out(0,string)
-	} eof {
-		cmd "expect eof"
-		return
-	} null {
-	}
+    -re . {
+	input $interact_out(0,string)
+    } -o -re .+ {
+	output $interact_out(0,string)
+    } eof {
+	cmd "expect eof"
+	return
+    }
 }
 
 close $fd

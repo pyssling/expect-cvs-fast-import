@@ -1022,6 +1022,9 @@ fi
 AC_HAVE_FUNCS(_getpty)
 AC_HAVE_FUNCS(getpty)
 
+# following test sets SETPGRP_VOID if setpgrp takes 0 args, else takes 2
+AC_FUNC_SETPGRP
+
 #
 # check for timezones
 #

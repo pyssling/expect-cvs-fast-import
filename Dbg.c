@@ -153,15 +153,15 @@ Tcl_RegExp re;
 Tcl_Obj *objPtr;
 {
     Tcl_RegExpInfo info;
-    int i, start, end;
+    int i, start /*, end*/;
     char name[20];
-    char match_char;/* place to hold char temporarily */
+    /* char match_char;/* place to hold char temporarily */
     /* uprooted by a NULL */
 
     Tcl_GetRegExpInfo(re, &info); 
     for (i=0;i<=info.nsubs;i++) {
 	start = info.matches[i].start;
-	end = info.matches[i].end-1;
+	/* end = info.matches[i].end-1;*/
 
 	if (start == -1) continue;
 
@@ -175,18 +175,22 @@ Tcl_Obj *objPtr;
 static int
 breakpoint_test(interp,cmd,bp)
 Tcl_Interp *interp;
-Tcl_Obj *cmd;		/* command about to be executed */
+char *cmd;		/* command about to be executed */
 struct breakpoint *bp;	/* breakpoint to test */
 {
     if (bp->re) {
+	Tcl_Obj *cmdObj;
 	Tcl_RegExp re = Tcl_GetRegExpFromObj(NULL, bp->pat,
 		TCL_REG_ADVANCED);
-	if (Tcl_RegExpExecObj(NULL, re, cmd, 0 /* offset */,
+	cmdObj = Tcl_NewStringObj(cmd,-1);
+	Tcl_IncrRefCount(cmdObj);
+	if (Tcl_RegExpExecObj(NULL, re, cmdObj, 0 /* offset */,
 		-1 /* nmatches */, 0 /* eflags */) > 0) {
 	    save_re_matches(interp, re, cmd);
 	}
+	Tcl_DecrRefCount(cmdObj);
     } else if (bp->pat) {
-	if (0 == Tcl_StringMatch(Tcl_GetString(cmd),
+	if (0 == Tcl_StringMatch(cmd,
 		Tcl_GetString(bp->pat))) return 0;
     } else if (bp->line != NO_LINE) {
 	/* not yet implemented - awaiting support from Tcl */
@@ -435,7 +439,7 @@ Tcl_Obj *objv[];
     char **argv;
     int argc;
     int len;
-    argv = ckalloc(objc+1 * sizeof(char *));
+    argv = (char **)ckalloc(objc+1 * sizeof(char *));
     for (argc=0 ; argc<objc ; argc++) {
 	argv[argc] = Tcl_GetStringFromObj(objv[argc],&len);
     }

@@ -352,7 +352,7 @@ intRegExpMatchProcess(interp,esPtr,km,info)
 
 	start = info->matches[i].start;
 	if (start == -1) continue;
-	end = info->matches[i].end;
+	end = info->matches[i].end-1;
 
 	if (km->indices) {
 	    /* start index */
@@ -362,7 +362,7 @@ intRegExpMatchProcess(interp,esPtr,km,info)
 		    
 	    /* end index */
 	    sprintf(name,"%d,end",i);
-	    sprintf(value,"%d",end-1);
+	    sprintf(value,"%d",end);
 	    out(name,value);
 	}
 
@@ -386,13 +386,10 @@ intEcho(esPtr,km,skipBytes,matchBytes)
     int skipBytes;
 {
     int seenBytes;	/* either printed or echoed */
-    ExpState *echo;
     int echoBytes;
     int echoChars;
     char *string;
     char *p;
-
-    if ((km == 0) || (km->echo == 0)) return;
 
     /* write is unlikely to fail, since we just read from same descriptor */
     seenBytes = esPtr->printed + esPtr->echoed;
@@ -467,7 +464,6 @@ intRead(interp,esPtr,warnOnBufferFull,interruptible,key)
 	expDiagLogU(">\r\n");
 
 	esPtr->key = key;
-	cc = expSizeGet(esPtr);  /* generate true byte count */
     }
     return cc;
 }
@@ -687,7 +683,6 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 
     Tcl_Obj *CONST *objv_copy;	/* original, for error messages */
     char *string;
-    char *arg;	/* shorthand for current argv */
 #ifdef SIMPLE_EVENT
     int pid;
 #endif /*SIMPLE_EVENT*/
@@ -806,7 +801,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 		"-output",	"-u",		"-o",		"-i",
 		"-echo",	"-nobuffer",	"-indices",	"-f",
 		"-reset",	"-F",		"-iread",	"-iwrite",
-		"-eof",		"-timeout",	"-nobrace"
+		"-eof",		"-timeout",	"-nobrace",	(char *)0
 	    };
 	    enum switches {
 		EXP_SWITCH_DASH,	EXP_SWITCH_EXACT,
@@ -1029,7 +1024,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 	    continue;
     	} else {
 	    static char *options[] = {
-		"eof", "timeout", "null"
+		"eof", "timeout", "null", (char *)0
 	    };
 	    enum options {
 		EXP_OPTION_EOF, EXP_OPTION_TIMEOUT, EXP_OPTION_NULL
@@ -1404,7 +1399,9 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 	    print = skip + matchLen;
 	} else print = skip;
 
-	intEcho(u,km,skip,matchLen);
+	if (km && km->echo) {
+	    intEcho(u,km,skip,matchLen);
+	}
 	oldprinted = u->printed;
 
 	/*
@@ -1675,7 +1672,9 @@ got_action:
 			print = skip + matchLen;
 		} else print = skip;
 
-		intEcho(u,km,skip,match);
+		if (km && km->echo) {
+		    intEcho(u,km,skip,matchLen);
+		}
 		oldprinted = u->printed;
 
 		/* If expect has left characters in buffer, it has */
@@ -1912,7 +1911,9 @@ got_action:
 			print = skip + matchLen;
 		} else print = skip;
 
-		intEcho(u,km,skip,match);
+		if (km && km->echo) {
+		    intEcho(u,km,skip,matchLen);
+		}
 		oldprinted = u->printed;
 
 		/* If expect has left characters in buffer, it has */
@@ -2073,7 +2074,7 @@ ExpState *esPtr;
 	status = Tcl_EvalObjEx(interp,action->statement,0);
     } else {
 	expStdoutLogU("\r\n",1);
-	status = exp_interpreter(interp);
+	status = exp_interpreter(interp,(Tcl_Obj *)0);
     }
 
     return status;

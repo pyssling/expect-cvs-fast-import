@@ -32,6 +32,7 @@
 #include "exp_rename.h"
 #include "exp_prog.h"
 #include "exp_command.h"
+#include "exp_log.h"
 
 static int		ExpCloseProc _ANSI_ARGS_((ClientData instanceData,
 			    Tcl_Interp *interp));
@@ -120,6 +121,7 @@ ExpInputProc(instanceData, buf, toRead, errorCodePtr)
      */
 
     bytesRead = read(esPtr->fdin, buf, (size_t) toRead);
+    /*printf("ExpInputProc: read(%d,,) = %d\r\n",esPtr->fdin,bytesRead);*/
     if (bytesRead > -1) {
 	/* strip parity if requested */
 	if (esPtr->parity == 0) {
@@ -161,16 +163,30 @@ ExpOutputProc(instanceData, buf, toWrite, errorCodePtr)
     int *errorCodePtr;			/* Where to store error code. */
 {
     ExpState *esPtr = (ExpState *) instanceData;
-    int written;
+    int written = 0;
 
     *errorCodePtr = 0;
 
-    written = write(esPtr->fdout, buf, (size_t) toWrite);
-    if (written > -1) {
-        return written;
+    if (toWrite < 0) Tcl_Panic("ExpOutputProc: called with negative char count");
+
+    while (toWrite > 0) {
+	written = write(esPtr->fdout, buf, (size_t) toWrite);
+	if (written == 0) {
+	    /* This shouldn't happen but I'm told that it does
+	     * nonetheless (at least on SunOS 4.1.3).  Since this is
+	     * not a documented return value, the most reasonable
+	     * thing is to complain here and retry in the hopes that
+	     * it is some transient condition.  */
+	    sleep(1);
+	    expDiagLogU("write() failed to write anything - will sleep(1) and retry...\n");
+	} else if (written < 0) {
+	    *errorCodePtr = errno;
+	    return -1;
+	}
+	buf += written;
+	toWrite -= written;
     }
-    *errorCodePtr = errno;
-    return -1;
+    return written;
 }
 
 /*
@@ -190,6 +206,7 @@ ExpOutputProc(instanceData, buf, toWrite, errorCodePtr)
  *----------------------------------------------------------------------
  */
 
+/*ARGSUSED*/
 static int
 ExpCloseProc(instanceData, interp)
     ClientData instanceData;	/* Exp state. */
@@ -280,10 +297,12 @@ ExpWatchProc(instanceData, mask)
 
     mask &= esPtr->validMask;
     if (mask) {
+	/*printf("  CreateFileHandler: %d (mask = %d)\r\n",esPtr->fdin,mask);*/
 	Tcl_CreateFileHandler(esPtr->fdin, mask,
 		(Tcl_FileProc *) Tcl_NotifyChannel,
 		(ClientData) esPtr->channel);
     } else {
+	/*printf("  DeleteFileHandler: %d (mask = %d)\r\n",esPtr->fdin,mask);*/
 	Tcl_DeleteFileHandler(esPtr->fdin);
     }
 }
@@ -386,14 +405,12 @@ Tcl_Interp *interp;
     }
 }
 
-/* wait for any of our own spawned processes */
-/* we call waitpid rather than wait to avoid running into */
-/* someone else's processes.  Yes, according to Ousterhout */
-/* this is the best way to do it. */
+/* wait for any of our own spawned processes we call waitpid rather
+ * than wait to avoid running into someone else's processes.  Yes,
+ * according to Ousterhout this is the best way to do it.
 /* returns the ExpState or 0 if nothing to wait on */
 ExpState *
-expWaitOnAny(interp)
-    Tcl_Interp *interp;
+expWaitOnAny()
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
     int result;
@@ -418,7 +435,6 @@ expWaitOnAny(interp)
 ExpState *
 expWaitOnOne() {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
-    int result;
     ExpState *esPtr;
     int pid;
     /* should really be recoded using the common wait code in command.c */
@@ -429,6 +445,7 @@ expWaitOnOne() {
 	if (esPtr->pid == pid) {
 	    esPtr->sys_waited = TRUE;
 	    esPtr->wait = status;
+	    return esPtr;
 	}
     }
 }
@@ -437,14 +454,13 @@ void
 exp_background_channelhandlers_run_all()
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
-    int m;
     ExpState *esPtr;
 
     /* kick off any that already have input waiting */
     for (esPtr = tsdPtr->firstExpPtr;esPtr;esPtr = esPtr->nextPtr) {
 	/* is bg_interp the best way to check if armed? */
 	if (esPtr->bg_interp && !expSizeZero(esPtr)) {
-	    exp_background_channelhandler((ClientData)esPtr);
+	    exp_background_channelhandler((ClientData)esPtr,0);
 	}
     }
 }
@@ -457,7 +473,6 @@ expCreateChannel(interp,fdin,fdout,pid)
     int pid;
 {
     ExpState *esPtr;
-    char channelName[16 + TCL_INTEGER_SPACE];
     int mask;
     Tcl_ChannelType *channelTypePtr;
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
@@ -517,6 +532,7 @@ expCreateChannel(interp,fdin,fdout,pid)
     esPtr->slave_name = 0;
 #endif /* HAVE_PTYTRAP */
     esPtr->open = TRUE;
+    esPtr->notified = FALSE;
     esPtr->user_waited = FALSE;
     esPtr->sys_waited = FALSE;
     esPtr->bg_interp = 0;

@@ -193,7 +193,10 @@ proc child {argdate argv} {
 
     while {1} {
 	say "opening [infifoname $pid] for read"
-	spawn -open [open "|cat $::catflags < [infifoname $pid]" "r"]
+	
+	set catfid [open "|cat $::catflags < [infifoname $pid]" "r"]
+	set ::catpid $catfid
+	spawn -open $catfid
 	set in $spawn_id
 
 	say "opening [outfifoname $pid] for write"
@@ -230,7 +233,7 @@ proc escape {} {
     puts "\nto disconnect, enter: exit (or ^D)"
     puts "to suspend, press appropriate job control sequence"
     puts "to return to process, enter: return"
-    interpreter
+    interpreter -eof exit
     puts "returning ..."
 }
 
@@ -271,6 +274,7 @@ if {$argc} {
     if {$pid==0} {
 	child $datearg $argv
     }
+
     # parent thinks of child as pid==0 for reason given earlier
     set pid 0
 }
@@ -317,7 +321,9 @@ spawn -noecho -open [open [outfifoname $pid] w]
 set out $spawn_id
 
 say "opening [infifoname $pid] for read"
-spawn -noecho -open [open "|cat $catflags < [infifoname $pid]" "r"]
+set catfid [open "|cat $catflags < [infifoname $pid]" "r"]
+set catpid [pid $catfid]
+spawn -noecho -open $catfid
 set in $spawn_id
 
 puts "Escape sequence is $escape_printable"
@@ -326,9 +332,17 @@ proc prompt1 {} {
     return "$::argv0[history nextid]> "
 }
 
+rename exit exitReal
+
+proc exit {} {
+    exec /bin/kill $::catpid
+    exitReal
+}
+
 interact {
     -reset $escape escape
     -output $out
     -input $in
 }
+
 

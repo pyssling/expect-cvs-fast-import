@@ -397,7 +397,11 @@ if $user_number==3 {
 				close -i $shell
 				return
 			} -output $shell \
-			-input $shell -output "$user_spawn_id $userout"
+			-input $shell eof {
+				close -i $userout
+				wait -i $userout
+				return
+			} -output "$user_spawn_id $userout"
 		}
 		wait -i $shell
 	}

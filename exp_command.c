@@ -82,7 +82,7 @@ would appreciate credit if this program or parts of it are used.
  * These constants refer to the UTF string that encodes a null character.
  */
 
-#define NULL_STRING "\xC0\x80"
+#define NULL_STRING "\300\200" /* hex C080 */
 #define NULL_LENGTH 2
 
 #define SPAWN_ID_VARNAME "spawn_id"
@@ -182,8 +182,10 @@ int opened;
 int adjust;
 int any;
 {
+    static char *user_spawn_id = "exp0";
+
     char *name = exp_get_var(interp,SPAWN_ID_VARNAME);
-    if (!name) return 0;
+    if (!name) name = user_spawn_id;
 
     return expStateFromChannelName(interp,name,opened,adjust,any,SPAWN_ID_VARNAME);
 }
@@ -232,7 +234,7 @@ expStateFromChannelName(interp,name,open,adjust,any,msg)
 	return(0);
     }
 
-    esPtr = Tcl_GetChannelInstanceData(channel);
+    esPtr = (ExpState *)Tcl_GetChannelInstanceData(channel);
 
     return expStateCheck(interp,esPtr,open,adjust,msg);
 }
@@ -261,7 +263,6 @@ ExpState *esPtr;
 
     if (esPtr->fg_armed) {
 	exp_event_disarm_fg(esPtr);
-	esPtr->fg_armed = FALSE;
     }
 }
 
@@ -383,7 +384,6 @@ expStateAnyIs(esPtr)
 expDevttyIs(esPtr)
     ExpState *esPtr;
 {
-    Tcl_ChannelType *channelTypePtr;
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
 
     return (esPtr == tsdPtr->devtty);
@@ -420,18 +420,16 @@ Tcl_Interp *interp;
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
 
-    Tcl_SetVar(interp,"user_spawn_id", tsdPtr->stdinout->name,0);
-    Tcl_SetVar(interp,"spawn_id",      tsdPtr->stdinout->name,0);
-    Tcl_SetVar(interp,"error_spawn_id",tsdPtr->stderrX->name,0);
-    Tcl_SetVar(interp,"any_spawn_id",  "-1",0);
+    Tcl_SetVar(interp, "user_spawn_id", tsdPtr->stdinout->name,0);
+    Tcl_SetVar(interp,"error_spawn_id",  tsdPtr->stderrX->name,0);
+    Tcl_SetVar(interp,  "any_spawn_id",   EXP_SPAWN_ID_ANY_LIT,0);
 
-    /* note that the user_spawn_id is NOT /dev/tty which could */
-    /* (at least in theory anyway) be later re-opened on a different */
-    /* fd, while stdin might have been redirected away from /dev/tty */
+    /* user_spawn_id is NOT /dev/tty which could (at least in theory
+     * anyway) be later re-opened on a different fd, while stdin might
+     * have been redirected away from /dev/tty
+     */
 
     if (exp_dev_tty != -1) {
-	char dev_tty_str[10];
-	sprintf(dev_tty_str,"%d",exp_dev_tty);
 	Tcl_SetVar(interp,"tty_spawn_id",tsdPtr->devtty->name,0);
     }
 }
@@ -506,6 +504,24 @@ int fd;
 }
 #endif
 
+static
+void
+expSetpgrp()
+{
+#ifdef MIPS_BSD
+    /* required on BSD side of MIPS OS <jmsellen@watdragon.waterloo.edu> */
+#   include <sysv/sys.s>
+    syscall(SYS_setpgrp);
+#endif
+
+#ifdef SETPGRP_VOID
+    (void) setpgrp();
+#else
+    (void) setpgrp(0,0);
+#endif
+}
+
+
 /*ARGSUSED*/
 static void
 set_slave_name(esPtr,name)
@@ -565,8 +581,6 @@ char **argv;
     char *argv0 = argv[0];
     char *chanName = 0;
     int leaveopen = FALSE;
-    FILE *readfilePtr;
-    FILE *writefilePtr;
     int rc, wc;
     char *stty_init;
     int slave_write_ioctls = 1;
@@ -584,8 +598,6 @@ char **argv;
     char sync_byte;
 
     Tcl_Channel channel;
-    char buf[4];		/* enough space for a string literal */
-				/* representing a file descriptor */
     Tcl_DString dstring;
     Tcl_DStringInit(&dstring);
 
@@ -995,16 +1007,10 @@ when trapping, see below in child half of fork */
 #else
 #ifdef SYSV3
 #ifndef CRAY
-	setpgrp();
+	expSetpgrp();
 #endif /* CRAY */
 #else /* !SYSV3 */
-#ifdef MIPS_BSD
-	/* required on BSD side of MIPS OS <jmsellen@watdragon.waterloo.edu> */
-#	include <sysv/sys.s>
-	syscall(SYS_setpgrp);
-#endif
-	setpgrp(0,0);
-/*	setpgrp(0,getpid());*/	/* make a new pgrp leader */
+	expSetpgrp();
 
 /* Pyramid lacks this defn */
 #ifdef TIOCNOTTY
@@ -1280,30 +1286,15 @@ char **argv;
 	return(exp_dsleep(interp,(double)atof(*argv)));
 }
 
-/* write exactly this many bytes, i.e. retry partial writes */
-/* returns 0 for success, -1 for failure */
+/* if this works, exact_write should disappear and function should
+   call Tcl_WriteChars directly */
 static int
 exact_write(esPtr,buffer,rembytes) /* INTL */
 ExpState *esPtr;
 char *buffer;
 int rembytes;
 {
-    int cc;
-    while (rembytes) {
-	if (-1 == (cc = Tcl_WriteChars(esPtr->channel,buffer,rembytes))) return(-1);
-	if (0 == cc) {
-	    /* This shouldn't happen but I'm told that it does */
-	    /* nonetheless (at least on SunOS 4.1.3).  Since */
-	    /* this is not a documented return value, the most */
-	    /* reasonable thing is to complain here and retry */
-	    /* in the hopes that is some transient condition. */
-	    sleep(1);
-	    expDiagLog("write() failed to write anything but returned - sleeping and retrying...\n");
-	}
-
-	buffer += cc;
-	rembytes -= cc;
-    }
+    Tcl_WriteChars(esPtr->channel,buffer,rembytes);
     return(0);
 }
 
@@ -1810,10 +1801,9 @@ Tcl_Obj *CONST objv[];
     struct exp_state_list *state_list;
     struct exp_i *i;
     int j;
-    char *arg;
 
     static char *options[] = {
-	"-i", "-h",	"-s", "-null", "-0", "-raw", "-break", "--", (char *) NULL
+	"-i", "-h", "-s", "-null", "-0", "-raw", "-break", "--", (char *)0
     };
     enum options {
 	SEND_SPAWNID, SEND_HUMAN, SEND_SLOW, SEND_NULL, SEND_ZERO,
@@ -1835,16 +1825,12 @@ Tcl_Obj *CONST objv[];
 	switch ((enum options) index) {
 	    case SEND_SPAWNID:
 		j++;
-		if (j >= objc) {
-		    exp_error(interp,"usage: -i spawn_id");
-		    return TCL_ERROR;
-		}
 		chanName = Tcl_GetString(objv[j]);
 		break;
 
 	    case SEND_LAST:
 		j++;
-		break;
+		goto getString;
 
 	    case SEND_HUMAN:
 		if (-1 == get_human_args(interp,&human_args))
@@ -1888,6 +1874,7 @@ Tcl_Obj *CONST objv[];
 	    exp_error(interp,"usage: send [args] string");
 	    return TCL_ERROR;
 	}
+getString:
 	string = Tcl_GetStringFromObj(objv[j], &len);
     } else {
 	len = strlen(string);
@@ -2070,6 +2057,7 @@ Exp_LogFileCmd(clientData, interp, argc, argv)
 	}
     }
     expLogAllSet(logAll);
+    expLogLeaveOpenSet(leaveOpen);
 
     return TCL_OK;
 
@@ -2244,7 +2232,7 @@ char **argv;
 		}
 	}
 
-	exp_exit(interp,value);
+	Tcl_Exit(value);
 	/*NOTREACHED*/
 }
 
@@ -2593,7 +2581,7 @@ char **argv;
 
 	int waited_on_forked_process = 0;
 
-	esPtr = expWaitOnAny(interp);
+	esPtr = expWaitOnAny();
 	if (!esPtr) {
 	    /* if it's not a spawned process, maybe its a forked process */
 	    for (fp=forked_proc_base;fp;fp=fp->next) {
@@ -2795,22 +2783,16 @@ char **argv;
     /* With setpgrp first, child ends up with closed stdio */
     /* according to Dave Schmitt <daves@techmpc.csg.gss.mot.com> */
     if (fork()) exit(0);
-    setpgrp();
+    expSetpgrp();
 #else
-    setpgrp();
+    expSetpgrp();
     /*signal(SIGHUP,SIG_IGN); moved out to above */
     if (fork()) exit(0);	/* first child exits (as per Stevens, */
     /* UNIX Network Programming, p. 79-80) */
     /* second child process continues as daemon */
 #endif
 #else /* !SYSV3 */
-#ifdef MIPS_BSD
-    /* required on BSD side of MIPS OS <jmsellen@watdragon.waterloo.edu> */
-#	include <sysv/sys.s>
-    syscall(SYS_setpgrp);
-#endif
-    setpgrp(0,0);
-/*  setpgrp(0,getpid());*/	/* put process in our own pgrp */
+    expSetpgrp();
 
 /* Pyramid lacks this defn */
 #ifdef TIOCNOTTY
@@ -2878,20 +2860,47 @@ char **argv;
 
 /*ARGSUSED*/
 int
-Exp_InterpreterCmd(clientData, interp, argc, argv)
+Exp_InterpreterObjCmd(clientData, interp, objc, objv)
 ClientData clientData;
 Tcl_Interp *interp;
-int argc;
-char **argv;
+int objc;
+Tcl_Obj *CONST objv[];		/* Argument objects. */
 {
-	if (argc != 1) {
-		exp_error(interp,"no arguments allowed");
-		return(TCL_ERROR);
-	}
+    Tcl_Obj *eofObj = 0;
+    int i;
+    int index;
+    int rc;
 
-	return(exp_interpreter(interp));
-	/* errors and ok, are caught by exp_interpreter() and discarded */
-	/* to return TCL_OK, type "return" */
+    static char *options[] = {
+	"-eof", (char *)0
+    };
+    enum options {
+	FLAG_EOF
+    };
+
+    for (i = 1; i < objc; i++) {
+	if (Tcl_GetIndexFromObj(interp, objv[i], options, "flag", 0,
+				&index) != TCL_OK) {
+	    return TCL_ERROR;
+	}
+	switch ((enum options) index) {
+	case FLAG_EOF:
+	    i++;
+	    if (i >= objc) {
+		Tcl_WrongNumArgs(interp, 1, objv,"-eof cmd");
+		return TCL_ERROR;
+	    }
+	    eofObj = objv[i];
+	    Tcl_IncrRefCount(eofObj);
+	    break;
+	}
+    }
+
+    /* errors and ok, are caught by exp_interpreter() and discarded */
+    /* to return TCL_OK, type "return" */
+    rc = exp_interpreter(interp,eofObj);
+    if (eofObj) Tcl_DecrRefCount(eofObj);
+    return rc;
 }
 
 /* this command supercede's Tcl's builtin CONTINUE command */
@@ -3064,7 +3073,7 @@ static struct exp_cmd_data cmd_data[]  = {
 {"fork",	exp_proc(Exp_ForkCmd),	0,	0},
 {"exp_pid",	exp_proc(Exp_ExpPidCmd),	0,	0},
 {"getpid",	exp_proc(Exp_GetpidDeprecatedCmd),0,	0},
-{"interpreter",	exp_proc(Exp_InterpreterCmd),	0,	0},
+{"interpreter",	Exp_InterpreterObjCmd,	0,	0,	0},
 {"log_file",	exp_proc(Exp_LogFileCmd),	0,	0},
 {"log_user",	exp_proc(Exp_LogUserCmd),	0,	0},
 {"exp_open",	exp_proc(Exp_OpenCmd),	0,	0},

@@ -160,70 +160,8 @@ sigalarm_handler(n)
 int n;		       	/* unused, for compatibility with STDC */
 {
 	alarm_fired = TRUE;
-#if 0
-	/* check env_valid first to protect us from the alarm occurring */
-	/* in the window between i_read and alarm(0) */
-	if (env_valid) longjmp(env,1);
-#endif /*0*/
 }
 #endif /*SIMPLE_EVENT*/
-
-#if 0
-/*ARGSUSED*/
-static RETSIGTYPE
-sigalarm_handler(n)
-int n;		       	/* unused, for compatibility with STDC */
-{
-#ifdef REARM_SIG
-	signal(SIGALRM,sigalarm_handler);
-#endif
-
-	/* check env_valid first to protect us from the alarm occurring */
-	/* in the window between i_read and alarm(0) */
-	if (env_valid) longjmp(env,1);
-}
-#endif /*0*/
-
-#if 0
-
-/* upon interrupt, act like timeout */
-/*ARGSUSED*/
-static RETSIGTYPE
-sigint_handler(n)
-int n;			/* unused, for compatibility with STDC */
-{
-#ifdef REARM_SIG
-	signal(SIGINT,sigint_handler);/* not nec. for BSD, but doesn't hurt */
-#endif
-
-#ifdef TCL_DEBUGGER
-	if (exp_tcl_debugger_available) {
-		/* if the debugger is active and we're reading something, */
-		/* force the debugger to go interactive now and when done, */
-		/* restart the read.  */
-
-		Dbg_On(exp_interp,env_valid);
-
-		/* restart the read */
-		if (env_valid) longjmp(env,2);
-
-		/* if no read is in progess, just let debugger start at */
-		/* the next command. */
-		return;
-	}
-#endif
-
-#if 0
-/* the ability to timeout a read via ^C is hereby removed 8-Mar-1993 - DEL */
-
-	/* longjmp if we are executing a read inside of expect command */
-	if (env_valid) longjmp(env,1);
-#endif
-
-	/* if anywhere else in code, prepare to exit */
-	exp_exit(exp_interp,0);
-}
-#endif /*0*/
 
 /* free up everything in ecase */
 static void
@@ -232,18 +170,18 @@ Tcl_Interp *interp;
 struct ecase *ec;
 int free_ilist;		/* if we should free ilist */
 {
-	if (ec->i_list->duration == EXP_PERMANENT) {
-		if (ec->pat) Tcl_DecrRefCount(ec->pat);
-		if (ec->body) Tcl_DecrRefCount(ec->body);
-	}
+    if (ec->i_list->duration == EXP_PERMANENT) {
+	if (ec->pat) Tcl_DecrRefCount(ec->pat);
+	if (ec->body) Tcl_DecrRefCount(ec->body);
+    }
 
-	if (free_ilist) {
-		ec->i_list->ecount--;
-		if (ec->i_list->ecount == 0)
-			exp_free_i(interp,ec->i_list,exp_indirect_update2);
-	}
+    if (free_ilist) {
+	ec->i_list->ecount--;
+	if (ec->i_list->ecount == 0)
+	    exp_free_i(interp,ec->i_list,exp_indirect_update2);
+    }
 
-	ckfree((char *)ec);	/* NEW */
+    ckfree((char *)ec);	/* NEW */
 }
 
 /* free up any argv structures in the ecases */
@@ -346,7 +284,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
     int maxobjs = NUM_STATIC_OBJS;
     Tcl_Token *tokenPtr;
     char *p, *next;
-    int length, rc;
+    int rc;
     Tcl_Obj **objs = staticObjArray;
     int objc, bytesLeft, numWords, i;
     Tcl_Parse parse;
@@ -493,7 +431,6 @@ ExpState *default_esPtr;	/* suggested ExpState if called as expect_user or _tty 
 int objc;
 Tcl_Obj *CONST objv[];		/* Argument objects. */
 {
-    int index;
     int i;
     char *string;
     struct ecase ec;	/* temporary to collect args */
@@ -511,12 +448,13 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
     eg->ecd.count = 0;
 
     for (i = 1;i<objc;i++) {
+	int index;
 	string = Tcl_GetString(objv[i]);
 	if (string[0] == '-') {
 	    static char *flags[] = {
 		"-glob", "-regexp", "-exact", "-notransfer", "-nocase",
 		"-i", "-indices", "-iread", "-timestamp", "-timeout",
-		"-nobrace", (char *) NULL
+		"-nobrace", (char *)0
 	    };
 	    enum flags {
 		EXP_ARG_GLOB, EXP_ARG_REGEXP, EXP_ARG_EXACT,
@@ -889,7 +827,6 @@ char *suffix;
     } else if (e->use == PAT_EXACT) {
 	int patLength;
 	char *pat = Tcl_GetStringFromObj(e->pat, &patLength);
-	int size = (patLength < length) ? patLength : length;
 	char *p;
 
 	if (e->Case == CASE_NORM) {
@@ -911,7 +848,6 @@ char *suffix;
 	    return(EXP_MATCH);
 	} else expDiagLogU(no);
     } else if (e->use == PAT_NULL) {
-	Tcl_UniChar ch;
 	char *p;
 	expDiagLogU("null? ");
 	p = Tcl_UtfFindFirst(str, 0);
@@ -1237,11 +1173,11 @@ struct exp_i *exp_i;
 
 /* return current setting of the permanent expect_before/after/bg */
 int
-expect_info(interp,ecmd,argc,argv)
+expect_info(interp,ecmd,objc,objv)
 Tcl_Interp *interp;
 struct exp_cmd_descriptor *ecmd;
-int argc;
-char **argv;
+int objc;
+Tcl_Obj *CONST objv[];		/* Argument objects. */
 {
     struct exp_i *exp_i;
     int i;
@@ -1250,19 +1186,35 @@ char **argv;
     int all = FALSE;	/* report on all fds */
     ExpState *esPtr = 0;
 
-    while (*argv) {
-	if (streq(argv[0],"-i") && argv[1]) {
-	    iflag = argv[1];
-	    argc-=2; argv+=2;
-	} else if (streq(argv[0],"-all")) {
-	    all = TRUE;
-	    argc--; argv++;
-	} else if (streq(argv[0],"-noindirect")) {
-	    direct &= ~EXP_INDIRECT;
-	    argc--; argv++;
-	} else {
-	    exp_error(interp,"usage: -info [-all | -i spawn_id]\n");
+    static char *flags[] = {"-i", "-all", "-noindirect", (char *)0};
+    enum flags {EXP_ARG_I, EXP_ARG_ALL, EXP_ARG_NOINDIRECT};
+
+    /* start with 2 to skip over "cmdname -info" */
+    for (i = 2;i<objc;i++) {
+	/*
+	 * Allow abbreviations of switches and report an error if we
+	 * get an invalid switch.
+	 */
+
+	int index;
+	if (Tcl_GetIndexFromObj(interp, objv[i], flags, "flag", 0,
+				&index) != TCL_OK) {
 	    return TCL_ERROR;
+	}
+	switch ((enum flags) index) {
+	case EXP_ARG_I:
+	    i++;
+	    if (i >= objc) {
+		Tcl_WrongNumArgs(interp, 1, objv,"-i spawn_id");
+		return TCL_ERROR;
+	    }
+	    break;
+	case EXP_ARG_ALL:
+	    all = TRUE;
+	    break;
+	case EXP_ARG_NOINDIRECT:
+	    direct &= ~EXP_INDIRECT;
+	    break;
 	}
     }
 
@@ -1306,10 +1258,10 @@ char **argv;
     return TCL_OK;
 }
 
-/* Exp_ExpectGlobalCmd is invoked to process expect_before/after/background */
+/* Exp_ExpectGlobalObjCmd is invoked to process expect_before/after/background */
 /*ARGSUSED*/
 int
-Exp_ExpectGlobalCmd(clientData, interp, objc, objv)
+Exp_ExpectGlobalObjCmd(clientData, interp, objc, objv)
 ClientData clientData;
 Tcl_Interp *interp;
 int objc;
@@ -1317,7 +1269,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 {
     int result = TCL_OK;
     struct exp_i *exp_i, **eip;
-    struct exp_state_list *slPtr;	/* temp for interating over state_list */
+    struct exp_state_list *slPtr;   /* temp for interating over state_list */
     struct exp_cmd_descriptor eg;
     int count;
 
@@ -1334,7 +1286,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 
     if (objc > 1 && (Tcl_GetString(objv[1])[0] == '-')) {
 	if (exp_flageq("info",Tcl_GetString(objv[1])+1,4)) {
-	    return(expect_info(interp,ecmd,objc-2,objv+2));
+	    return(expect_info(interp,ecmd,objc,objv));
 	} 
     }
 
@@ -1689,12 +1641,8 @@ int save_flags;
 int
 expRead(interp,esPtrs,esPtrsMax,esPtrOut,timeout,key)
 Tcl_Interp *interp;
-ExpState *(esPtrs[]);		/* If 0, then m is already known and set. */
-int esPtrsMax;			/* If *esPtrs is not-zero, then esPtrsMax */
-				/* is the number of esPtrs. */
-				/* If *esPtrs is zero, then esPtrsMax */
-				/* is used as the mask (ready vs except). */
-				/* Crude but simplifies the interface. */
+ExpState *(esPtrs[]);		/* If 0, then esPtrOut already known and set */
+int esPtrsMax;			/* number of esPtrs */
 ExpState **esPtrOut;		/* Out variable to leave new ExpState. */
 int timeout;
 int key;
@@ -1709,7 +1657,7 @@ int key;
 
     if (esPtrs == 0) {
 	/* we already know the ExpState, just find out what happened */
-	cc = exp_get_next_event_info(interp,*esPtrOut,esPtrsMax);
+	cc = exp_get_next_event_info(interp,*esPtrOut);
 	tcl_set_flags = TCL_GLOBAL_ONLY;
     } else {
 	cc = exp_get_next_event(interp,esPtrs,esPtrsMax,esPtrOut,timeout,key);
@@ -2103,7 +2051,6 @@ expMatchProcess(interp, eo, cc, bg, detail)
     int match = -1;		/* characters matched */
     char match_char;	/* place to hold char temporarily */
     /* uprooted by a NULL */
-    Tcl_Obj *eof_body = 0;
     int result = TCL_OK;
 
 #define out(indexName, value) \
@@ -2146,7 +2093,7 @@ expMatchProcess(interp, eo, cc, bg, detail)
 	    Tcl_RegExpGetInfo(re, &info);
 
 	    for (i=0;i<=info.nsubs;i++) {
-		int offset, start, end;
+		int start, end;
 		Tcl_Obj *val;
 
 		start = info.matches[i].start;
@@ -2156,7 +2103,7 @@ expMatchProcess(interp, eo, cc, bg, detail)
 		if (e->indices) {
 		    /* start index */
 		    sprintf(name,"%d,start",i);
-		    offset = sprintf(value,"%d",start);
+		    sprintf(value,"%d",start);
 		    out(name,value);
 
 		    /* end index */
@@ -2212,7 +2159,6 @@ expMatchProcess(interp, eo, cc, bg, detail)
     /* this is broken out of (match > 0) (above) since it can */
     /* that an EOF occurred with match == 0 */
     if (eo->esPtr) {
-	char spawn_id[10];	/* enough for a %d */
 	char *str;
 	int length;
 
@@ -2268,12 +2214,10 @@ int mask;
     Tcl_Interp *interp;
     int cc;			/* number of bytes returned in a single read */
 				/* or negative EXP_whatever */
-    int i;			/* misc temporary */
     struct eval_out eo;		/* final case of interest */
     ExpState *last_esPtr;	/* for differentiating when multiple esPtrs */
 				/* to print out better debugging messages */
     int last_case;		/* as above but for case */
-    int length;
 
     /* restore our environment */
     esPtr = (ExpState *)clientData;
@@ -2289,7 +2233,9 @@ int mask;
     if (mask == 0) {
 	cc = 0;
     } else {
-	cc = expRead(interp,(ExpState **)0,mask,&esPtr,EXP_TIME_INFINITY,0);
+	esPtr->notifiedMask = mask;
+	esPtr->notified = FALSE;
+	cc = expRead(interp,(ExpState **)0,0,&esPtr,EXP_TIME_INFINITY,0);
     }
 
 do_more_data:
@@ -2397,8 +2343,6 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
     time_t start_time = 0;	/* time when restart label hit */
     time_t current_time = 0;	/* current time (when we last looked)*/
     time_t end_time;		/* future time at which to give up */
-    time_t elapsed_time_total;	/* time from now to match/fail/timeout */
-    time_t elapsed_time;	/* time from restart to (ditto) */
 
     ExpState *last_esPtr;	/* for differentiating when multiple f's */
 				/* to print out better debugging messages */
@@ -2972,11 +2916,11 @@ expExpectVarsInit()
 static struct exp_cmd_data
 cmd_data[]  = {
 {"expect",	Exp_ExpectObjCmd,	0,	(ClientData)0,	0},
-{"expect_after",exp_proc(Exp_ExpectGlobalCmd),(ClientData)&exp_cmds[EXP_CMD_AFTER],0},
-{"expect_before",exp_proc(Exp_ExpectGlobalCmd),(ClientData)&exp_cmds[EXP_CMD_BEFORE],0},
+{"expect_after",Exp_ExpectGlobalObjCmd, 0,	(ClientData)&exp_cmds[EXP_CMD_AFTER],0},
+{"expect_before",Exp_ExpectGlobalObjCmd,0,	(ClientData)&exp_cmds[EXP_CMD_BEFORE],0},
 {"expect_user",	Exp_ExpectObjCmd,	0,	(ClientData)&StdinoutPlaceholder,0},
 {"expect_tty",	Exp_ExpectObjCmd,	0,	(ClientData)&DevttyPlaceholder,0},
-{"expect_background",exp_proc(Exp_ExpectGlobalCmd),(ClientData)&exp_cmds[EXP_CMD_BG],0},
+{"expect_background",Exp_ExpectGlobalObjCmd,0,	(ClientData)&exp_cmds[EXP_CMD_BG],0},
 {"match_max",	exp_proc(Exp_MatchMaxCmd),	0,	0},
 {"remove_nulls",exp_proc(Exp_RemoveNullsCmd),	0,	0},
 {"parity",	exp_proc(Exp_ParityCmd),	0,	0},

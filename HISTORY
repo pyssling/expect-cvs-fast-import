@@ -3,24 +3,10 @@ support are in ChangeLog. - Don
 
 Date	Version	Description
 -------	-------	------------------------------------------------------
-		Removed rm_null behavior from interact's regexp matching.
+		See the NEWS file for this date for an overview.  (I'm
+		too tired to add all the details.  Maybe later.)
 
-		match_max command controls by bytes, not chars.
-
-		In order to do threads, changed exp_is_debugging to a function.
-		This means I'll probably have to change the interface for the
-		C library which uses that symbol too.  Probably need to
-		duplicate the debuglog functions.
-
-		Scott Stanton switched to using objects more comprehensively
-		and using 8.1 regexp.
-
-		Created Expect channel driver.
-
-		Began adding thread support.
-
-		Forced existence of spawn_id variable in environment.
-		This makes things easier later.
+		Added configure test for 0 vs 2-arg setpgrp.
 
 		Kenji Kamizono <kenji@math.columbia.edu> noted it was possible
 		to compile Linux (2.2.5) so that it recognized both openpty

@@ -127,7 +127,6 @@ expLogInteractionU(esPtr,buf)
     char *buf;
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
-    int length;
 
     if (tsdPtr->logAll || (tsdPtr->logUser && tsdPtr->logChannel)) {
 	Tcl_WriteChars(tsdPtr->logChannel,buf,-1);
@@ -234,6 +233,7 @@ char *buf;
 
 /* send diagnostics to Diag, Log, and stderr */
 /* use this function for recording unusual things in the log */
+/*VARARGS*/
 void
 expDiagLog TCL_VARARGS_DEF(char *,arg1)
 {
@@ -531,7 +531,7 @@ expLogChannelSet(interp,name)
     }
     if (!(mode & TCL_WRITABLE)) {
 	tsdPtr->logChannel = 0;
-	exp_error(interp,"channel is not writable");
+	Tcl_SetResult(interp,"channel is not writable",TCL_VOLATILE);
 	return TCL_ERROR;
     }
     return TCL_OK;

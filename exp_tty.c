@@ -156,7 +156,7 @@ int *was_raw, *was_echo;
 
 	if (exp_tty_set_simple(&tty_current) == -1) {
 		expErrorLog("ioctl(raw): %s\r\n",Tcl_PosixError(interp));
-		exp_exit(interp,1);
+		Tcl_Exit(1);
 	}
 
 	exp_ioctled_devtty = TRUE;
@@ -185,7 +185,7 @@ int *was_raw, *was_echo;
 
 	if (exp_tty_set_simple(&tty_current) == -1) {
 		expErrorLog("ioctl(noraw): %s\r\n",Tcl_PosixError(interp));
-		exp_exit(interp,1);
+		Tcl_Exit(1);
 	}
 	exp_ioctled_devtty = TRUE;
 
@@ -201,7 +201,7 @@ int echo;
 {
 	if (exp_tty_set_simple(tty) == -1) {
 		expErrorLog("ioctl(set): %s\r\n",Tcl_PosixError(interp));
-		exp_exit(interp,1);
+		Tcl_Exit(1);
 	}
 	is_raw = raw;
 	is_noecho = !echo;
@@ -655,7 +655,7 @@ char **argv;
 	        if (ioctl(exp_dev_tty, TCGETS, &tty_current) == -1) {
 #endif
 			expErrorLog("ioctl(get): %s\r\n",Tcl_PosixError(interp));
-			exp_exit(interp,1);
+			Tcl_Exit(1);
 		}
 		if (cooked) {
 			/* find out user's new defn of 'cooked' */

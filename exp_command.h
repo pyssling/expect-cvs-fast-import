@@ -114,6 +114,9 @@ typedef struct ExpState {
                         /* last touched this buffer */
     int force_read;	/* force read to occur (even if buffer already has */
                         /* data).  This supports interact CAN_MATCH */
+    int notified;	/* If Tcl_NotifyChannel has been called and we */
+		        /* have not yet read from the channel. */
+    int notifiedMask;	/* Mask reported when notified. */
     int fg_armed;	/* If Tk_CreateFileHandler is active for responding */
                         /* to foreground events */	   
 #ifdef HAVE_PTYTRAP
@@ -285,12 +288,14 @@ EXTERN void		exp_init_trap_cmds _ANSI_ARGS_((Tcl_Interp *));
 EXTERN void		exp_init_interact_cmds _ANSI_ARGS_((Tcl_Interp *));
 EXTERN void		exp_init_tty_cmds();
 
+EXTERN ExpState *	expStateCheck _ANSI_ARGS_((Tcl_Interp *,ExpState *,int,int,char *));
 EXTERN ExpState *       expStateCurrent _ANSI_ARGS_((Tcl_Interp *,int,int,int));
 EXTERN ExpState *       expStateFromChannelName _ANSI_ARGS_((Tcl_Interp *,char *,int,int,int,char *));
 EXTERN void		expStateFree _ANSI_ARGS_((ExpState *));
 
 EXTERN ExpState *	expCreateChannel _ANSI_ARGS_((Tcl_Interp *,int,int,int));
-EXTERN ExpState *	expWaitOnAny _ANSI_ARGS_((Tcl_Interp *));
+EXTERN ExpState *	expWaitOnAny _ANSI_ARGS_((void));
+EXTERN ExpState *	expWaitOnOne _ANSI_ARGS_((void));
 EXTERN void		expExpectVarsInit _ANSI_ARGS_((void));
 EXTERN int		expStateAnyIs _ANSI_ARGS_((ExpState *));
 EXTERN int		expDevttyIs _ANSI_ARGS_((ExpState *));
