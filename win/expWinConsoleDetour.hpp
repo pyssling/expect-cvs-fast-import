@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinConsoleDebugger.hpp,v 1.1.2.29 2002/06/29 00:44:36 davygrvy Exp $
+ * RCS: @(#) $Id: expWinConsoleDetour.hpp,v 1.1.2.1 2002/07/03 02:46:40 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -30,7 +30,7 @@
 #define INC_expWinConsoleDetour_hpp__
 
 #include "expWinSlave.hpp"
-
+#include "./Detours/include/detours.h"
 
 class ConsoleDetour : public CMclThreadHandler, ArgMaker
 {
