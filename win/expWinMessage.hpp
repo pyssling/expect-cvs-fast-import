@@ -23,7 +23,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinUtils.cpp,v 1.1.2.3 2002/03/11 07:03:35 davygrvy Exp $
+ * RCS: @(#) $Id: expWinMessage.hpp,v 1.1.2.1 2002/03/12 01:38:19 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -38,11 +38,10 @@ public:
     Message();
     Message(Message &);
 
-    enum Mode {TYPE_BLANK, TYPE_NORMAL, TYPE_ERROR, TYPE_INSTREAM};
+    enum Mode {TYPE_BLANK, TYPE_NORMAL, TYPE_ERROR, TYPE_INSTREAM, TYPE_FUNCTION};
     Mode type;
     unsigned char *bytes;
     size_t length;
-    //Message& operator=(const Message&);
 };
 
 #endif

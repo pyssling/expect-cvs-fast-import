@@ -1,8 +1,8 @@
 /* ----------------------------------------------------------------------------
  * expWinMessage.cpp --
  *
- *	Defines the Message class.  This is what is passed over the thread-safe
- *	event queue.
+ *	Defines the Message class.  This is what is passed over the
+ *	thread-safe event queue.
  *
  * ----------------------------------------------------------------------------
  *
@@ -23,7 +23,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinUtils.cpp,v 1.1.2.3 2002/03/11 07:03:35 davygrvy Exp $
+ * RCS: @(#) $Id: expWinMessage.cpp,v 1.1.2.1 2002/03/12 01:38:19 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 

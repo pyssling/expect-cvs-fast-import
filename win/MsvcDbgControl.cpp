@@ -30,7 +30,7 @@
  *	    http://expect.nist.gov/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: MsvcDbgControl.cpp,v 1.1.2.4 2002/02/10 12:03:30 davygrvy Exp $
+ * RCS: @(#) $Id: MsvcDbgControl.cpp,v 1.1.2.5 2002/03/09 01:17:29 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -66,14 +66,14 @@ VCDbgClose(void *token)
 }
 
 static char *
-bstr2utf8(BSTR bstr)
+bstr2oem(BSTR bstr)
 {
     int size, len = SysStringLen(bstr);
     char *buf;
 
-    size = WideCharToMultiByte(CP_UTF8, 0, bstr, len, 0, 0, NULL, NULL);
+    size = WideCharToMultiByte(CP_OEMCP, 0, bstr, len, 0, 0, NULL, NULL);
     buf = new char [size+1];
-    len = WideCharToMultiByte(CP_UTF8, 0, bstr, len, buf, size, NULL, NULL);
+    len = WideCharToMultiByte(CP_OEMCP, 0, bstr, len, buf, size, NULL, NULL);
     *(buf+len) = '\0';
     return buf;
 }
@@ -189,29 +189,25 @@ nameMangledAndTooCPlusPlusishToBeExternC
     {
 	CComBSTR askpid("pid");
 	CComBSTR gotpid;
-	Tcl_DString keyDS;
 	char *keyName;
 	HKEY root;
 
 	hr = pDebug->Evaluate(askpid, &gotpid);
 	thePid = _wtoi(gotpid.m_str);
-	keyName = bstr2utf8(gotpid);
-	Tcl_DStringInit(&keyDS);
-	Tcl_WinUtfToTChar(keyName, -1, &keyDS);
-	delete keyName;
+	keyName = bstr2oem(gotpid);
 
 	RegCreateKeyEx(HKEY_LOCAL_MACHINE, "Software\\Tomasoft\\MsDevDbgCtrl",
 		0, REG_NONE, REG_OPTION_VOLATILE, KEY_ALL_ACCESS, 0L, &root,
 		0L);
 
 	// Save the commandline in the registry using the PID as the key.
-	(*expWinProcs->regSetValueExProc)(root, Tcl_DStringValue(&keyDS), 0,
-		REG_SZ,	(BYTE *) Tcl_DStringValue(cmdline),
+	RegSetValueEx(root, keyName, 0,	REG_SZ,
+		(BYTE *) Tcl_DStringValue(cmdline),
 		Tcl_DStringLength(cmdline));
 
+	delete keyName;
 	RegFlushKey(root);
 	RegCloseKey(root);
-	Tcl_DStringFree(&keyDS);
     }
     
     // continue AppB from the soft break.

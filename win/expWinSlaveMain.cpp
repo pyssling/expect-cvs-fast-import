@@ -22,7 +22,7 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinSlaveMain.cpp,v 1.1.4.7 2002/03/11 05:36:37 davygrvy Exp $
+ * RCS: @(#) $Id: expWinSlaveMain.cpp,v 1.1.4.8 2002/03/12 01:38:19 davygrvy Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -51,8 +51,8 @@ static SpawnClientTransport *SpawnOpenClientTransport(const char *name,
 	CMclQueue<Message> &mQ);
 static ExpSlaveTrap *ExpWinSlaveOpenTrap(const char *meth, int argc,
 	char * const argv[], CMclQueue<Message> &mQ);
-static int ExpWinMasterDoEvents(SpawnClientTransport *transport,
-	ExpSlaveTrap *masterCtrl, CMclQueue<Message> &mQ);
+static int DoEvents(SpawnClientTransport *transport,
+	ExpSlaveTrap *masterCtrl, CMclQueue<Message> &mQ, CMclEvent &sd);
 
 extern "C" HMODULE hTclMod;
 
@@ -64,17 +64,13 @@ main (void)
     SpawnClientTransport *tclient;  // class pointer of transport client.
     ExpSlaveTrap *slaveCtrl;	    // trap method class pointer.
     CMclQueue<Message> messageQ;    // Our message Queue we hand off to everyone.
+    CMclEvent Shutdown;		    // global shutdown for the event queue.
     int code;			    // exitcode.
     CHAR *cmdLine;		    // commandline to use.
 
     //  We use a few APIs from Tcl, dynamically load it now.
     //
     ExpDynloadTclStubs();
-
-    //  Select the unicode or ascii winprocs. Works in cooperation with
-    //  Tcl_WinUtfToTChar().
-    //
-    ExpWinInit();
 
     //  Get our commandline.  MSVC++ doesn't like to debug spawned processes
     //  without a bit of help.  So help it out.
@@ -116,7 +112,7 @@ main (void)
 
     //  Process messages.
     //
-    code = ExpWinMasterDoEvents(tclient, slaveCtrl, messageQ);
+    code = DoEvents(tclient, slaveCtrl, messageQ, Shutdown);
 
     Tcl_Finalize();
     FreeLibrary(hTclMod);
@@ -201,16 +197,29 @@ ExpWinSlaveOpenTrap(const char *meth, int argc, char * const argv[],
  */
 
 int
-ExpWinMasterDoEvents(SpawnClientTransport *transport,
-    ExpSlaveTrap *masterCtrl, CMclQueue<Message> &mQ)
+DoEvents(SpawnClientTransport *transport,
+    ExpSlaveTrap *masterCtrl, CMclQueue<Message> &mQ, CMclEvent &sd)
 {
-    Message &msg = Message();  // create a blank reference to receive into.
+    Message &msg = Message();	// Create a blank reference to receive into.
 
-    while (mQ.Get(msg)) {
+    while (mQ.Get(msg, INFINITE, &sd)) {
 	switch (msg.type) {
 	case Message::TYPE_NORMAL:
 	case Message::TYPE_ERROR:
+	    //  Send stuff back to the parent.
+	    //
 	    transport->Write(msg);
+	    break;
+
+	case Message::TYPE_INSTREAM:
+	    //  Send data into the slave.
+	    //
+	    break;
+
+	case Message::TYPE_FUNCTION:
+	    //  Internal mode switching and info gathering.
+	    //
+	    break;
 	}
     }
     return 0;
