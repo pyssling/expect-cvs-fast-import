@@ -1,0 +1,62 @@
+#==============================================================================
+#   The Tcl/Tk SuperDuty Win32 Common-Denominator Makefile Multiplexor for:
+#
+#	    Microsoft NMAKE  v1.62+	[MSVC++ v5+]
+#	    Borland MAKE     v5.2	[Borland C++ Builder 5.5]
+#	    Watcom WMAKE     v11.0	[OpenWatcom]
+#	    MinGW MAKE	     v3.79.1    [MinGW: Minimalist GNU For Windows]
+#
+#   Tool specific syntax is NOT allowed in this file.
+#
+#==============================================================================
+# RCS: @(#) $Id: makefile.win,v 1.1.2.6 2001/09/16 07:00:34 davygrvy Exp $
+#==============================================================================
+
+### Remove all '!' for MinGW..  Sorry, couldn't find another way to do this.
+
+#==============================================
+# Load the user info.
+#==============================================
+
+!include mkconfig.mif
+
+#==============================================
+# Within what context are we ?
+#==============================================
+
+!ifdef _NMAKE_VER
+!include "win\mkvc32.mif"	# Microsoft Toolset
+!else
+!ifdef __LOADDLL__
+!include "win\mkwc32.mif"	# Watcom Toolset
+!else
+!ifdef __MAKE__
+!include "win\mkbc32.mif"	# Borland Toolset
+!else
+!ifdef BUILDLIB
+			# Lcc-Win32 doesn't have an include directive...  oh well.
+!else
+!ifdef MAKE_VERSION
+!include win/mkmgw32.mif	# MinGW Toolset
+!else
+!error Unknown make tool.  Toolset cannot be determined.
+!endif
+!endif
+!endif
+!endif
+!endif
+
+!ifndef BAILOUT
+
+#==============================================
+#  Targets.
+#==============================================
+
+all : $(SYM)
+	@echo doing all target
+
+cvsupdate : $(SYM)
+	cd ..
+	set CVS_RSH=$(CVS_RSH)
+	$(CVSCMD) update $(CVS_OPTS)
+!endif
