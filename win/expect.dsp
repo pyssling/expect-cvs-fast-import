@@ -185,7 +185,11 @@ SOURCE=.\expWinTty.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\ExpWinVCDbgLaunch.cpp
+SOURCE=.\MsvcDbgControl.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\MsvcDbgControl.h
 # End Source File
 # Begin Source File
 

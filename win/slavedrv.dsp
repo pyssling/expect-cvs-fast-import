@@ -84,6 +84,10 @@ LINK32=link.exe
 # Name "slavedrv - Win32 Debug"
 # Begin Source File
 
+SOURCE=.\ExpWinInit.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\expWinLog.c
 # End Source File
 # Begin Source File
@@ -101,6 +105,23 @@ SOURCE=.\expWinSlaveDrv.c
 # Begin Source File
 
 SOURCE=.\expWinSlaveKey.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\MsvcDbgControl.cpp
+
+!IF  "$(CFG)" == "slavedrv - Win32 Release"
+
+# PROP Exclude_From_Build 1
+
+!ELSEIF  "$(CFG)" == "slavedrv - Win32 Debug"
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
+SOURCE=.\MsvcDbgControl.h
 # End Source File
 # End Target
 # End Project

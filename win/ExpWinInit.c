@@ -15,7 +15,9 @@ static ExpWinProcs asciiProcs = {
     (VOID (WINAPI *)(LPCTSTR)) OutputDebugStringA,
     (DWORD (WINAPI *)(HMODULE, LPTSTR, DWORD)) GetModuleFileNameA,
     (BOOL (WINAPI *)(LPCTSTR, LPCTSTR)) SetEnvironmentVariableA,
-    (BOOL (WINAPI *)(LPCTSTR, LPTSTR, DWORD)) GetEnvironmentVariableA
+    (BOOL (WINAPI *)(LPCTSTR, LPTSTR, DWORD)) GetEnvironmentVariableA,
+    (LONG (WINAPI *)(HKEY, LPCTSTR, DWORD, DWORD, CONST BYTE *,
+	    DWORD)) RegSetValueExA
 };
 
 static ExpWinProcs unicodeProcs = {
@@ -32,7 +34,9 @@ static ExpWinProcs unicodeProcs = {
     (VOID (WINAPI *)(LPCTSTR)) OutputDebugStringW,
     (DWORD (WINAPI *)(HMODULE, LPTSTR, DWORD)) GetModuleFileNameW,
     (BOOL (WINAPI *)(LPCTSTR, LPCTSTR)) SetEnvironmentVariableW,
-    (BOOL (WINAPI *)(LPCTSTR, LPTSTR, DWORD)) GetEnvironmentVariableW
+    (BOOL (WINAPI *)(LPCTSTR, LPTSTR, DWORD)) GetEnvironmentVariableW,
+    (LONG (WINAPI *)(HKEY, LPCTSTR, DWORD, DWORD, CONST BYTE *,
+	    DWORD)) RegSetValueExW
 };
 
 ExpWinProcs *expWinProcs = &asciiProcs;

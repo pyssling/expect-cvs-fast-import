@@ -60,6 +60,10 @@
 #include "expWin.h"
 #include "expWinSlave.h"
 
+#ifdef _DEBUG
+#include "MsvcDbgControl.h"
+#endif
+
 #ifdef _MSC_VER
     // Only do this when MSVC++ is compiling us.
 #   ifdef USE_TCL_STUBS
@@ -152,6 +156,7 @@ HANDLE ExpWaitMutex;		/* Grab before modifying wait queue */
 DWORD  ExpWaitCount;		/* Current number of wait handles */
 HANDLE ExpWaitQueue[EXP_MAX_QLEN];/* wait handles */
 DWORD  ExpConsoleInputMode;	/* Current flags for the console */
+int pid;			/* used by the debugger controler */
 
 static void		InitializeWaitQueue(void);
 static BOOL 		PipeRespondToMaster(int useSocket, HANDLE handle,
@@ -228,10 +233,7 @@ main(void)
     struct sockaddr_in sin;
     WSADATA	SockData;
 
-#if 0
-    Sleep(22000);		/* XXX: For debugging purposes */
-#endif
-
+    pid = GetCurrentProcessId();
     ExpWinInit();
     SetArgv(&argc, &argv);
 
@@ -1368,50 +1370,30 @@ SetArgv(
     Tcl_FindExecutable(buff);
 
     Tcl_DStringInit(&cmdLine);
-    if (IsDebuggerPresent()) {
-	/*
-	 * There will be a unicode loss here.
-	 */
-	Tcl_DString cmdLineTChar;
-	Tcl_DString enVar;
-	DWORD needed;
 
-	Tcl_DStringInit(&cmdLineTChar);
-	Tcl_DStringInit(&enVar);
-	Tcl_WinUtfToTChar("EXP_SPAWN_DEBUG_CMDLINE", -1, &enVar);
-	/* Calc size needed */
-	needed = (*expWinProcs->getEnvironmentVariableProc)(
-		(LPCTSTR) Tcl_DStringValue(&enVar),
-		(LPTSTR) Tcl_DStringValue(&cmdLineTChar),
-		0);
-	Tcl_DStringSetLength(&cmdLineTChar, (expWinProcs->useWide ?
-		needed * sizeof(WCHAR) :
-		needed * sizeof(CHAR)));
-	/* get it */
-	needed = (*expWinProcs->getEnvironmentVariableProc)(
-		(LPCTSTR) Tcl_DStringValue(&enVar),
-		(LPTSTR) Tcl_DStringValue(&cmdLineTChar),
-		needed);
-	/* truncate it again just to be sure it's null terminated */
-	Tcl_DStringSetLength(&cmdLineTChar, (expWinProcs->useWide ?
-		needed * sizeof(WCHAR) :
-		needed * sizeof(CHAR)));
-	/* convert it to UTF-8 */
-	Tcl_WinTCharToUtf(Tcl_DStringValue(&cmdLineTChar),
-		Tcl_DStringLength(&cmdLineTChar), &cmdLine);
-	Tcl_DStringFree(&cmdLineTChar);
-	Tcl_DStringFree(&enVar);
+#ifdef _DEBUG
+    if (IsDebuggerPresent()) {
+#   ifdef _MSC_VER
+	cmdLineUni = MsvcDbg_GetCommandLine();
+#   else
+#   error "Need Debugger control for this IDE"
+#   endif
     } else {
-	/*
-	 * Always get the unicode commandline because *ALL* Win32 platforms
-	 * support it.
-	 */
+#endif
+
 	cmdLineUni = GetCommandLineW();
-	size = WideCharToMultiByte(CP_UTF8, 0, cmdLineUni, -1, 0, 0, NULL, NULL);
-	Tcl_DStringSetLength(&cmdLine, size);
-	WideCharToMultiByte(CP_UTF8, 0, cmdLineUni, -1,
-		Tcl_DStringValue(&cmdLine), size, NULL, NULL);
+
+#ifdef _DEBUG
     }
+#endif
+    /*
+     * Always get the unicode commandline because *ALL* Win32 platforms
+     * support it.
+     */
+    size = WideCharToMultiByte(CP_UTF8, 0, cmdLineUni, -1, 0, 0, NULL, NULL);
+    Tcl_DStringSetLength(&cmdLine, size);
+    WideCharToMultiByte(CP_UTF8, 0, cmdLineUni, -1,
+	    Tcl_DStringValue(&cmdLine), size, NULL, NULL);
 
     /*
      * Precompute an overly pessimistic guess at the number of arguments

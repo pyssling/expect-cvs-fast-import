@@ -28,6 +28,11 @@
 #include "Dbg.h"
 #endif
 
+#ifdef _DEBUG
+#include "MsvcDbgControl.h"
+static void *dbgtoken;
+#endif
+
 /*
  * Arbitrary, but this is the port we are going to use for communicating
  * with the slave driver.
@@ -414,34 +419,24 @@ Exp_SpawnCmd(ClientData clientData,Tcl_Interp *interp,int argc,char **argv)
      */
     if (IsDebuggerPresent()) {
 	Tcl_DString cmdLine;
-	Tcl_DString enVar;
 
 	OutputDebugString("spawndrv.exe args: ");
 	Tcl_DStringInit(&cmdLine);
-	Tcl_DStringInit(&enVar);
 	/* This quotes the strings properly. */
 	BuildCommandLine(nargv[0], argc, nargv, &cmdLine);
 	(*expWinProcs->outputDebugStringProc)((LPCTSTR)Tcl_DStringValue(&cmdLine));
 	OutputDebugString("\n");
 
-	/*
-	 * Telling the MSVC++ debugger what commandline to use is not
-	 * possible.  Pass the info over an envar.
-	 */
-
-	Tcl_WinUtfToTChar("EXP_SPAWN_DEBUG_CMDLINE", -1, &enVar);
-	(*expWinProcs->setEnvironmentVariableProc)(
-		(LPCTSTR)Tcl_DStringValue(&enVar),
-		(LPCTSTR)Tcl_DStringValue(&cmdLine));
-	Tcl_DStringFree(&enVar);
-	Tcl_DStringFree(&cmdLine);
-
+#   ifdef _MSC_VER
 	/*
 	 * Launch a new instance of MSVC++ with the right project file, if one
 	 * does not already exist.  And tell MSVC++ to run it in the debuger.
 	 */
-
-	ExpWinDbgLaunch();
+	MsvcDbg_Launch("D:\\expect_wslive\\expect_win32_take2\\win\\slavedrv.dsp",
+		&cmdLine, &dbgtoken);
+#   else
+#   error "Need Debugger control for this IDE"
+#   endif
 
     } else {
 #endif
