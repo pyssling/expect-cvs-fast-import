@@ -122,27 +122,28 @@ SOURCE=..\generic\expPlatDecls.h
 
 SOURCE=..\generic\exp.decls
 
-!IF  "$(CFG)" == "expect - Win32 Release"
-
-!ELSEIF  "$(CFG)" == "expect - Win32 Debug"
-
-USERDEP__EXP_D="$(InputPath)"	
-# Begin Custom Build
+# Begin Custom Build - Rebuilding the Stubs table...
 InputDir=\expect_wslive\expect_win32_take2\generic
 InputPath=..\generic\exp.decls
 
 BuildCmds= \
 	c:\progra~1\tcl\bin\tclsh84 d:/tcl_workspace/tcl_head/tools/genStubs.tcl $(InputDir) $(InputPath)
 
-"expDecls.h" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+"..\generic\expDecls.h" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
    $(BuildCmds)
 
-"expIntDecls.h" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+"..\generic\expPlatDecls.h" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+   $(BuildCmds)
+
+"..\generic\expIntDecls.h" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+   $(BuildCmds)
+
+"..\generic\expIntPlatDecls.h" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+   $(BuildCmds)
+
+"..\generic\expStubInit.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
    $(BuildCmds)
 # End Custom Build
-
-!ENDIF 
-
 # End Source File
 # Begin Source File
 
@@ -208,6 +209,26 @@ SOURCE=..\generic\getopt.c
 # Begin Group "win"
 
 # PROP Default_Filter ""
+# Begin Group "winheaders"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\expWin.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\expWinInt.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\expWinPort.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\MsvcDbgControl.h
+# End Source File
+# End Group
 # Begin Source File
 
 SOURCE=.\expect.rc
@@ -226,10 +247,6 @@ SOURCE=.\expect.rc
 # End Source File
 # Begin Source File
 
-SOURCE=.\expWin.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\expWinCommand.c
 # End Source File
 # Begin Source File
@@ -238,15 +255,7 @@ SOURCE=.\ExpWinInit.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\expWinInt.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\expWinLog.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\expWinPort.h
 # End Source File
 # Begin Source File
 
@@ -263,10 +272,6 @@ SOURCE=.\expWinTty.c
 # Begin Source File
 
 SOURCE=.\MsvcDbgControl.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=.\MsvcDbgControl.h
 # End Source File
 # Begin Source File
 
