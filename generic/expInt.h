@@ -11,7 +11,7 @@
  *
  * Modified in October, 2001 by David Gravereaux for windows.
  *
- * RCS: @(#) $Id: expInt.h,v 1.1.2.2 2001/10/28 01:46:31 davygrvy Exp $
+ * RCS: @(#) $Id: expInt.h,v 1.1.2.3 2001/10/28 08:56:51 davygrvy Exp $
  */
 
 #ifndef _EXPINT
@@ -239,6 +239,11 @@ struct exp_cmd_data {
 
 #define streq(x,y)	(0 == strcmp((x),(y)))
 
+//typedef struct {
+//    Tcl_Channel channelPtr;
+//    int toWrite;
+//} ExpSpawnState;
+
 
 /* Global variables */
 extern int exp_default_match_max;
@@ -260,6 +265,17 @@ extern int exp_buffer_command_input;
 extern int exp_tcl_debugger_available;
 extern Tcl_Interp *exp_interp;
 extern void (*exp_event_exit) _ANSI_ARGS_((Tcl_Interp *));
+
+/* for exp_tty.c */
+extern int exp_dev_tty; /* file descriptor to /dev/tty or -1 if none */
+extern int exp_ioctled_devtty;
+extern int exp_stdin_is_tty;
+extern int exp_stdout_is_tty;
+typedef struct TERMINAL exp_tty;
+extern exp_tty exp_tty_original;
+extern exp_tty exp_tty_current;
+extern exp_tty exp_tty_cooked;
+
 /*
  * Everything below here should eventually be moved into expect.h
  * and Expect-thread-safe variables.
@@ -393,8 +409,56 @@ TCL_EXTERN(int)		expLogUserGet _ANSI_ARGS_((void));
 TCL_EXTERN(void)	expLogUserSet _ANSI_ARGS_((int));
 TCL_EXTERN(void)	expLogInteractionU _ANSI_ARGS_((ExpState *,char *));
 
+/* Protos for exp_win.c */
+TCL_EXTERN(int)	    exp_window_size_set	    _ANSI_ARGS_((int fd));
+TCL_EXTERN(int)	    exp_window_size_get	    _ANSI_ARGS_((int fd));
+TCL_EXTERN(void)    exp_win_rows_set	    _ANSI_ARGS_((char *rows));
+TCL_EXTERN(void)    exp_win_rows_get	    _ANSI_ARGS_((char *rows));
+TCL_EXTERN(void)    exp_win_columns_set	    _ANSI_ARGS_((char *columns));
+TCL_EXTERN(void)    exp_win_columns_get	    _ANSI_ARGS_((char *columns));
+TCL_EXTERN(int)	    exp_win2_size_get	    _ANSI_ARGS_((int fd));
+TCL_EXTERN(int)	    exp_win2_size_set	    _ANSI_ARGS_((int fd));
+TCL_EXTERN(void)    exp_win2_rows_set	    _ANSI_ARGS_((int fd, char *rows));
+TCL_EXTERN(void)    exp_win2_rows_get	    _ANSI_ARGS_((int fd, char *rows));
+TCL_EXTERN(void)    exp_win2_columns_set    _ANSI_ARGS_((int fd, char *columns));
+TCL_EXTERN(void)    exp_win2_columns_get    _ANSI_ARGS_((int fd, char *columns));
+
+/* for exp_tty.c */
+TCL_EXTERN(void) exp_tty_raw _ANSI_ARGS_((int set));
+TCL_EXTERN(void) exp_tty_echo _ANSI_ARGS_((int set));
+TCL_EXTERN(void) exp_tty_break();
+TCL_EXTERN(int) exp_tty_raw_noecho();
+TCL_EXTERN(int) exp_israw();
+TCL_EXTERN(int) exp_isecho();
+TCL_EXTERN(void) exp_tty_set();
+TCL_EXTERN(int) exp_tty_set_simple _ANSI_ARGS_((exp_tty *tty));
+TCL_EXTERN(int) exp_tty_get_simple _ANSI_ARGS_((exp_tty *tty));
+
+/* from exp_int.h */
+TCL_EXTERN(void)	exp_console_set     _ANSI_ARGS_((void));
+TCL_EXTERN(void)	expDiagLogPtrSet    _ANSI_ARGS_((void (*)_ANSI_ARGS_((char *))));
+TCL_EXTERN(void)	expDiagLogPtr       _ANSI_ARGS_((char *));
+TCL_EXTERN(void)	expDiagLogPtrX      _ANSI_ARGS_((char *,int));
+TCL_EXTERN(void)	expDiagLogPtrStr    _ANSI_ARGS_((char *,char *));
+TCL_EXTERN(void)	expDiagLogPtrStrStr _ANSI_ARGS_((char *,char *,char *));
+TCL_EXTERN(void)	expErrnoMsgSet      _ANSI_ARGS_((char * (*) _ANSI_ARGS_((int))));
+TCL_EXTERN(char *)	expErrnoMsg         _ANSI_ARGS_((int));
+
+/* from expect.h */
+TCL_EXTERN(void)	exp_slave_control _ANSI_ARGS_((int,int));
 
 
+
+/* not sure where to put this, yet. */
+TCL_EXTERN(int)		ExpPlatformSpawnOutput _ANSI_ARGS_((
+			    ClientData instanceData, char *bufPtr,
+			    int toWrite, int *errorPtr));
+TCL_EXTERN(int)		ExpPlatformSpawnInput _ANSI_ARGS_((
+			    ClientData instanceData, char *bufPtr,
+			    int toRead, int *errorPtr));
+
+
+/* unsure if this should be here */
 TCL_EXTERN(void)	exp_ecmd_remove_state_direct_and_indirect _ANSI_ARGS_((
 			    Tcl_Interp *interp, ExpState *esPtr));
 
@@ -418,6 +482,10 @@ Tcl_CmdProc Exp_SleepCmd;
 Tcl_CmdProc Exp_SpawnCmd;
 Tcl_CmdProc Exp_StraceCmd;
 Tcl_CmdProc Exp_WaitCmd;
+
+Tcl_CmdProc Exp_ExpVersionCmd;
+Tcl_CmdProc Exp_Prompt1Cmd;
+Tcl_CmdProc Exp_Prompt2Cmd;
 
 
 /*

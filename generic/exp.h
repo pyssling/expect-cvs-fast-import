@@ -11,7 +11,7 @@
  * 
  * Modified in October, 2001 by David Gravereaux for windows.
  *
- * RCS: @(#) $Id: exp.h,v 1.1.2.3 2001/10/28 08:56:51 davygrvy Exp $
+ * RCS: @(#) $Id: exp.h,v 1.1.2.4 2001/10/29 03:21:09 davygrvy Exp $
  */
 
 #ifndef _EXP
@@ -182,6 +182,12 @@ TCL_EXTERN(int)		exp_getpidproc _ANSI_ARGS_((void));
 
 #include "expDecls.h"
 
+/*
+ * Include platform specific public function declarations that are
+ * accessible via the stubs table.
+ */
+
+#include "expPlatDecls.h"
 
 /*
  * Exp_InitStubs is used by apps/extensions that want to link
