@@ -307,20 +307,9 @@ in_keymap(esPtr,keymap,km_match,match_length,skip)
 		result = Tcl_RegExpMatchObj(NULL, re, esPtr->buffer, offset,
 			-1 /* nmatches */, flags);
 		if (result > 0) {
-		    Tcl_RegExpInfo info;
-		    Tcl_RegExpGetInfo(re, &info);
-
-		    /*
-		     * Check to see that the match begins with the current
-		     * character.  This is a hack until we get a fix from
-		     * Henry to allow the TCL_REG_BOSONLY flag. 
-		     */
-
-		    if (info.matches[0].start == 0) {
-			*km_match = km;
-			*skip = start_search-string;
-			return EXP_MATCH;
-		    }
+		    *km_match = km;
+		    *skip = start_search-string;
+		    return EXP_MATCH;
 		} else if (result == 0) {
 		    Tcl_RegExpInfo info;
 		    Tcl_RegExpGetInfo(re, &info);
