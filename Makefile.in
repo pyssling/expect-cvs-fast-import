@@ -635,9 +635,12 @@ GCCINC = -I$(GCCROOT)/include
 SABERDEFINE = -D__sparc__
 
 # Following target builds expect under CodeCenter.
+# Note that CodeCenter doesn't understand backslashes in STTY - there is a
+# default value in the code itself that is used.  So if you don't use the default,
+# you'll have to hand-edit the source.
 # If using ObjectCenter, before loading, type: setopt primary_language C
 exp:	$(CFILES) exp_main_exp.c
-	#load $(CPPFLAGS) $(STTY) $(CFILES) exp_main_exp.c $(TCLLIB) $(GCCLIB) $(EXP_AND_TCL_LIBS)
+	#load $(CPPFLAGS) $(CFILES) exp_main_exp.c $(TCLLIB) $(GCCLIB) $(EXP_AND_TCL_LIBS)
 
 # Following target builds expectk under CodeCenter.  Notes:
 # Because of explicit #includes of <X11/...> in tk.h, you need to create

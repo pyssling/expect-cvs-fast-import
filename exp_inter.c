@@ -380,33 +380,29 @@ intRegExpMatchProcess(interp,esPtr,km,info)
  * echo chars
  */ 
 static void
-intEcho(esPtr,km,skipBytes,matchBytes)
+intEcho(esPtr,skipBytes,matchBytes)
     ExpState *esPtr;
-    struct keymap *km;
     int skipBytes;
+    int matchBytes;
 {
     int seenBytes;	/* either printed or echoed */
     int echoBytes;
-    int echoChars;
-    char *string;
-    char *p;
+    int offsetBytes;
 
     /* write is unlikely to fail, since we just read from same descriptor */
     seenBytes = esPtr->printed + esPtr->echoed;
     if (skipBytes >= seenBytes) {
 	echoBytes = matchBytes;
+	offsetBytes = skipBytes;
     } else if ((matchBytes + skipBytes - seenBytes) > 0) {
-	echoBytes = matchBytes+skipBytes-seenBytes;
+	echoBytes = matchBytes + skipBytes - seenBytes;
+	offsetBytes = seenBytes;
     }
 
-    string = Tcl_GetString(esPtr->buffer)+skipBytes;
-    echoChars = 0;
-    for (p=string;*p;p=Tcl_UtfNext(p)) {
-	if (p-string == echoBytes) break;
-	echoChars++;
-    }
+    Tcl_WriteChars(esPtr->channel,
+		   Tcl_GetString(esPtr->buffer) + offsetBytes,
+		   echoBytes);
 
-    Tcl_WriteChars(esPtr->channel, Tcl_GetString(esPtr->buffer)+skipBytes, echoChars);
     esPtr->echoed = matchBytes + skipBytes - esPtr->printed;
 }
 
@@ -1400,7 +1396,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 	} else print = skip;
 
 	if (km && km->echo) {
-	    intEcho(u,km,skip,matchLen);
+	    intEcho(u,skip,matchLen);
 	}
 	oldprinted = u->printed;
 
@@ -1673,7 +1669,7 @@ got_action:
 		} else print = skip;
 
 		if (km && km->echo) {
-		    intEcho(u,km,skip,matchLen);
+		    intEcho(u,skip,matchLen);
 		}
 		oldprinted = u->printed;
 
@@ -1912,7 +1908,7 @@ got_action:
 		} else print = skip;
 
 		if (km && km->echo) {
-		    intEcho(u,km,skip,matchLen);
+		    intEcho(u,skip,matchLen);
 		}
 		oldprinted = u->printed;
 

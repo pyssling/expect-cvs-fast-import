@@ -87,10 +87,10 @@ expWriteBytesAndLogIfTtyU(esPtr,buf,lenBytes)
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
 
     if (esPtr->valid)
-	wc = Tcl_Write(esPtr->channel,buf,lenBytes);
+	wc = Tcl_WriteChars(esPtr->channel,buf,lenBytes);
 
     if (tsdPtr->logChannel && ((esPtr->fdout == 1) || expDevttyIs(esPtr))) {
-	Tcl_Write(tsdPtr->logChannel,buf,lenBytes);
+	Tcl_WriteChars(tsdPtr->logChannel,buf,lenBytes);
     }
     return wc;
 }

@@ -3,10 +3,17 @@ support are in ChangeLog. - Don
 
 Date	Version	Description
 -------	-------	------------------------------------------------------
+		Fixed bug in interact -echo exhibited in rftp example.
+
+		Ryan Murray <rmurray@cyberhqz.com> noted Expect wasn't
+		handling handling 8-bit bytes correctly.  I had accidentally
+		used Tcl_Write instead of Tcl_WriteChar.
+
 		Ashley Pittman <ashley@ilo.dec.com> noted that digital unix
 		V5.0 prefers openpty (4000 ptys) over ptmx (60 ptys), so I'm
 		reversing the login in pty_termios.c.  This also controls
-		linux, but no linux hackers have weighed in on this subject			yet.
+		linux, but no linux hackers have weighed in on this subject
+		yet.
 
 		Andrew Tannenbaum <trb@world.std.com> noted exp_internal
 		command and "expect -exact" were broken.

@@ -184,7 +184,7 @@ struct breakpoint *bp;	/* breakpoint to test */
 	Tcl_IncrRefCount(cmdObj);
 	if (Tcl_RegExpExecObj(NULL, re, cmdObj, 0 /* offset */,
 		-1 /* nmatches */, 0 /* eflags */) > 0) {
-	    save_re_matches(interp, re, cmd);
+	    save_re_matches(interp, re, cmdObj);
 	}
 	Tcl_DecrRefCount(cmdObj);
     } else if (bp->pat) {
