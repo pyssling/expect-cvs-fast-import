@@ -1,11 +1,11 @@
 dnl
 dnl Process this file with autoconf to produce a configure script.
 dnl
-AC_REVISION($Id: configure.in,v 1.15 2004/11/09 23:10:58 patthoyts Exp $)
+AC_REVISION($Id: configure.in,v 5.62 2005/06/09 18:51:19 andreas_kupries Exp $)
 
 AC_INIT([expect],[5.43.0])
 
-TEA_INIT([3.2])
+TEA_INIT([3.5])
 
 AC_CONFIG_AUX_DIR(tclconfig)
 
