@@ -1,9 +1,9 @@
 dnl
 dnl Process this file with autoconf to produce a configure script.
 dnl
-AC_REVISION($Id: configure.in,v 5.63 2006/01/24 18:04:34 andreas_kupries Exp $)
+AC_REVISION($Id: configure.in,v 5.64 2007/06/28 19:23:38 andreas_kupries Exp $)
 
-AC_INIT([expect],[5.44.1])
+AC_INIT([expect],[5.44.1.1])
 
 TEA_INIT([3.5])
 
