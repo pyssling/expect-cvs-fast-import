@@ -105,7 +105,7 @@ would appreciate credit if this program or parts of it are used.
  * *** 2. This in addition to changes to TclRegError makes the   ***
  * ***    code multi-thread safe.                                ***
  *
- * RCS: @(#) $Id: exp_clib.c,v 5.34 2010/03/11 21:55:19 eee Exp $
+ * RCS: @(#) $Id: exp_clib.c,v 5.35 2010/03/15 23:17:23 eee Exp $
  */
 
 #if 0
@@ -2051,8 +2051,8 @@ char *exp_stty_init = NULL;		/* initial stty args */
 int exp_ttycopy = TRUE;			/* copy tty parms from /dev/tty */
 int exp_ttyinit = TRUE;			/* set tty parms to sane state */
 int exp_console = FALSE;		/* redirect console */
-void (*exp_child_exec_prelude)() = NULL;
-void (*exp_close_in_child)() = NULL;
+void (*exp_child_exec_prelude)()void = NULL;
+void (*exp_close_in_child)(void) = NULL;
 
 #ifdef HAVE_SIGLONGJMP
 sigjmp_buf exp_readenv;		/* for interruptable read() */
