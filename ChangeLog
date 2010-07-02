@@ -1,3 +1,7 @@
+2010-07-02  Elchonon Edelson <eee@users.sourceforge.net>
+
+	* 'expect_6_branch' branch created.
+
 2009-11-03  Andreas Kupries  <andreask@activestate.com>
 
 	* exp_command.c (Exp_SpawnObjCmd): [Expect SF Bug 2891422]. Fixed
