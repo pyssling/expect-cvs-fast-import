@@ -12,7 +12,7 @@
 # See the file "license.terms" for information on usage and redistribution
 # of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 #
-# RCS: @(#) $Id: Makefile.in,v 5.45 2008/10/03 17:05:14 andreas_kupries Exp $
+# RCS: @(#) $Id: Makefile.in,v 5.46 2010/08/27 21:51:53 hobbs Exp $
 
 #========================================================================
 #========================================================================
@@ -329,7 +329,8 @@ pkgIndex.tcl:
 	( echo pkg_mkIndex . $(PKG_LIB_FILE) \; exit; ) | $(TCLSH)
 
 pkgIndex.tcl-hand:
-	(echo 'package ifneeded Expect $(PACKAGE_VERSION) \
+	(echo 'if {![package vsatisfies [package provide Tcl] @TCL_VERSION@]} {return}' ; \
+	 echo 'package ifneeded Expect $(PACKAGE_VERSION) \
 	    [list load [file join $$dir $(PKG_LIB_FILE)]]'\
 	) > pkgIndex.tcl
 
